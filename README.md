@@ -35,6 +35,7 @@ Install [pipenv](https://pipenv.readthedocs.io/en/latest/) via `pip install pipe
 
 Due to quantization of the magnitudes, training with jpg images produce slightly different models.
 To avoid this, one can train using pre-computed STFT tensors, saved in the `.npy` format. Due to its file size, we don't offer this to download. Instead, please run the dataset creation script (`create_dataset.py`) from the main folder. When this is finished, the training can be started using:
+
 `python train.py --target vocals --data-dir musmag-npy --data-type .npy`
 
 ## Test
