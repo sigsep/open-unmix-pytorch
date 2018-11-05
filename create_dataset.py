@@ -15,7 +15,7 @@ if __name__ == '__main__':
                         help='nfft')
     parser.add_argument('--hop', type=int, default=1024,
                         help='hop size')
-    parser.add_argument('--root_dir', type=str, default="musmag",
+    parser.add_argument('--root_dir', type=str, default="musmag-npy",
                         help='provide output path base folder name')
 
     args = parser.parse_args()

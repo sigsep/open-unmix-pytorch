@@ -25,10 +25,30 @@ Install [pipenv](https://pipenv.readthedocs.io/en/latest/) via `pip install pipe
 
 ## Training
 
-### Train with MUSDB JPGs
+### Train with precomputed 30s jpg images
+
+[musdb](https://github.com/sigsep/sigsep-mus-db) includes pre-computed magnitudes of the [MUSDB 30s previews](https://zenodo.org/record/1256003). These magnitudes are automatically downloaded to the folder set by the `data-dir` option (defaults to `./data`). To start the training of the vocals model, you just run:
 
 `python train.py --vocals`
 
-### Train with npy spectrograms
+### Train with raw npy spectrograms
 
-`python train.py --target vocals --data-dir path_to_musdb_dir --data-type .npy`
+Due to quantization of the magnitudes, training with jpg images produce slightly different models.
+To avoid this, one can train using pre-computed STFT tensors, saved in the `.npy` format. Due to its file size, we don't offer this to download. Instead, please run the dataset creation script (`create_dataset.py`) from the main folder. When this is finished, the training can be started using:
+`python train.py --target vocals --data-dir musmag-npy --data-type .npy`
+
+## Test
+
+t.b.a.
+
+### MUSDB Test
+
+t.b.a.
+
+### Evaluation using `museval`
+
+t.b.a.
+
+### Pretrained model
+
+t.b.a.
