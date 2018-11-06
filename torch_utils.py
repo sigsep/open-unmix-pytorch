@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 
-def save_targt_checkpoint(
+def save_checkpoint(
     state, is_best, path, target
 ):
 
