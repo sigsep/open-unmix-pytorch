@@ -29,7 +29,7 @@ Install [pipenv](https://pipenv.readthedocs.io/en/latest/) via `pip install pipe
 
 [musdb](https://github.com/sigsep/sigsep-mus-db) includes pre-computed magnitudes of the [MUSDB 30s previews](https://zenodo.org/record/1256003). These magnitudes are automatically downloaded to the folder set by the `data-dir` option (defaults to `./data`). To start the training of the vocals model, you just run:
 
-`python train.py --vocals`
+`python train.py --target vocals`
 
 ### Train with raw npy spectrograms
 

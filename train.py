@@ -54,15 +54,6 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-kwargs = {
-    'num_workers': 1, 'pin_memory': True
-} if use_cuda else {'num_workers': 4}
-
-
-def safe_index(nb_samples, batch_size):
-    nb_samples -= nb_samples % batch_size
-    return nb_samples // batch_size
-
 
 # Fixed Parameters
 valid_tracks = [
