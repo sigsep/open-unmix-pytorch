@@ -15,14 +15,15 @@ if __name__ == '__main__':
                         help='nfft')
     parser.add_argument('--hop', type=int, default=1024,
                         help='hop size')
-    parser.add_argument('--root_dir', type=str, default="musmag-npy",
+    parser.add_argument('--root_dir', type=str, default=".",
                         help='provide output path base folder name')
-
+    parser.add_argument('--iswav', help='Read musdb wav instead of stems',
+                        action='store_true')
     args = parser.parse_args()
 
     estimates_dir = 'musmag-npy'
 
-    mus = musdb.DB()
+    mus = musdb.DB(is_wav=args.iswav)
     tracks = mus.load_mus_tracks()
     for track in tqdm.tqdm(tracks):
         # set (trackwise) norbert objects
