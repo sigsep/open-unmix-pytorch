@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 numpy = "==1.15.4"
 pescador = "==2.0.0"
+norbert = "==0.1.0"
 tqdm = "*"
 
 [dev-packages]

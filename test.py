@@ -9,7 +9,7 @@ import museval
 import os.path
 import soundfile as sf
 import os
-from split import split, overlapadd
+from norbert.contrib import split, overlapadd
 import networks
 import json
 from pathlib import Path
