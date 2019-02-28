@@ -10,7 +10,7 @@ def excerpt_generator(
     seed=42
 ):
     X, Y = dataset[idx]
-    nb_frames, nb_bins, nb_channels = X.shape
+    nb_frames, _, _ = X.shape
 
     # get all t indices and shuffle, make sure that excerpt is shorter than
     # number of frames

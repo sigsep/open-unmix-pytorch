@@ -128,7 +128,7 @@ def train(epoch):
     model.train()
     end = time.time()
 
-    for batch_idx, batch in enumerate(tqdm.tqdm(train_mux())):
+    for _, batch in enumerate(tqdm.tqdm(train_mux())):
         X = np.transpose(np.copy(batch['X']), (1, 0, 3, 2))
         Y = np.transpose(np.copy(batch['Y']), (1, 0, 3, 2))
         X = torch.tensor(X, dtype=torch.float32, device=device)
@@ -152,7 +152,7 @@ def valid(gen):
 
     model.eval()
     with torch.no_grad():
-        for batch_idx, batch in enumerate(gen):
+        for _, batch in enumerate(gen):
             X = np.transpose(np.copy(batch['X']), (1, 0, 3, 2))
             Y = np.transpose(np.copy(batch['Y']), (1, 0, 3, 2))
             X = torch.tensor(X, dtype=torch.float32, device=device)
