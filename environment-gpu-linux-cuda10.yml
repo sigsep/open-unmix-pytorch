@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-linux-cpu
+name: open-unmix-pytorch-gpu
 
 channels:
   - conda-forge
@@ -7,8 +7,9 @@ channels:
 dependencies:
   - python==3.7.1
   - numpy==1.15.4
-  - pytorch-cpu>=1.0.1
-  - torchvision-cpu==0.2.2
+  - pytorch>=1.0.1
+  - torchvision==0.2.2
+  - cudatoolkit==10.0
   - pescador==2.0.0
   - tqdm==4.28.1
   - pip:
