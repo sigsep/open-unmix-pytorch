@@ -25,15 +25,14 @@ parser = argparse.ArgumentParser(description='PyTorch MUSMAG')
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
+parser.add_argument('--root', type=str, help='root path of dataset')
+
+
 # I/O Parameters
 parser.add_argument('--seq-dur', type=float, default=5.0)
-parser.add_argument('--seq-hop', type=float, default=2.5)
 
-parser.add_argument('--data-dir', type=str, default='data',
-                    help='set data root dir')
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
-parser.add_argument('--data-type', type=str, default=".jpg")
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 
@@ -59,11 +58,20 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-dataset = data.RawDataset("~/repositories/getency/tencydb", seq_dur=args.seq_dur)
-training_generator = torch.utils.data.DataLoader(dataset, batch_size=16, num_workers=8)
+# train_dataset = data.RRDataset(
+#     root="~/repositories/sigsep-mus-encodestems/data/MUSDB18-7-WAV/train", 
+#     seq_dur=args.seq_dur
+# )
+
+train_dataset = data.MUSDBDataset(
+    root="~/Documents/MUSDB18-30-STEMS/",
+    seq_dur=args.seq_dur
+)
+
+train_generator = torch.utils.data.DataLoader(
+    train_dataset, batch_size=16, num_workers=8
+)
 print("Sequence Length (samples): dataset.seq_len")
-# math.ceil(len(args.seq_dur) / args.seq_hop) + 1
-# samples = (nb_frames - 1) * hop
 batch_size = 16
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
@@ -78,7 +86,7 @@ def train(epoch):
     model.train()
     end = time.time()
 
-    for x, y in training_generator:
+    for x, y in train_generator:
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         Y_hat = model(x)
@@ -86,27 +94,25 @@ def train(epoch):
         loss = criterion(Y_hat, Y)
         loss.backward()
         optimizer.step()
-        # measure accuracy and record loss
         losses.update(loss.item(), Y.size(1))
         print(losses.avg)
-        # measure elapsed time
         data_time.update(time.time() - end)
     return losses.avg
 
 
-def valid(gen):
+def valid():
     losses = utils.AverageMeter()
 
     model.eval()
     with torch.no_grad():
-        for batch in dataset:
-            X = torch.tensor(batch['X'], dtype=torch.float32, device=device)
-            Y = torch.tensor(batch['Y'], dtype=torch.float32, device=device)
-            Y_hat = model(X)
+        for x, y in train_generator:
+            x, y = x.to(device), y.to(device)
+            Y_hat = model(x)
+            Y = model.spec(y)
             loss = F.mse_loss(Y_hat, Y)
-            losses.update(loss.item(), X.size(1))
+            losses.update(loss.item(), x.size(1))
 
-        return losses.avg, X, Y, Y_hat
+        return losses.avg
 
 
 es = utils.EarlyStopping(patience=args.patience)
@@ -116,6 +122,7 @@ train_losses = []
 valid_losses = []
 for epoch in t:
     train_loss = train(epoch)
+    valid_loss = valid()
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
