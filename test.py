@@ -118,7 +118,7 @@ def separate(
 
     if not logit:
         logit = None
-    Y = norbert.wiener(np.copy(V), np.copy(X), niter,
+        Y = norbert.wiener(np.copy(V), np.copy(X), niter,
                        smoothing=smoothing, logit=logit)
 
     estimates = {}
