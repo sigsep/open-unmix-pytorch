@@ -3,22 +3,22 @@ import pescador
 import random
 
 
-def excerpt_generator(
+def excerpt_sampler(
     dataset, idx,
     ex_length=256, ex_hop=256,
-    shuffle=True, data_type='.npy',
+    shuffle=True,
     seed=42
 ):
-    X, Y = dataset[idx]
-    nb_frames, _, _ = X.shape
+    x, y = dataset[idx]
+    nb_timesteps = x.shape[0]
 
     # get all t indices and shuffle, make sure that excerpt is shorter than
     # number of frames
-    if ex_length < nb_frames:
-        steps = np.arange(0, nb_frames - ex_length, ex_hop)
+    if ex_length < nb_timesteps:
+        steps = np.arange(0, nb_timesteps - ex_length, ex_hop)
     else:
         steps = [0]
-        ex_length = nb_frames
+        ex_length = nb_timesteps
 
     if shuffle:
         # shuffle t indices in place
@@ -26,13 +26,9 @@ def excerpt_generator(
         np.random.shuffle(steps)
 
     for s in steps:
-        cur_X = X[s:s+ex_length, ...]
-        cur_Y = Y[s:s+ex_length, ...]
-        # dequantize from 8bit int to float
-        if data_type == '.jpg':
-            cur_X = np.exp(cur_X.astype(np.float) / (2 ** 8 - 1)) - 1
-            cur_Y = np.exp(cur_Y.astype(np.float) / (2 ** 8 - 1)) - 1
-        yield dict(X=cur_X, Y=cur_Y)
+        cur_x = x[s:s+ex_length, ...]
+        cur_y = y[s:s+ex_length, ...]
+        yield dict(x=cur_x, y=cur_y)
 
 
 def mixmux(
@@ -43,18 +39,16 @@ def mixmux(
     shuffle=True,
     seed=42,
     active_streamers=100,
-    data_type='.npy'
 ):
     streams = []
     for idx in range(len(dataset)):
         s = pescador.Streamer(
-            excerpt_generator,
+            excerpt_sampler,
             dataset, idx,
             ex_length=ex_length,
             ex_hop=ex_hop,
             shuffle=shuffle,
             seed=seed,
-            data_type=data_type
         )
         streams.append(s)
 
