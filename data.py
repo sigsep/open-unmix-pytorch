@@ -95,11 +95,13 @@ class MUSDBDataset(data.Dataset):
         root=None,
         is_wav=False,
         subsets=['train'],
+        target='vocals',
         seq_dur=None
     ):
         """MUSDB18 Dataset wrapper
         """
         import musdb
+        self.is_wav = is_wav
         self.mus = musdb.DB(
             is_wav=is_wav
         )
@@ -109,21 +111,26 @@ class MUSDBDataset(data.Dataset):
         else:
             self.seq_len = None
         # set the input and output files (accept glob)
-        self.target = 'vocals'
+        self.target = target
+        self.subsets = subsets
         self.tracks = self.mus.load_mus_tracks(subsets=subsets)
 
-    def __getitem__(self, index):               
-        X_audio = self.tracks[index].audio.T
-        Y_audio = self.tracks[index].targets[self.target].audio.T
-
-        if self.seq_len is None:
-            X, Y  = X_audio, Y_audio
+    def __getitem__(self, index):
+        if self.is_wav:
+            # get paths and load using torch audio
+            pass
         else:
-            # compare if length is larger than excerpt length
-            if X_audio.shape[1] > self.seq_len:
-                pos = random.randint(0, X_audio.shape[1] - self.seq_len)
-                X, Y = X_audio[:, pos:pos+self.seq_len], Y_audio[:, pos:pos+self.seq_len]
-        return torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32)
+            X_audio = self.tracks[index].audio.T
+            Y_audio = self.tracks[index].targets[self.target].audio.T
+
+            if self.seq_len is None:
+                X, Y  = X_audio, Y_audio
+            else:
+                # compare if length is larger than excerpt length
+                if X_audio.shape[1] > self.seq_len:
+                    pos = random.randint(0, X_audio.shape[1] - self.seq_len)
+                    X, Y = X_audio[:, pos:pos+self.seq_len], Y_audio[:, pos:pos+self.seq_len]
+            return torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32)
 
     def __len__(self):
         return len(self.tracks)
