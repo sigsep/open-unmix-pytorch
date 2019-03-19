@@ -182,10 +182,10 @@ for epoch in t:
     best_loss = min(valid_loss, best_loss)
 
     utils.save_checkpoint({
-        'epoch': epoch + 1,
-        'state_dict': model.state_dict(),
-        'best_loss': best_loss,
-        'optimizer': optimizer.state_dict(),
+            'epoch': epoch + 1,
+            'state_dict': model.state_dict(),
+            'best_loss': best_loss,
+            'optimizer': optimizer.state_dict(),
         },
         is_best,
         target_path,
