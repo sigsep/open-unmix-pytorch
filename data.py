@@ -2,7 +2,6 @@ import random
 import numpy as np
 from pathlib import Path
 import torch
-import torchaudio
 
 class SourceFolderDataset(torch.utils.data.Dataset):
     def __init__(
@@ -18,7 +17,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
         """
-
+        import torchaudio
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
         if seq_duration is not None:
