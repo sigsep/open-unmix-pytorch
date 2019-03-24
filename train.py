@@ -9,7 +9,6 @@ from pathlib import Path
 import tqdm
 import numpy as np
 import json
-import sampling
 import torch.utils.data
 import utils
 import data
@@ -63,15 +62,14 @@ device = torch.device("cuda" if use_cuda else "cpu")
 train_dataset = data.MUSDBDataset(
     seq_duration=args.seq_dur, download=True, subsets="train", validation_split='train'
 )
-
 valid_dataset = data.MUSDBDataset(
     seq_duration=args.seq_dur, download=True, subsets="train", validation_split='valid'
 )
 
-train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8)
-valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size)
+train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=4)
 
-model = model.OSU(n_fft=2048, n_hop=1024, power=20).to(device)
+model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
