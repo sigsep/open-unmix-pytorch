@@ -10,7 +10,7 @@ import tqdm
 import numpy as np
 import json
 import sampling
-import torch.utils
+import torch.utils.data
 import data
 import math
 
