@@ -97,14 +97,13 @@ class MUSDBDataset(torch.utils.data.Dataset):
     ):
         """MUSDB18 Dataset wrapper
         """
-        import musdb
         self.is_wav = is_wav
         self.seq_duration = seq_duration
         self.target = target
         self.subsets = subsets
         self.validation_split = validation_split
         self.mus = musdb.DB(
-            root_dir=root, download=download, is_wav=is_wav, subsets=subsets, *args, **kwargs
+            root_dir=root, download=download, is_wav=is_wav, validation_split=validation_split, subsets=subsets, *args, **kwargs
         )
 
     def __getitem__(self, index):
@@ -121,7 +120,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         track.dur = dur
         x = track.audio.T
         y = track.targets[self.target].audio.T
-
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
     def __len__(self):
