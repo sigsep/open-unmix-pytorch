@@ -79,7 +79,7 @@ class OSU(nn.Module):
         if image:
             self.transform = NoOp()
         else:
-            self.transform = Spectrogram(n_fft=n_fft, n_hop=n_hop, power=1, mono=(nb_channels == 1))
+            self.transform = Spectrogram(n_fft=n_fft, n_hop=n_hop, power=power, mono=(nb_channels == 1))
         self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
         self.fc1 = Linear(
