@@ -96,53 +96,44 @@ class MUSDBDataset(data.Dataset):
         is_wav=False,
         subsets=['train'],
         target='vocals',
-        seq_dur=None
+        seq_duration=None
     ):
         """MUSDB18 Dataset wrapper
         """
         import musdb
         self.is_wav = is_wav
-        self.mus = musdb.DB(
-            is_wav=is_wav
-        )
-        self.sample_rate = 44100
-        if seq_dur is not None:
-            self.seq_len = int(seq_dur * self.sample_rate)
-        else:
-            self.seq_len = None
-        # set the input and output files (accept glob)
+        self.seq_duration = seq_duration
         self.target = target
         self.subsets = subsets
-        self.tracks = self.mus.load_mus_tracks(subsets=subsets)
+        self.mus = musdb.DB(root_dir=root, is_wav=is_wav, subsets=subsets)
 
     def __getitem__(self, index):
         if self.is_wav:
             # get paths and load using torch audio
             pass
         else:
-            X_audio = self.tracks[index].audio.T
-            Y_audio = self.tracks[index].targets[self.target].audio.T
-
-            if self.seq_len is None:
-                X, Y  = X_audio, Y_audio
+            # get musdb track object
+            track = self.mus[index]
+            if self.seq_duration is None:
+                start = 0
+                dur = None
             else:
-                # compare if length is larger than excerpt length
-                if X_audio.shape[1] > self.seq_len:
-                    pos = random.randint(0, X_audio.shape[1] - self.seq_len)
-                    X, Y = X_audio[:, pos:pos+self.seq_len], Y_audio[:, pos:pos+self.seq_len]
+                start = random.uniform(0, track.duration - self.seq_duration)
+                dur = self.seq_duration
+
+            track.start = start
+            track.dur = dur
+            X = track.audio.T
+            Y = track.targets[self.target].audio.T
+
             return torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32)
 
     def __len__(self):
-        return len(self.tracks)
+        return len(self.mus)
 
-    def get_duration(self, fp):
-        # get length of file in samples
-        si, _ = torchaudio.info(str(fp))
-        # sox_info state the length as the `nb_samples * nb_channels`
-        return si.length // si.channels / si.rate
 
-    def get_samples(self, fp):
-        # get length of file in samples
-        si, _ = torchaudio.info(str(fp))
-        # sox_info state the length as the `nb_samples * nb_channels`
-        return si.length // si.channels
+if __name__ == "__main__":
+    # dataset iterator test
+    dataset =  MUSDBDataset(seq_duration=1.0)
+    for X, Y in dataset:
+        print(X.shape)

@@ -65,7 +65,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 train_dataset = data.MUSDBDataset(
     root="~/Documents/MUSDB18-30-STEMS/",
-    seq_dur=args.seq_dur
+    seq_duration=args.seq_dur
 )
 
 train_generator = torch.utils.data.DataLoader(
