@@ -1,19 +1,16 @@
-import os.path
-import aubio
+import random
 import numpy as np
 from pathlib import Path
-import torchaudio
-from torch.utils import data
-import numpy as np
-import random
 import torch
+import torchaudio
 
-class RRDataset(data.Dataset):
+class SourceFolderDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
-        seq_dur=None,
-        targets={'x': 'mixture.wav', 'y': 'vocals.wav'},
+        seq_duration=None,
+        input_file='mixture.wav',
+        output_file='vocals.wav',
         sample_rate=44100,
     ):  
         """Random'n'Raw Dataset
@@ -24,12 +21,10 @@ class RRDataset(data.Dataset):
 
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
-        if seq_dur is not None:
-            self.seq_len = int(seq_dur * sample_rate)
-        else:
-            self.seq_len = None
+        if seq_duration is not None:
+            self.seq_duration = int(seq_duration * sample_rate)
         # set the input and output files (accept glob)
-        self.targets = targets
+        self.targets = {'x': input_file, 'y': output_file}
         self.audio_files = list(self.get_track_paths())
 
     def __getitem__(self, index):
@@ -53,16 +48,16 @@ class RRDataset(data.Dataset):
         return si.length // si.channels
 
     def load_audio(self, fp):
-        if self.seq_len is None:
+        if self.seq_duration is None:
             sig, rate = torchaudio.load(fp)
             assert rate == self.sample_rate
             return sig
         else:
             # compare if length is larger than excerpt length
             nb_samples = self.get_samples(fp)
-            if nb_samples > self.seq_len:
-                seek_pos = random.randint(0, nb_samples - self.seq_len)
-                sig, rate = torchaudio.load(fp, num_frames=self.seq_len, offset=seek_pos)
+            if nb_samples > self.seq_duration:
+                seek_pos = random.randint(0, nb_samples - self.seq_duration)
+                sig, rate = torchaudio.load(fp, num_frames=self.seq_duration, offset=seek_pos)
                 assert rate == self.sample_rate
                 return sig
 
@@ -89,14 +84,17 @@ class RRDataset(data.Dataset):
                     yield {'x': input_path[0], 'y': output_path[0]}
 
 
-class MUSDBDataset(data.Dataset):
+class MUSDBDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root=None,
         is_wav=False,
         subsets=['train'],
         target='vocals',
-        seq_duration=None
+        seq_duration=None,
+        download=True,
+        validation_split='train',
+        *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper
         """
@@ -105,28 +103,27 @@ class MUSDBDataset(data.Dataset):
         self.seq_duration = seq_duration
         self.target = target
         self.subsets = subsets
-        self.mus = musdb.DB(root_dir=root, is_wav=is_wav, subsets=subsets)
+        self.validation_split = validation_split
+        self.mus = musdb.DB(
+            root_dir=root, download=download, is_wav=is_wav, subsets=subsets, *args, **kwargs
+        )
 
     def __getitem__(self, index):
-        if self.is_wav:
-            # get paths and load using torch audio
-            pass
+        # get musdb track object
+        track = self.mus[index]
+        if self.seq_duration is None or self.validation_split != 'train':
+            start = 0
+            dur = None
         else:
-            # get musdb track object
-            track = self.mus[index]
-            if self.seq_duration is None:
-                start = 0
-                dur = None
-            else:
-                start = random.uniform(0, track.duration - self.seq_duration)
-                dur = self.seq_duration
+            start = random.uniform(0, track.duration - self.seq_duration)
+            dur = self.seq_duration
 
-            track.start = start
-            track.dur = dur
-            X = track.audio.T
-            Y = track.targets[self.target].audio.T
+        track.start = start
+        track.dur = dur
+        x = track.audio.T
+        y = track.targets[self.target].audio.T
 
-            return torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32)
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
     def __len__(self):
         return len(self.mus)
@@ -134,6 +131,10 @@ class MUSDBDataset(data.Dataset):
 
 if __name__ == "__main__":
     # dataset iterator test
-    dataset =  MUSDBDataset(seq_duration=1.0)
-    for X, Y in dataset:
-        print(X.shape)
+    import sampling
+    dataset =  MUSDBDataset(
+        seq_duration=1.0, download=True, subsets="train", validation_split='train'
+    )
+    print(len(dataset))
+    for x, y in dataset:
+        print(x.shape)

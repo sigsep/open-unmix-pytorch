@@ -3,13 +3,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class NoOp(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, x):
+        return x
+
 
 class Spectrogram(nn.Module):
     def __init__(
         self, 
         n_fft=2048, 
         n_hop=1024, 
-        window=torch.hann_window, 
         power=1, 
         mono=True
     ):
@@ -17,7 +23,7 @@ class Spectrogram(nn.Module):
         super(Spectrogram, self).__init__()
 
         self.window = nn.Parameter(
-            window(n_fft),
+            torch.hann_window(n_fft),
             requires_grad=False
         )
         self.n_fft = n_fft
@@ -64,12 +70,16 @@ class OSU(nn.Module):
         nb_channels=1, 
         nb_layers=3, 
         hidden_size=512,
+        image=False
     ):
         super(OSU, self).__init__()
 
         self.hidden_size = hidden_size
         self.nb_bins = n_fft // 2 + 1
-        self.spec = Spectrogram(n_fft=n_fft, n_hop=n_hop, power=1, mono=(nb_channels == 1))
+        if image:
+            self.transform = NoOp()
+        else:
+            self.transform = Spectrogram(n_fft=n_fft, n_hop=n_hop, power=1, mono=(nb_channels == 1))
         self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
         self.fc1 = Linear(
@@ -110,10 +120,9 @@ class OSU(nn.Module):
         )
 
     def forward(self, x):
-        # transform input to spectrogram
-
         # check for waveform or image
-        x = self.spec(x)
+        # transform to spectrogram if (nb_batches, nb_channels, samples)
+        x = self.transform(x)
         nb_frames, nb_batches, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)

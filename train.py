@@ -11,7 +11,9 @@ import numpy as np
 import json
 import sampling
 import torch_utils as utils
-import musdb
+import torch.utils
+import data
+import math
 
 
 tqdm.monitor_interval = 0
@@ -23,19 +25,23 @@ parser = argparse.ArgumentParser(description='PyTorch MUSMAG')
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
+parser.add_argument('--root', type=str, help='root path of dataset')
+
+
 # I/O Parameters
-parser.add_argument('--data-dir', type=str, default='data',
-                    help='set data root dir')
+parser.add_argument('--seq-dur', type=float, default=1.0)
+
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
-parser.add_argument('--data-type', type=str, default=".jpg")
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
-                    help='number of epochs to train (default: 10)')
+parser.add_argument('--epochs', type=int, default=1000, metavar='N',
+                    help='number of epochs to train (default: 1000)')
 parser.add_argument('--patience', type=int, default=20,
                     help='early stopping patience (default: 20)')
+parser.add_argument('--batch_size', type=int, default=16,
+                    help='batch size')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -54,69 +60,18 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-
-# Fixed Parameters
-valid_tracks = [
-    'Aimee Norwich - Child',
-    'BigTroubles - Phantom',
-    'Hollow Ground - Left Blind',
-    'Music Delta - Disco',
-    'Music Delta - Beatles',
-    'The So So Glos - Emergency'
-    'Port St Willow - Stay Even',
-    'Voelund - Comfort Lives In Belief'
-]
-
-batch_size = 16
-excerpt_length = 256
-excerpt_hop = 256
-
-d_train = musdb.MAG(
-    root_dir=args.data_dir,
-    target=args.target,
-    valid_tracks=valid_tracks,
-    download=args.data_type == '.jpg',
-    valid=False,
-    scale=True,
-    in_memory=False,
-    data_type=args.data_type
+train_dataset = data.MUSDBDataset(
+    seq_duration=args.seq_dur, download=True, subsets="train", validation_split='train'
 )
 
-d_valid = musdb.MAG(
-    root_dir=args.data_dir,
-    target=args.target,
-    download=args.data_type == '.jpg',
-    valid_tracks=valid_tracks,
-    valid=True,
-    in_memory=False,
-    data_type=args.data_type
+valid_dataset = data.MUSDBDataset(
+    seq_duration=args.seq_dur, download=True, subsets="train", validation_split='valid'
 )
 
-nb_frames, nb_features, nb_channels = d_train[0][0].shape
+train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8)
+valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size)
 
-train_mux = sampling.mixmux(
-    d_train,
-    batch_size,
-    ex_length=excerpt_length,
-    ex_hop=excerpt_hop,
-    shuffle=True,
-    data_type=args.data_type
-)
-
-# do not use overlap for validation
-valid_mux = sampling.mixmux(
-    d_valid,
-    batch_size,
-    ex_length=excerpt_length,
-    ex_hop=excerpt_length,
-    shuffle=False,
-    data_type=args.data_type
-)
-
-model = model.OSU(
-    nb_features=nb_features, nb_frames=excerpt_length,
-    output_mean=d_train.output_scaler.mean_
-).to(device)
+model = model.OSU(n_fft=2048, n_hop=1024, power=20).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
@@ -128,41 +83,31 @@ def train(epoch):
     model.train()
     end = time.time()
 
-    for _, batch in enumerate(tqdm.tqdm(train_mux())):
-        X = np.transpose(np.copy(batch['X']), (1, 0, 3, 2))
-        Y = np.transpose(np.copy(batch['Y']), (1, 0, 3, 2))
-        X = torch.tensor(X, dtype=torch.float32, device=device)
-        Y = torch.tensor(Y, dtype=torch.float32, device=device)
-
+    for x, y in train_sampler:
+        x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        Y_hat = model(X)
-
+        Y_hat = model(x)
+        Y = model.transform(y)
         loss = criterion(Y_hat, Y)
         loss.backward()
         optimizer.step()
-        # measure accuracy and record loss
-        losses.update(loss.item(), X.size(1))
-        # measure elapsed time
+        losses.update(loss.item(), Y.size(1))
         data_time.update(time.time() - end)
     return losses.avg
 
 
-def valid(gen):
+def valid():
     losses = utils.AverageMeter()
 
     model.eval()
     with torch.no_grad():
-        for _, batch in enumerate(gen):
-            X = np.transpose(np.copy(batch['X']), (1, 0, 3, 2))
-            Y = np.transpose(np.copy(batch['Y']), (1, 0, 3, 2))
-            X = torch.tensor(X, dtype=torch.float32, device=device)
-            Y = torch.tensor(Y, dtype=torch.float32, device=device)
-
-            Y_hat = model(X)
+        for x, y in valid_sampler:
+            x, y = x.to(device), y.to(device)
+            Y_hat = model(x)
+            Y = model.transform(y)
             loss = F.mse_loss(Y_hat, Y)
-            losses.update(loss.item(), X.size(1))
-
-        return losses.avg, X, Y, Y_hat
+            losses.update(loss.item(), x.size(1))
+        return losses.avg
 
 
 es = utils.EarlyStopping(patience=args.patience)
@@ -172,7 +117,7 @@ train_losses = []
 valid_losses = []
 for epoch in t:
     train_loss = train(epoch)
-    valid_loss, X, Y, Y_hat = valid(valid_mux)
+    valid_loss = valid()
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
@@ -202,9 +147,6 @@ for epoch in t:
         'args': vars(args),
         'best_loss': str(best_loss),
         'train_loss_history': train_losses,
-        'nb_frames': excerpt_length,
-        'nb_features': nb_features,
-        'nb_channels': nb_channels,
         'valid_loss_history': valid_losses,
     }
 
