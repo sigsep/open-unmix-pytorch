@@ -52,6 +52,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 args = parser.parse_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
+dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
 # create output dir if not exist
 target_path = Path(args.output, args.target)
@@ -82,8 +83,8 @@ train_dataset = data.SourceFolderDataset(
 #     validation_split='valid'
 # )
 
-train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
-valid_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=1)
+train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs)
+valid_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=1, **dataloader_kwargs)
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
