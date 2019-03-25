@@ -65,20 +65,20 @@ device = torch.device("cuda" if use_cuda else "cpu")
 train_dataset = data.MUSDBDataset(
     root=args.root,
     is_wav=args.is_wav,
-    seq_duration=args.seq_dur, 
-    subsets="train", 
+    seq_duration=args.seq_dur,
+    subsets="train",
     validation_split='train'
 )
 valid_dataset = data.MUSDBDataset(
     root=args.root,
     is_wav=args.is_wav,
-    seq_duration=args.seq_dur, 
-    subsets="train", 
+    seq_duration=args.seq_dur,
+    subsets="train",
     validation_split='valid'
 )
 
-train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, num_workers=4)
+train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
+valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1)
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
