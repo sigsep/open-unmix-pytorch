@@ -78,7 +78,7 @@ valid_dataset = data.MUSDBDataset(
 )
 
 train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=4)
+valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, num_workers=4)
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
