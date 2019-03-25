@@ -119,6 +119,11 @@ class OSU(nn.Module):
             bias=True
         )
 
+        self.output_scale = Parameter(
+            torch.ones(self.nb_bins).float()
+        )
+
+
     def forward(self, x):
         # check for waveform or image
         # transform to spectrogram if (nb_batches, nb_channels, samples)
@@ -159,10 +164,13 @@ class OSU(nn.Module):
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
         
         # scale back to output domain
-        x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
+        # x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
 
         # reshape back to sequence
         x = x.reshape(nb_frames, nb_batches, nb_channels, nb_bins)
+
+        # alternatively scale back to output
+        x *= self.output_scale
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
