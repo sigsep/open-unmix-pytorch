@@ -63,28 +63,28 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-train_dataset = data.SourceFolderDataset(
-    root=Path(args.root, "train"),
+# train_dataset = data.SourceFolderDataset(
+#     root=Path(args.root, "train"),
+#     seq_duration=args.seq_dur,
+# )
+
+train_dataset = data.MUSDBDataset(
+    root=args.root,
+    is_wav=args.is_wav,
     seq_duration=args.seq_dur,
+    subsets="train",
+    validation_split='train'
+)
+valid_dataset = data.MUSDBDataset(
+    root=args.root,
+    is_wav=args.is_wav,
+    seq_duration=args.seq_dur,
+    subsets="train",
+    validation_split='valid'
 )
 
-# train_dataset = data.MUSDBDataset(
-#     root=args.root,
-#     is_wav=args.is_wav,
-#     seq_duration=args.seq_dur,
-#     subsets="train",
-#     validation_split='train'
-# )
-# valid_dataset = data.MUSDBDataset(
-#     root=args.root,
-#     is_wav=args.is_wav,
-#     seq_duration=args.seq_dur,
-#     subsets="train",
-#     validation_split='valid'
-# )
-
 train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs)
-valid_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=1, **dataloader_kwargs)
+valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, **dataloader_kwargs)
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
