@@ -1,9 +1,10 @@
 import random
-import numpy as np
 from pathlib import Path
 import torch
 import musdb
 import torchaudio
+
+
 class SourceFolderDataset(torch.utils.data.Dataset):
     def __init__(
         self,
@@ -12,9 +13,9 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         input_file='mixture.wav',
         output_file='vocals.wav',
         sample_rate=44100,
-    ):  
+    ):
         """Random'n'Raw Dataset
-        
+
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
         """
@@ -56,7 +57,9 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             nb_samples = self.get_samples(fp)
             if nb_samples > self.seq_duration:
                 seek_pos = random.randint(0, nb_samples - self.seq_duration)
-                sig, rate = torchaudio.load(fp, num_frames=self.seq_duration, offset=seek_pos)
+                sig, rate = torchaudio.load(
+                    fp, num_frames=self.seq_duration, offset=seek_pos
+                )
                 assert rate == self.sample_rate
                 return sig
 
@@ -68,8 +71,9 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         return total_duration
 
     def _get_track_samples(self):
-        samples = [range(0, self.get_samples(track_paths['x']) -
-                         self.excerpt, self.excerpt) for track_paths in self.audio_files]
+        samples = [
+            range(0, self.get_samples(track_paths['x']) - self.excerpt, self.excerpt) for track_paths in self.audio_files
+        ]
         return samples
 
     def get_track_paths(self):
@@ -78,7 +82,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             if track_folder.is_dir():
                 input_path = list(track_folder.glob(self.targets['x']))
                 output_path = list(track_folder.glob(self.targets['y']))
-                # if both targets are available in the subfolder add them to the track array
+                # if both targets are available in the subfolder add them
                 if input_path and output_path:
                     yield {'x': input_path[0], 'y': output_path[0]}
 
@@ -96,17 +100,16 @@ class MUSDBDataset(torch.utils.data.Dataset):
     ):
         """MUSDB18 Dataset wrapper
         """
-        import ipdb; ipdb.set_trace()
         self.is_wav = is_wav
         self.seq_duration = seq_duration
         self.target = target
         self.subsets = subsets
         self.validation_split = validation_split
         self.mus = musdb.DB(
-            root_dir=root, 
-            is_wav=is_wav, 
-            validation_split=validation_split, 
-            subsets=subsets, 
+            root_dir=root,
+            is_wav=is_wav,
+            validation_split=validation_split,
+            subsets=subsets,
             *args, **kwargs
         )
 
@@ -132,9 +135,11 @@ class MUSDBDataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     # dataset iterator test
-    import sampling
-    dataset =  MUSDBDataset(
-        seq_duration=1.0, download=True, subsets="train", validation_split='train'
+    dataset = MUSDBDataset(
+        seq_duration=1.0,
+        download=True,
+        subsets="train",
+        validation_split='train'
     )
     print(len(dataset))
     for x, y in dataset:

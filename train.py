@@ -7,12 +7,10 @@ import torch
 import time
 from pathlib import Path
 import tqdm
-import numpy as np
 import json
 import torch.utils.data
 import utils
 import data
-import math
 
 
 tqdm.monitor_interval = 0
@@ -80,8 +78,12 @@ dataset_kwargs = {
 train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
 valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
 
-train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs)
-valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, **dataloader_kwargs)
+train_sampler = torch.utils.data.DataLoader(
+    train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs
+)
+valid_sampler = torch.utils.data.DataLoader(
+    valid_dataset, batch_size=1, **dataloader_kwargs
+)
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
 
