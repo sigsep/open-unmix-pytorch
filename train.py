@@ -24,7 +24,10 @@ parser = argparse.ArgumentParser(description='PyTorch MUSMAG')
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
+
 parser.add_argument('--root', type=str, help='root path of dataset')
+parser.add_argument('--is-wav', action='store_true', default=False,
+                    help='flags wav version of the dataset')
 
 
 # I/O Parameters
@@ -60,10 +63,18 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if use_cuda else "cpu")
 
 train_dataset = data.MUSDBDataset(
-    seq_duration=args.seq_dur, download=True, subsets="train", validation_split='train'
+    root=args.root,
+    is_wav=args.is_wav,
+    seq_duration=args.seq_dur, 
+    subsets="train", 
+    validation_split='train'
 )
 valid_dataset = data.MUSDBDataset(
-    seq_duration=args.seq_dur, download=True, subsets="train", validation_split='valid'
+    root=args.root,
+    is_wav=args.is_wav,
+    seq_duration=args.seq_dur, 
+    subsets="train", 
+    validation_split='valid'
 )
 
 train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)

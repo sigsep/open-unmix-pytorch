@@ -92,7 +92,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         subsets=['train'],
         target='vocals',
         seq_duration=None,
-        download=True,
         validation_split='train',
         *args, **kwargs
     ):
@@ -104,7 +103,11 @@ class MUSDBDataset(torch.utils.data.Dataset):
         self.subsets = subsets
         self.validation_split = validation_split
         self.mus = musdb.DB(
-            root_dir=root, download=download, is_wav=is_wav, validation_split=validation_split, subsets=subsets, *args, **kwargs
+            root_dir=root, 
+            is_wav=is_wav, 
+            validation_split=validation_split, 
+            subsets=subsets, 
+            *args, **kwargs
         )
 
     def __getitem__(self, index):
