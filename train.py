@@ -61,27 +61,24 @@ target_path.mkdir(parents=True, exist_ok=True)
 # use jpg or npy
 torch.manual_seed(args.seed)
 
-device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device(" " if use_cuda else "cpu")
 
+# # Alternative Data loading
 # train_dataset = data.SourceFolderDataset(
 #     root=Path(args.root, "train"),
 #     seq_duration=args.seq_dur,
-# )
+# )    
 
-train_dataset = data.MUSDBDataset(
-    root=args.root,
-    is_wav=args.is_wav,
-    seq_duration=args.seq_dur,
-    subsets="train",
-    validation_split='train'
-)
-valid_dataset = data.MUSDBDataset(
-    root=args.root,
-    is_wav=args.is_wav,
-    seq_duration=args.seq_dur,
-    subsets="train",
-    validation_split='valid'
-)
+dataset_kwargs = {
+    'root': args.root,
+    'is_wav': args.is_wav,
+    'seq_duration': args.seq_dur,
+    'subsets': 'train',
+    'target': args.target
+}
+
+train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
+valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
 
 train_sampler = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs)
 valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, **dataloader_kwargs)
