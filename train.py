@@ -59,7 +59,7 @@ target_path.mkdir(parents=True, exist_ok=True)
 # use jpg or npy
 torch.manual_seed(args.seed)
 
-device = torch.device(" " if use_cuda else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 
 # # Alternative Data loading
 # train_dataset = data.SourceFolderDataset(
@@ -79,10 +79,12 @@ train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
 valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
 
 train_sampler = torch.utils.data.DataLoader(
-    train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs
+    train_dataset, batch_size=args.batch_size, shuffle=True,
+    **dataloader_kwargs
 )
 valid_sampler = torch.utils.data.DataLoader(
-    valid_dataset, batch_size=1, **dataloader_kwargs
+    valid_dataset, batch_size=1,
+    **dataloader_kwargs
 )
 
 model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
