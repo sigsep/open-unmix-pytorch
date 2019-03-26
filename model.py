@@ -6,17 +6,17 @@ import torch.nn.functional as F
 class NoOp(nn.Module):
     def __init__(self):
         super().__init__()
-        
+ 
     def forward(self, x):
         return x
 
 
 class Spectrogram(nn.Module):
     def __init__(
-        self, 
-        n_fft=2048, 
-        n_hop=1024, 
-        power=1, 
+        self,
+        n_fft=2048,
+        n_hop=1024,
+        power=1,
         mono=True
     ):
 
@@ -57,18 +57,18 @@ class Spectrogram(nn.Module):
 
         if self.mono:
             stft_f = torch.sqrt(torch.sum(stft_f**2, 1, keepdim=True))
-        
+
         return stft_f.permute(2, 0, 1, 3)
 
 
 class OSU(nn.Module):
     def __init__(
-        self, 
+        self,
         n_fft=2048,
         n_hop=1024,
         power=1,
-        nb_channels=1, 
-        nb_layers=3, 
+        nb_channels=1,
+        nb_layers=3,
         hidden_size=512,
         image=False
     ):
@@ -79,7 +79,9 @@ class OSU(nn.Module):
         if image:
             self.transform = NoOp()
         else:
-            self.transform = Spectrogram(n_fft=n_fft, n_hop=n_hop, power=power, mono=(nb_channels == 1))
+            self.transform = Spectrogram(
+                n_fft=n_fft, n_hop=n_hop, power=power, mono=(nb_channels == 1)
+            )
         self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
         self.fc1 = Linear(
@@ -123,7 +125,6 @@ class OSU(nn.Module):
             torch.ones(self.nb_bins).float()
         )
 
-
     def forward(self, x):
         # check for waveform or image
         # transform to spectrogram if (nb_batches, nb_channels, samples)
@@ -162,7 +163,7 @@ class OSU(nn.Module):
         x = self.fc3(x.reshape(-1, self.hidden_size))
         x = x.reshape(nb_frames, nb_batches, nb_channels*nb_bins)
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
-        
+
         # scale back to output domain
         # x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
 
@@ -174,5 +175,5 @@ class OSU(nn.Module):
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
-        
+
         return x
