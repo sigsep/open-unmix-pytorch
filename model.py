@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class NoOp(nn.Module):
     def __init__(self):
         super().__init__()
@@ -11,32 +12,25 @@ class NoOp(nn.Module):
         return x
 
 
-class Spectrogram(nn.Module):
+class STFT(nn.Module):
     def __init__(
         self,
         n_fft=2048,
         n_hop=1024,
-        power=1,
-        mono=True
     ):
-
-        super(Spectrogram, self).__init__()
-
+        super(STFT, self).__init__()
         self.window = nn.Parameter(
             torch.hann_window(n_fft),
             requires_grad=False
         )
         self.n_fft = n_fft
         self.n_hop = n_hop
-        self.power = power
-        self.mono = mono
 
     def forward(self, x):
         """
         Input: (nb_samples, nb_channels, nb_timesamples)
-        Output:(nb_frames, nb_samples, nb_channels, nb_bins)
+        Output:(nb_samples, nb_channels, nb_bins, nb_frames, 2)
         """
-        assert x.dim() == 3
 
         nb_samples, nb_channels, _ = x.size()
 
@@ -50,14 +44,40 @@ class Spectrogram(nn.Module):
             window=self.window, center=True,
             normalized=False, onesided=True,
             pad_mode='reflect'
-        ).transpose(1, 2)
+        )
 
+        # reshape back to channel dimension
+        stft_f = stft_f.contiguous().view(
+            nb_samples, nb_channels, self.n_fft // 2 + 1, -1, 2
+        )
+        return stft_f
+
+
+class Spectrogram(nn.Module):
+    def __init__(
+        self,
+        power=1,
+        mono=True
+    ):
+        super(Spectrogram, self).__init__()
+        self.power = power
+        self.mono = mono
+
+    def forward(self, stft_f):
+        """
+        Input: complex STFT (nb_samples, nb_bins, nb_frames, 2)
+        Output: Power/Mag Spectrogram (nb_frames, nb_samples, nb_channels, nb_bins)
+        """
+        nb_samples, nb_channels, nb_bins, nb_frames, real_imag = stft_f.shape
+        stft_f = stft_f.transpose(2, 3)
+        # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
-        stft_f = stft_f.contiguous().view(nb_samples, nb_channels, -1, self.n_fft // 2 + 1)
 
+        # downmix in the mag domain
         if self.mono:
             stft_f = torch.sqrt(torch.sum(stft_f**2, 1, keepdim=True))
 
+        # permute output for LSTM convenience
         return stft_f.permute(2, 0, 1, 3)
 
 
@@ -79,8 +99,9 @@ class OSU(nn.Module):
         if image:
             self.transform = NoOp()
         else:
-            self.transform = Spectrogram(
-                n_fft=n_fft, n_hop=n_hop, power=power, mono=(nb_channels == 1)
+            self.transform = nn.Sequential(
+                STFT(n_fft=n_fft, n_hop=n_hop),
+                Spectrogram(power=power, mono=(nb_channels == 1))
             )
         self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
@@ -129,6 +150,7 @@ class OSU(nn.Module):
         # check for waveform or image
         # transform to spectrogram if (nb_batches, nb_channels, samples)
         x = self.transform(x)
+        import ipdb; ipdb.set_trace()
         nb_frames, nb_batches, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
