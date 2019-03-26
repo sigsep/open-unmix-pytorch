@@ -150,7 +150,8 @@ for epoch in t:
         },
         is_best,
         target_path,
-        args.target
+        args.target,
+        model
     )
 
     if es.step(valid_loss):
@@ -164,6 +165,7 @@ for epoch in t:
         'best_loss': str(best_loss),
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
+        'rate': 44100
     }
 
     with open(Path(target_path,  "output.json"), 'w') as outfile:

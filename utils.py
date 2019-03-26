@@ -5,7 +5,7 @@ import numpy as np
 
 
 def save_checkpoint(
-    state, is_best, path, target
+    state, is_best, path, target, model
 ):
 
     torch.save(
@@ -16,6 +16,10 @@ def save_checkpoint(
         shutil.copyfile(
             os.path.join(path, target + '_chkpnt.pth.tar'),
             os.path.join(path, target + '.pth.tar')
+        )
+        torch.save(
+            model,
+            os.path.join(path, target + '_model.pth.tar')
         )
 
 
