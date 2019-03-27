@@ -155,7 +155,13 @@ class OSU(nn.Module):
 
         # shift and scale input to mean=0 std=1 (across all bins)
         x = x.reshape(nb_frames, nb_batches, nb_channels*nb_bins)
-        x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
+
+        # apply manual instance "normalization"
+        mean = x.mean(0, keepdim=True)
+        stddev = x.std(0, keepdim=True) + 1e-5
+
+        x = (x - mean) / stddev
+        # x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # reduce feature dimensions, therefore we reshape
         # to (nb_frames*nb_batches, nb_channels*nb_bins)
@@ -186,14 +192,15 @@ class OSU(nn.Module):
         x = x.reshape(nb_frames, nb_batches, nb_channels*nb_bins)
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
-        # scale back to output domain
-        # x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
-
         # reshape back to sequence
-        x = x.reshape(nb_frames, nb_batches, nb_channels, nb_bins)
+        x = x.reshape(nb_frames, nb_batches, nb_channels*nb_bins)
 
-        # alternatively scale back to output
-        x *= self.output_scale
+        # scale back to output
+        x *= stddev
+        x += mean
+
+        # scale back to output domain
+        x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
