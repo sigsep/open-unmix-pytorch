@@ -96,6 +96,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         target='vocals',
         seq_duration=None,
         validation_split='train',
+        samples_per_track=16,
         *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper
@@ -105,6 +106,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         self.target = target
         self.subsets = subsets
         self.validation_split = validation_split
+        self.samples_per_track = samples_per_track
         self.mus = musdb.DB(
             root_dir=root,
             is_wav=is_wav,
@@ -112,26 +114,36 @@ class MUSDBDataset(torch.utils.data.Dataset):
             subsets=subsets,
             *args, **kwargs
         )
+        self.samples = self.create_sample_indices()
 
     def __getitem__(self, index):
         # get musdb track object
-        track = self.mus[index]
-        if self.seq_duration is None or self.validation_split != 'train':
-            start = 0
-            dur = None
-        else:
-            start = random.uniform(0, track.duration - self.seq_duration)
-            dur = self.seq_duration
-
-        track.start = start
-        track.dur = dur
+        sample = self.samples[index]
+        track = self.mus.tracks[sample['trk']]
+        track.start = sample['pos']
+        track.dur = self.seq_duration
         x = track.audio.T
         y = track.targets[self.target].audio.T
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
     def __len__(self):
-        return len(self.mus)
+        return len(self.samples)
 
+    def create_sample_indices(self):
+        samples = []
+        for index, track in enumerate(self.mus.tracks):
+            for n in range(self.samples_per_track):
+                start = random.uniform(0, track.duration - self.seq_duration)
+                samples.append({
+                    'trk': index,
+                    'pos': start
+                })
+        if self.validation_split == 'train':
+            random.seed(42)
+            random.shuffle(samples)
+        return samples
+        
+            
 
 if __name__ == "__main__":
     # dataset iterator test
