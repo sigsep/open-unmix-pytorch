@@ -96,7 +96,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         target='vocals',
         seq_duration=None,
         validation_split='train',
-        samples_per_track=16,
+        samples_per_track=64,
         *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper
