@@ -10,6 +10,7 @@ from model import OSU
 import norbert
 import json
 from pathlib import Path
+import scipy.signal
 
 
 eps = np.finfo(np.float32).eps
@@ -36,6 +37,17 @@ def load_models(directory, targets):
     return models, params
 
 
+def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
+    t, audio = scipy.signal.istft(
+        X / n_hopsize,
+        rate,
+        nperseg=n_fft,
+        noverlap=n_fft - n_hopsize,
+        boundary=True
+    )
+    return audio
+
+
 def separate(
     audio, models, params,
     niter=0, alpha=2,
@@ -51,46 +63,47 @@ def separate(
     seq_len = int(seq_dur * rate)
 
     # split without overlap
-    audio_split = torch.tensor(audio).unfold(0, seq_len, seq_len)
+    # audio_split = torch.tensor(audio).float().unfold(0, seq_len, seq_len)
     # now its (batch, channels, seq_len/samples)
 
     # compute STFT of mixture
-    
-    X = models[list(models.keys())[0]].transform[0](
-        torch.tensor(audio.T[None, ...]).float()
-    ).cpu().detach().numpy()
+    # get the first model
+    st_model = models[list(models.keys())[0]]
 
-    X = X[..., 0] + X[..., 1]*1j
-    # (1, channel, bins, frames)
+    # get complex STFT from torch
+    X = st_model.transform[0](torch.tensor(audio.T[None, ...]).float())
+    # convert to complex numpy type
+    X = X.cpu().detach().numpy()[..., 0] + X.cpu().detach().numpy()[..., 1]*1j
+    X = X[0].transpose(2, 1, 0)
+    nb_frames, nb_bins, nb_channels = X.shape
     source_names = []
-    V = []
+    V = np.zeros((nb_frames, nb_bins, nb_sources), np.float32)
     for j, (target, model) in enumerate(models.items()):
         Vj = model(
-            torch.tensor(audio_split, dtype=torch.float32)
+            torch.tensor(audio.T[None, ...]).float()
         ).cpu().detach().numpy()**alpha
-        #  getting to ex_len, nb_batches, nb_features, nb_channels
-        Vj = np.transpose(Vj, (0, 1, 3, 2))
 
+        #  transposing to ex_len, nb_batches, nb_features, nb_channels
+        Vj = np.transpose(Vj, (0, 3, 1, 2))
         # TODO: fold signal
-        V.append(Vj)
+        V[..., j] = Vj[..., 0, 0]
         source_names += [target]
 
     if nb_sources == 1:
-        import ipdb; ipdb.set_trace()
-        V = norbert.add_residual_model(V, X, alpha)
+        V = norbert.residual(V[..., None, :], X, alpha)
         source_names += ['accompaniment']
 
     if not logit:
         logit = None
-        Y = norbert.wiener
+        Y = norbert.wiener(
             np.copy(V), np.copy(X), niter,
             smoothing=smoothing, logit=logit
         )
 
     estimates = {}
     for j, name in enumerate(source_names):
-        audio_hat = tf.inverse_transform(Y[..., j])
-        estimates[name] = audio_hat
+        audio_hat = istft(Y[..., j].T)
+        estimates[name] = audio_hat.T
 
     return estimates
 
@@ -190,6 +203,8 @@ if __name__ == '__main__':
                 smoothing=args.smoothing,
                 eval_dir=args.evaldir
             )
+            mus.save_estimates(estimates, track, 'OSU alpha1')
+            print(track)
     else:
         # handling an input wav file
         audio, samplerate = sf.read(args.input)
@@ -199,11 +214,8 @@ if __name__ == '__main__':
             params,
             niter=args.niter,
             alpha=args.alpha,
-            mono=args.mono,
             logit=args.logit,
             smoothing=args.smoothing,
-            nfft=args.nfft,
-            hop=args.hop
         )
         base = os.path.basename(args.input)
 

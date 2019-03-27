@@ -32,7 +32,7 @@ class STFT(nn.Module):
         Output:(nb_samples, nb_channels, nb_bins, nb_frames, 2)
         """
 
-        nb_samples, nb_channels, _ = x.size()
+        nb_samples, nb_channels, nb_timesamples = x.size()
 
         # merge nb_samples and nb_channels for multichannel stft
         x = x.reshape(nb_samples*nb_channels, -1)
@@ -135,12 +135,6 @@ class OSU(nn.Module):
         )
 
         self.in3 = InstanceNorm1d(hidden_size)
-
-        self.fc4 = Linear(
-            in_features=self.nb_bins*nb_channels,
-            out_features=self.nb_bins*nb_channels,
-            bias=True
-        )
 
         self.output_scale = Parameter(
             torch.ones(self.nb_bins).float()
