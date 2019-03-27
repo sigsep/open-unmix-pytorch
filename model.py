@@ -199,8 +199,11 @@ class OSU(nn.Module):
         x *= stddev
         x += mean
 
-        # scale back to output domain
-        x = self.fc4(x.reshape(-1, nb_channels*nb_bins))
+        # reshape back to sequence
+        x = x.reshape(nb_frames, nb_batches, nb_channels, nb_bins)
+
+        # add learnable scale
+        x *= self.output_scale
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
