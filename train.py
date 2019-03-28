@@ -11,6 +11,8 @@ import json
 import torch.utils.data
 import utils
 import data
+import sklearn.preprocessing
+import numpy as np
 
 
 tqdm.monitor_interval = 0
@@ -87,7 +89,19 @@ valid_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 
-model = model.OSU(n_fft=2048, n_hop=1024, power=1).to(device)
+print("Get target mean")
+output_scaler = sklearn.preprocessing.StandardScaler()
+spec = torch.nn.Sequential(
+    model.STFT(n_fft=2048, n_hop=1024),
+    model.Spectrogram(mono=True)
+)
+for _, y in tqdm.tqdm(train_dataset):
+    Y = spec(y[None, ...])
+    output_scaler.partial_fit(np.squeeze(Y))
+
+model = model.OSU(
+    n_fft=2048, n_hop=1024, power=1, output_mean=output_scaler.mean_
+).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()

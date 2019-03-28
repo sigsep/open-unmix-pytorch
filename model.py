@@ -92,7 +92,8 @@ class OSU(nn.Module):
         nb_channels=1,
         nb_layers=3,
         hidden_size=512,
-        image=False
+        image=False,
+        output_mean=None
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps) or (nb_samples, nb_bins, nb_frames, 2)
@@ -146,13 +147,19 @@ class OSU(nn.Module):
         self.output_scale = Parameter(
             torch.ones(self.nb_bins).float()
         )
+        if output_mean is not None:
+            self.output_mean = Parameter(
+                torch.from_numpy(output_mean).float()
+            )
+        else:
+            self.output_mean = Parameter(
+                torch.rand(self.nb_bins.shape).float()
+            )
 
     def forward(self, x):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         x = self.transform(x)
-
-        x_mix = x.clone()
 
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
@@ -195,11 +202,11 @@ class OSU(nn.Module):
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
-        # reshape back to sequence
-        x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
+        # apply output scaling
+        x *= self.output_scale
+        x += self.output_mean
 
-        x = torch.sigmoid(x)
+        # since our output is non-negative, we can apply RELU
+        x = F.relu(x)
 
-        x = x * x_mix
-    
         return x

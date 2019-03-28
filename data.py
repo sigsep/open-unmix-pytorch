@@ -142,8 +142,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
             random.seed(42)
             random.shuffle(samples)
         return samples
-        
-            
+
 
 if __name__ == "__main__":
     # dataset iterator test
