@@ -151,7 +151,7 @@ class OSU(nn.Module):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         x = self.transform(x)
-        import ipdb; ipdb.set_trace()
+
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
