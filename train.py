@@ -29,6 +29,10 @@ parser.add_argument('--root', type=str, help='root path of dataset')
 parser.add_argument('--is-wav', action='store_true', default=False,
                     help='flags wav version of the dataset')
 
+parser.add_argument('--db', type=str, default="musdb",
+                    help='provide output path base folder name')
+
+parser.add_argument('--sourcefiles', type=str, nargs="+", default=[None, None])
 
 # I/O Parameters
 parser.add_argument('--seq-dur', type=float, default=1.0)
@@ -63,22 +67,33 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-# # Alternative Data loading
-# train_dataset = data.SourceFolderDataset(
-#     root=Path(args.root, "train"),
-#     seq_duration=args.seq_dur,
-# )    
+if args.db == 'sourcefolder':
+    sources_dataset = data.SourceFolderDataset(
+        root=Path(args.root),
+        seq_duration=args.seq_dur,
+        input_file=args.sourcefiles[0],
+        output_file=args.sourcefiles[1]
+    )
 
-dataset_kwargs = {
-    'root': args.root,
-    'is_wav': args.is_wav,
-    'seq_duration': args.seq_dur,
-    'subsets': 'train',
-    'target': args.target
-}
+    split = 0.1
+    lengths = [
+        len(sources_dataset) - int(len(sources_dataset)*split),
+        int(len(sources_dataset)*split)
+    ]
+    train_dataset, valid_dataset = torch.utils.data.random_split(
+        sources_dataset, lengths
+    )
+elif args.db == 'musdb':
+    dataset_kwargs = {
+        'root': args.root,
+        'is_wav': args.is_wav,
+        'seq_duration': args.seq_dur,
+        'subsets': 'train',
+        'target': args.target
+    }
 
-train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
-valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
+    train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
+    valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
 
 train_sampler = torch.utils.data.DataLoader(
     train_dataset, batch_size=args.batch_size, shuffle=True,
