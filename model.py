@@ -152,6 +152,8 @@ class OSU(nn.Module):
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         x = self.transform(x)
 
+        x_mix = x.clone()
+
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
@@ -196,13 +198,8 @@ class OSU(nn.Module):
         # reshape back to sequence
         x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
 
-        # add learnable scale
-        x *= self.output_scale
-        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
-        x += mean
-        x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
+        x = torch.sigmoid(x)
 
-        # since our output is non-negative, we can apply RELU
-        x = F.relu(x)
-
+        x = x * x_mix
+    
         return x
