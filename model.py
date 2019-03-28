@@ -198,7 +198,9 @@ class OSU(nn.Module):
 
         # add learnable scale
         x *= self.output_scale
+        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
         x += mean
+        x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
