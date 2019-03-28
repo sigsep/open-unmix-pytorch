@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     if args.input is None:
         # handling the MUSDB case
-        mus = musdb.DB(download=False, subsets='test')
+        mus = musdb.DB(download=True, subsets='test')
         for track in mus:
             estimates = musdb_separate(
                 track=track,
