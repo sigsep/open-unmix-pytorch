@@ -202,6 +202,9 @@ class OSU(nn.Module):
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
+        # reshape back to original dim
+        x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
+
         # apply output scaling
         x *= self.output_scale
         x += self.output_mean
