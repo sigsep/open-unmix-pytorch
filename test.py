@@ -82,7 +82,6 @@ def separate(
         Vj = model(
             torch.tensor(audio.T[None, ...]).float()
         ).cpu().detach().numpy()**alpha
-
         #  transposing to ex_len, nb_batches, nb_features, nb_channels
         Vj = np.transpose(Vj, (0, 3, 1, 2))
         # TODO: fold signal

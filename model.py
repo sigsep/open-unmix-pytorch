@@ -151,7 +151,7 @@ class OSU(nn.Module):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         x = self.transform(x)
-
+        import ipdb; ipdb.set_trace()
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
@@ -194,17 +194,11 @@ class OSU(nn.Module):
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # reshape back to sequence
-        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
-
-        # scale back to output
-        x *= stddev
-        x += mean
-
-        # reshape back to sequence
         x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
 
         # add learnable scale
         x *= self.output_scale
+        x += mean
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x)
