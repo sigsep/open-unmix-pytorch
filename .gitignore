@@ -4,7 +4,9 @@ data/
 OSU/
 .mypy_cache
 .vscode
-
+*.json
+*.wav
+*.mp3
 #####=== Python ===#####
 
 # Byte-compiled / optimized / DLL files

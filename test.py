@@ -6,12 +6,10 @@ import museval
 import os.path
 import soundfile as sf
 import os
-from model import OSU
 import norbert
 import json
 from pathlib import Path
 import scipy.signal
-
 
 eps = np.finfo(np.float32).eps
 
@@ -51,16 +49,15 @@ def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
 def separate(
     audio, models, params,
     niter=0, alpha=2,
-    mono=False,
     logit=0,
     smoothing=0
 ):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
 
-    rate = params[list(params.keys())[0]]['rate']
-    seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
-    seq_len = int(seq_dur * rate)
+    # rate = params[list(params.keys())[0]]['rate']
+    # seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
+    # seq_len = int(seq_dur * rate)
 
     # split without overlap
     # audio_split = torch.tensor(audio).float().unfold(0, seq_len, seq_len)
@@ -75,21 +72,21 @@ def separate(
     # convert to complex numpy type
     X = X.cpu().detach().numpy()[..., 0] + X.cpu().detach().numpy()[..., 1]*1j
     X = X[0].transpose(2, 1, 0)
-    nb_frames, nb_bins, nb_channels = X.shape
+    nb_frames_X, nb_bins_X, nb_channels_X = X.shape
     source_names = []
-    V = np.zeros((nb_frames, nb_bins, nb_sources), np.float32)
+    V = []
     for j, (target, model) in enumerate(models.items()):
         Vj = model(
-            torch.tensor(audio.T[None, ...]).float()
-        ).cpu().detach().numpy()**alpha
-        #  transposing to ex_len, nb_batches, nb_features, nb_channels
-        Vj = np.transpose(Vj, (0, 3, 1, 2))
-        # TODO: fold signal
-        V[..., j] = Vj[..., 0, 0]
+            torch.tensor(audio.T[None, ...]
+        ).float()).cpu().detach().numpy()**alpha
+        # output is nb_frames, nb_samples, nb_channels, nb_bins
+        V.append(Vj[:, 0, ...])  # remove sample dim
         source_names += [target]
 
+    V = np.transpose(np.array(V), (1, 3, 2, 0))
+
     if nb_sources == 1:
-        V = norbert.residual(V[..., None, :], X, alpha)
+        V = norbert.residual(V, X, alpha)
         source_names += ['accompaniment']
 
     if not logit:
@@ -143,6 +140,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
+        default="OSU Results",
         help='output path for estimates'
     )
 
@@ -190,7 +188,7 @@ if __name__ == '__main__':
 
     if args.input is None:
         # handling the MUSDB case
-        mus = musdb.DB(download=True)
+        mus = musdb.DB(download=False, subsets='test')
         for track in mus:
             estimates = musdb_separate(
                 track=track,
@@ -202,7 +200,7 @@ if __name__ == '__main__':
                 smoothing=args.smoothing,
                 eval_dir=args.evaldir
             )
-            mus.save_estimates(estimates, track, 'OSU alpha1')
+            mus.save_estimates(estimates, track, args.outdir)
             print(track)
     else:
         # handling an input wav file

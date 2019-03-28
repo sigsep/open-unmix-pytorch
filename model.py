@@ -15,7 +15,7 @@ class NoOp(nn.Module):
 class STFT(nn.Module):
     def __init__(
         self,
-        n_fft=2048,
+        n_fft=4096,
         n_hop=1024,
     ):
         super(STFT, self).__init__()
@@ -86,7 +86,7 @@ class Spectrogram(nn.Module):
 class OSU(nn.Module):
     def __init__(
         self,
-        n_fft=2048,
+        n_fft=4096,
         n_hop=1024,
         power=1,
         nb_channels=1,
@@ -104,13 +104,14 @@ class OSU(nn.Module):
 
         self.hidden_size = hidden_size
         self.nb_bins = n_fft // 2 + 1
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
+        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
+
         if image:
             self.transform = NoOp()
         else:
-            self.transform = nn.Sequential(
-                STFT(n_fft=n_fft, n_hop=n_hop),
-                Spectrogram(power=power, mono=(nb_channels == 1))
-            )
+            self.transform = nn.Sequential(self.stft, self.spec)
+
         self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
         self.fc1 = Linear(

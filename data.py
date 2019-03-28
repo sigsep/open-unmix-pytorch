@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 import musdb
 import torchaudio
+import numpy as np
 
 
 class SourceFolderDataset(torch.utils.data.Dataset):
@@ -99,7 +100,8 @@ class MUSDBDataset(torch.utils.data.Dataset):
         samples_per_track=32,
         *args, **kwargs
     ):
-        """MUSDB18 Dataset wrapper
+        """MUSDB18 Dataset wrapper that samples from the musdb tracks
+        in a linear way.
         """
         self.is_wav = is_wav
         self.seq_duration = seq_duration
@@ -132,8 +134,10 @@ class MUSDBDataset(torch.utils.data.Dataset):
     def create_sample_indices(self):
         samples = []
         for index, track in enumerate(self.mus.tracks):
-            for n in range(self.samples_per_track):
-                start = random.uniform(0, track.duration - self.seq_duration)
+            sample_positions = np.linspace(
+                0, track.duration - self.seq_duration, self.samples_per_track
+            )
+            for start in sample_positions:
                 samples.append({
                     'trk': index,
                     'pos': start
