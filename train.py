@@ -118,7 +118,6 @@ spec = torch.nn.Sequential(
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
-    break
 
 model = model.OSU(
     power=1,
