@@ -10,7 +10,6 @@ import tqdm
 import json
 import torch.utils.data
 import utils
-import data
 import sklearn.preprocessing
 import numpy as np
 
@@ -53,6 +52,9 @@ parser.add_argument('--lr', type=float, default=0.001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
+parser.add_argument('--nb-channels', type=int, default=1,
+                    help='set number of channels for model (1, 2)')
+
 args = parser.parse_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -68,7 +70,8 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if use_cuda else "cpu")
 
 if args.db == 'sourcefolder':
-    sources_dataset = data.SourceFolderDataset(
+    from data import SourceFolderDataset
+    sources_dataset = SourceFolderDataset(
         root=Path(args.root),
         seq_duration=args.seq_dur,
         input_file=args.sourcefiles[0],
@@ -84,16 +87,18 @@ if args.db == 'sourcefolder':
         sources_dataset, lengths
     )
 elif args.db == 'musdb':
+    from data import MUSDBDataset
     dataset_kwargs = {
         'root': args.root,
         'is_wav': args.is_wav,
         'seq_duration': args.seq_dur,
         'subsets': 'train',
-        'target': args.target
+        'target': args.target,
+        'download': True
     }
 
-    train_dataset = data.MUSDBDataset(validation_split='train', **dataset_kwargs)
-    valid_dataset = data.MUSDBDataset(validation_split='valid', **dataset_kwargs)
+    train_dataset = MUSDBDataset(validation_split='train', **dataset_kwargs)
+    valid_dataset = MUSDBDataset(validation_split='valid', **dataset_kwargs)
 
 train_sampler = torch.utils.data.DataLoader(
     train_dataset, batch_size=args.batch_size, shuffle=True,
@@ -113,8 +118,13 @@ spec = torch.nn.Sequential(
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
+    break
 
-model = model.OSU(power=1, output_mean=output_scaler.mean_).to(device)
+model = model.OSU(
+    power=1,
+    output_mean=output_scaler.mean_,
+    nb_channels=args.nb_channels
+).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
