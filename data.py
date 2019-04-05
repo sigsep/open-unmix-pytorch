@@ -3,14 +3,18 @@ from pathlib import Path
 import torch
 import numpy as np
 
+try:
+    import torchaudio
+except ImportError:
+    torchaudio = None
+
+try:
+    import musdb
+except ImportError:
+    musdb = None
+
 
 class SourceFolderDataset(torch.utils.data.Dataset):
-
-    try:
-        import torchaudio
-    except ImportError:
-        torchaudio = None
-
     def __init__(
         self,
         root,
@@ -107,8 +111,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         """MUSDB18 Dataset wrapper that samples from the musdb tracks
         in a linear way.
         """
-        import musdb
-
         self.is_wav = is_wav
         self.seq_duration = seq_duration
         self.target = target
