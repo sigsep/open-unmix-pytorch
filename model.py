@@ -7,7 +7,7 @@ import torch.nn.functional as F
 class NoOp(nn.Module):
     def __init__(self):
         super().__init__()
- 
+
     def forward(self, x):
         return x
 
@@ -65,8 +65,10 @@ class Spectrogram(nn.Module):
 
     def forward(self, stft_f):
         """
-        Input: complex STFT (nb_samples, nb_bins, nb_frames, 2)
-        Output: Power/Mag Spectrogram (nb_frames, nb_samples, nb_channels, nb_bins)
+        Input: complex STFT
+            (nb_samples, nb_bins, nb_frames, 2)
+        Output: Power/Mag Spectrogram
+            (nb_frames, nb_samples, nb_channels, nb_bins)
         """
         nb_samples, nb_channels, nb_bins, nb_frames, real_imag = stft_f.shape
         stft_f = stft_f.transpose(2, 3)
@@ -96,8 +98,10 @@ class OSU(nn.Module):
         output_mean=None
     ):
         """
-        Input: (nb_samples, nb_channels, nb_timesteps) or (nb_samples, nb_bins, nb_frames, 2)
-        Output: Power/Mag Spectrogram (nb_frames, nb_samples, nb_channels, nb_bins)
+        Input: (nb_samples, nb_channels, nb_timesteps)
+            or (nb_samples, nb_bins, nb_frames, 2)
+        Output: Power/Mag Spectrogram
+                (nb_frames, nb_samples, nb_channels, nb_bins)
         """
 
         super(OSU, self).__init__()

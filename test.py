@@ -1,8 +1,6 @@
 import torch
 import numpy as np
 import argparse
-import musdb
-import museval
 import os.path
 import soundfile as sf
 import os
@@ -46,12 +44,7 @@ def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
     return audio
 
 
-def separate(
-    audio, models, params,
-    niter=0, alpha=2,
-    logit=0,
-    smoothing=0
-):
+def separate(audio, models, params, niter=0, alpha=2, logit=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
 
@@ -77,8 +70,8 @@ def separate(
     V = []
     for j, (target, model) in enumerate(models.items()):
         Vj = model(
-            torch.tensor(audio.T[None, ...]
-        ).float()).cpu().detach().numpy()**alpha
+            torch.tensor(audio.T[None, ...]).float()
+        ).cpu().detach().numpy()**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj[:, 0, ...])  # remove sample dim
         source_names += [target]
@@ -91,36 +84,23 @@ def separate(
 
     if not logit:
         logit = None
-        Y = norbert.wiener(
-            np.copy(V), np.copy(X), niter,
-            smoothing=smoothing, logit=logit
-        )
+        Y = norbert.wiener(V, X, niter, logit=logit)
 
     estimates = {}
     for j, name in enumerate(source_names):
-        audio_hat = istft(Y[..., j].T)
-        estimates[name] = audio_hat.T
-
-    return estimates
-
-
-def musdb_separate(
-    track, models, params, eval_dir=None, *args, **kwargs
-):
-    estimates = separate(track.audio, models, params, *args, **kwargs)
-    # Evaluate using museval
-    if eval_dir is not None:
-        scores = museval.eval_mus_track(
-            track, estimates, output_dir=eval_dir
+        audio_hat = istft(
+            Y[..., j].T,
+            n_fft=st_model.stft.n_fft,
+            n_hopsize=st_model.stft.n_hop
         )
-        print(scores)
+        estimates[name] = audio_hat.T
 
     return estimates
 
 
 if __name__ == '__main__':
     # Training settings
-    parser = argparse.ArgumentParser(description='Inference Example')
+    parser = argparse.ArgumentParser(description='OSU Inference')
 
     parser.add_argument(
         'model_dir',
@@ -140,20 +120,20 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
-        default="OSU Results",
-        help='output path for estimates'
+        default="OSU_RESULTS",
+        help='Results path where audio evaluation results are stored'
     )
 
     parser.add_argument(
         '--evaldir',
         type=str,
-        help='output path for estimates'
+        help='Results path for museval estimates'
     )
 
     parser.add_argument(
         '--input',
         type=str,
-        help='link to wav file. If not provided, will process the musdb'
+        help='Path to wav file. If not provided, will process the MUSDB18'
     )
 
     parser.add_argument(
@@ -176,45 +156,21 @@ if __name__ == '__main__':
         help='apply logit compression. 0 means no compression'
     )
 
-    parser.add_argument(
-        '--smoothing',
-        type=int,
-        help='apply smoothing during EM. 0 means no smoothing'
-    )
-
     args = parser.parse_args()
 
     models, params = load_models(args.model_dir, args.targets)
 
-    if args.input is None:
-        # handling the MUSDB case
-        mus = musdb.DB(download=True, subsets='test')
-        for track in mus:
-            estimates = musdb_separate(
-                track=track,
-                models=models,
-                params=params,
-                niter=args.niter,
-                alpha=args.alpha,
-                logit=args.logit,
-                smoothing=args.smoothing,
-                eval_dir=args.evaldir
-            )
-            mus.save_estimates(estimates, track, args.outdir)
-            print(track)
-    else:
-        # handling an input wav file
-        audio, samplerate = sf.read(args.input)
-        estimates = separate(
-            audio,
-            models,
-            params,
-            niter=args.niter,
-            alpha=args.alpha,
-            logit=args.logit,
-            smoothing=args.smoothing,
-        )
-        base = os.path.basename(args.input)
+    # handling an input audio path
+    audio, samplerate = sf.read(args.input)
+    estimates = separate(
+        audio,
+        models,
+        params,
+        niter=args.niter,
+        alpha=args.alpha,
+        logit=args.logit
+    )
+    base = os.path.basename(args.input)
 
-        for key in estimates:
-            sf.write(key+'_' + base, estimates[key], samplerate)
+    for key in estimates:
+        sf.write(key+'_' + base, estimates[key], samplerate)
