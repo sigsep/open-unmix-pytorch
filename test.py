@@ -72,12 +72,13 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
     # audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
     X = st_model.stft(audio_split)
+    # precompute mixture spectrogram
+    M = st_model.spec(X)
+
     X = X.detach().numpy()
     # convert to complex numpy type
     X = X[..., 0] + X[..., 1]*1j
     X = X.transpose(0, 3, 2, 1)
-    # precompute mixture spectrogram
-    M = st_model.spec(X)
 
     # Run unmix
     source_names = []
