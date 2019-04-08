@@ -35,7 +35,7 @@ def load_models(directory, targets):
 
 def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
     t, audio = scipy.signal.istft(
-        X / n_hopsize,
+        X / (n_fft / 2),
         rate,
         nperseg=n_fft,
         noverlap=n_fft - n_hopsize,
@@ -60,10 +60,11 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
     # get the first model
     st_model = models[list(models.keys())[0]]
 
+    audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
-    X = st_model.transform[0](torch.tensor(audio.T[None, ...]).float())
+    X = st_model.stft(audio_torch).detach().numpy()
     # convert to complex numpy type
-    X = X.cpu().detach().numpy()[..., 0] + X.cpu().detach().numpy()[..., 1]*1j
+    X = X[..., 0] + X[..., 1]*1j
     X = X[0].transpose(2, 1, 0)
     nb_frames_X, nb_bins_X, nb_channels_X = X.shape
     source_names = []

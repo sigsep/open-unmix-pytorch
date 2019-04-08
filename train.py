@@ -52,6 +52,11 @@ parser.add_argument('--lr', type=float, default=0.001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
+parser.add_argument('--nfft', type=int, default=2048,
+                    help='fft size')
+parser.add_argument('--nhop', type=int, default=1024,
+                    help='fft size')
+
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
 
@@ -112,7 +117,7 @@ valid_sampler = torch.utils.data.DataLoader(
 print("Compute global average spectrogram")
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
-    model.STFT(),
+    model.STFT(n_fft=args.nfft, n_hop=args.nhop),
     model.Spectrogram(mono=True)
 )
 for _, y in tqdm.tqdm(train_dataset):
@@ -122,7 +127,9 @@ for _, y in tqdm.tqdm(train_dataset):
 model = model.OSU(
     power=1,
     output_mean=output_scaler.mean_,
-    nb_channels=args.nb_channels
+    nb_channels=args.nb_channels,
+    n_fft=args.nfft,
+    n_hop=args.nhop
 ).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
