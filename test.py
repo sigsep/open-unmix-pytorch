@@ -6,8 +6,10 @@ import soundfile as sf
 import os
 import norbert
 import json
+import model
 from pathlib import Path
 import scipy.signal
+import torch.nn.functional as F
 
 eps = np.finfo(np.float32).eps
 
@@ -21,14 +23,14 @@ def load_models(directory, targets):
                 with open(Path(target_dir, 'output.json'), 'r') as stream:
                     results = json.load(stream)
 
-                model = torch.load(
+                unmix = torch.load(
                     Path(target_dir, target_dir.stem + '_model.pth.tar'),
                     map_location='cpu'
                 )
-                model.to(torch.device("cpu"))
+                unmix.to(torch.device("cpu"))
                 # set model into evaluation mode
-                model.eval()
-                models[target_dir.stem] = model
+                unmix.eval()
+                models[target_dir.stem] = unmix
                 params[target_dir.stem] = results
     return models, params
 
@@ -48,37 +50,47 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
 
-    # rate = params[list(params.keys())[0]]['rate']
-    # seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
-    # seq_len = int(seq_dur * rate)
+    rate = params[list(params.keys())[0]]['rate']
+    seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
+    seq_len = int(seq_dur * rate)
 
     # split without overlap
-    # audio_split = torch.tensor(audio).float().unfold(0, seq_len, seq_len)
     # now its (batch, channels, seq_len/samples)
 
     # compute STFT of mixture
     # get the first model
     st_model = models[list(models.keys())[0]]
+    audio = torch.tensor(audio.T).float()
+    audio_shape = audio.shape
+    paddings = (0, seq_len - (audio_shape[-1] % seq_len))
+    audio_pad = F.pad(
+        audio, paddings,
+        "constant", 0
+    )
+    audio_split = audio_pad.unfold(1, seq_len, seq_len)
+    audio_split = audio_split.permute(1, 0, 2)
 
-    audio_torch = torch.tensor(audio.T[None, ...]).float()
+    # audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
-    X = st_model.stft(audio_torch).detach().numpy()
+    X = st_model.stft(audio_split)
+    M = st_model.spec(X)
+    X = X.detach().numpy()
     # convert to complex numpy type
     X = X[..., 0] + X[..., 1]*1j
-    X = X[0].transpose(2, 1, 0)
-    nb_frames_X, nb_bins_X, nb_channels_X = X.shape
+    X = X.transpose(0, 3, 2, 1)
     source_names = []
     V = []
-    for j, (target, model) in enumerate(models.items()):
-        Vj = model(
-            torch.tensor(audio.T[None, ...]).float()
-        ).cpu().detach().numpy()**alpha
+    for j, (target, unmix) in enumerate(models.items()):
+        unmix.transform = model.NoOp()
+        Vj = unmix(M.clone()).cpu().detach().numpy()**alpha
+
         # output is nb_frames, nb_samples, nb_channels, nb_bins
-        V.append(Vj[:, 0, ...])  # remove sample dim
+        V.append(Vj)  # remove sample dim
         source_names += [target]
 
-    V = np.transpose(np.array(V), (1, 3, 2, 0))
-
+    V = np.transpose(np.array(V), (2, 1, 4, 3, 0))
+    V = V.reshape(-1, *V.shape[2:])
+    X = X.reshape(-1, *X.shape[2:])
     if nb_sources == 1:
         V = norbert.residual(V, X, alpha)
         source_names += ['accompaniment']
@@ -94,7 +106,7 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
             n_fft=st_model.stft.n_fft,
             n_hopsize=st_model.stft.n_hop
         )
-        estimates[name] = audio_hat.T
+        estimates[name] = audio_hat[:, :-paddings[-1]].T
 
     return estimates
 
