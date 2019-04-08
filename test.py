@@ -49,35 +49,37 @@ def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
 def separate(audio, models, params, niter=0, alpha=2, logit=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
+    # get the first model
+    st_model = models[list(models.keys())[0]]
 
     rate = params[list(params.keys())[0]]['rate']
     seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
     seq_len = int(seq_dur * rate)
+    # correct sequence length to multiple of n_fft
+    seq_len -= seq_len % st_model.stft.n_fft
 
     # split without overlap
     # now its (batch, channels, seq_len/samples)
 
     # compute STFT of mixture
-    # get the first model
-    st_model = models[list(models.keys())[0]]
     audio = torch.tensor(audio.T).float()
     audio_shape = audio.shape
     paddings = (0, seq_len - (audio_shape[-1] % seq_len))
-    audio_pad = F.pad(
-        audio, paddings,
-        "constant", 0
-    )
-    audio_split = audio_pad.unfold(1, seq_len, seq_len)
+    audio_padded = F.pad(audio, paddings, "constant", 0)
+    audio_split = audio_padded.unfold(1, seq_len, seq_len)
     audio_split = audio_split.permute(1, 0, 2)
 
     # audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
     X = st_model.stft(audio_split)
-    M = st_model.spec(X)
     X = X.detach().numpy()
     # convert to complex numpy type
     X = X[..., 0] + X[..., 1]*1j
     X = X.transpose(0, 3, 2, 1)
+    # precompute mixture spectrogram
+    M = st_model.spec(X)
+
+    # Run unmix
     source_names = []
     V = []
     for j, (target, unmix) in enumerate(models.items()):
