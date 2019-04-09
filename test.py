@@ -56,44 +56,43 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
     seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
     seq_len = int(seq_dur * rate)
     # correct sequence length to multiple of n_fft
-    seq_len -= seq_len % st_model.stft.n_fft
-
-    # split without overlap
-    # now its (batch, channels, seq_len/samples)
+    # seq_len -= seq_len % st_model.stft.n_fft
+    seq_len = int((seq_len - int(st_model.stft.n_fft // 2)) // st_model.stft.n_hop)
 
     # compute STFT of mixture
     audio = torch.tensor(audio.T).float()
-    audio_shape = audio.shape
-    paddings = (0, seq_len - (audio_shape[-1] % seq_len))
-    audio_padded = F.pad(audio, paddings, "constant", 0)
-    audio_split = audio_padded.unfold(1, seq_len, seq_len)
-    audio_split = audio_split.permute(1, 0, 2)
 
     # audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
-    X = st_model.stft(audio_split)
+    X = st_model.stft(audio[None, ...])
     # precompute mixture spectrogram
     M = st_model.spec(X)
 
-    X = X.detach().numpy()
+    paddings = (0, seq_len - (M.shape[0] % seq_len))
+    M = F.pad(M.permute(3, 2, 1, 0), paddings, "constant", 0).permute(3, 2, 1, 0)
+    M_unfolded = M.unfold(0, seq_len, seq_len)[:, 0, ...]
+    # permute to input shape (nb_frames, nb_samples, nb_channels, nb_bins)
+    M_unfolded = M_unfolded.permute(3, 0, 1, 2)
+    X = X.detach().numpy()[0]
     # convert to complex numpy type
     X = X[..., 0] + X[..., 1]*1j
-    X = X.transpose(0, 3, 2, 1)
+    X = X.transpose(2, 1, 0)
 
     # Run unmix
     source_names = []
     V = []
     for j, (target, unmix) in enumerate(models.items()):
         unmix.transform = model.NoOp()
-        Vj = unmix(M.clone()).cpu().detach().numpy()**alpha
-
+        Vj = unmix(M_unfolded.clone()).cpu().detach().numpy()**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj)  # remove sample dim
         source_names += [target]
 
-    V = np.transpose(np.array(V), (2, 1, 4, 3, 0))
-    V = V.reshape(-1, *V.shape[2:])
-    X = X.reshape(-1, *X.shape[2:])
+    V = np.array(V)
+    V = V.transpose(0, 2, 1, 3, 4)
+    V = V.reshape(V.shape[0], -1, *V.shape[3:])
+    V = V.transpose(1, 3, 2, 0)
+    V = V[:X.shape[0], ...]
     if nb_sources == 1:
         V = norbert.residual(V, X, alpha)
         source_names += ['accompaniment']
@@ -109,7 +108,7 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
             n_fft=st_model.stft.n_fft,
             n_hopsize=st_model.stft.n_hop
         )
-        estimates[name] = audio_hat[:, :-paddings[-1]].T
+        estimates[name] = audio_hat.T
 
     return estimates
 
