@@ -85,21 +85,6 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-class InstanceNorm(nn.Module):
-    def __init__(self, axis=0, eps=1e-5):
-        super(InstanceNorm, self).__init__()
-        self.mean = 0
-        self.stddev = 1
-        self.axis = axis
-        self.eps = eps
-
-    def forward(self, x):
-        self.mean = x.mean(self.axis, keepdim=True)
-        self.stddev = x.std(self.axis, keepdim=True) + self.eps
-
-        return (x - self.mean) / self.stddev
-
-
 class OSU(nn.Module):
     def __init__(
         self,
@@ -131,14 +116,14 @@ class OSU(nn.Module):
         else:
             self.transform = nn.Sequential(self.stft, self.spec)
 
-        self.in0 = InstanceNorm()
+        self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
 
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
             bias=False
         )
 
-        self.in1 = InstanceNorm()
+        self.in1 = InstanceNorm1d(hidden_size)
 
         self.lstm = LSTM(
             input_size=hidden_size,
@@ -154,7 +139,7 @@ class OSU(nn.Module):
             bias=False
         )
 
-        self.in2 = InstanceNorm()
+        self.in2 = InstanceNorm1d(hidden_size)
 
         self.fc3 = Linear(
             in_features=hidden_size,
@@ -162,7 +147,7 @@ class OSU(nn.Module):
             bias=False
         )
 
-        self.in3 = InstanceNorm()
+        self.in3 = InstanceNorm1d(hidden_size)
 
         self.output_scale = Parameter(
             torch.ones(self.nb_bins).float()
@@ -194,7 +179,7 @@ class OSU(nn.Module):
         x = self.fc1(x.reshape(-1, nb_channels*nb_bins))
         x = x.reshape(nb_frames, nb_samples, self.hidden_size)
         # normalize every instance in a batch
-        x = self.in1(x)
+        x = self.in1(x.permute(1, 2, 0)).permute(2, 0, 1)
         # squash range ot [-1, 1]
         x = torch.tanh(x)
 
@@ -208,14 +193,14 @@ class OSU(nn.Module):
         # first dense stage + batch norm
         x = self.fc2(x.reshape(-1, self.hidden_size))
         x = x.reshape(nb_frames, nb_samples, self.hidden_size)
-        x = self.in2(x)
+        x = self.in2(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         x = F.relu(x)
 
         # second dense stage + layer norm
         x = self.fc3(x.reshape(-1, self.hidden_size))
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
-        x = self.in3(x)
+        x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # reshape back to original dim
         x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
