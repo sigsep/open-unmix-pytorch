@@ -122,7 +122,6 @@ spec = torch.nn.Sequential(
 )
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
-    print(Y.shape)
     output_scaler.partial_fit(np.squeeze(Y))
 
 model = model.OSU(
