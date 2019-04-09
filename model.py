@@ -218,3 +218,16 @@ class OSU(nn.Module):
         x = F.relu(x)
 
         return x
+
+
+class Unmix(nn.Module):
+    def __init__(
+        targets,
+        *args, **kwargs
+    ):
+        self.models = []
+        for target in targets:
+            self.models.append(OSU(*args, **kwargs))
+   
+    def forward(self, x):
+        return [model(x) for model in self.models]
