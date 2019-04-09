@@ -34,7 +34,7 @@ parser.add_argument('--db', type=str, default="musdb",
 parser.add_argument('--sourcefiles', type=str, nargs="+", default=[None, None])
 
 # I/O Parameters
-parser.add_argument('--seq-dur', type=float, default=1.0)
+parser.add_argument('--seq-dur', type=float, default=5.0)
 
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
@@ -52,7 +52,7 @@ parser.add_argument('--lr', type=float, default=0.001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
-parser.add_argument('--nfft', type=int, default=2048,
+parser.add_argument('--nfft', type=int, default=4096,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
@@ -122,6 +122,7 @@ spec = torch.nn.Sequential(
 )
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
+    print(Y.shape)
     output_scaler.partial_fit(np.squeeze(Y))
 
 model = model.OSU(
