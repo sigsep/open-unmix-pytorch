@@ -188,7 +188,7 @@ class OSU(nn.Module):
 
         # reshape to 1D vector (seq_len*batch, hidden_size)
         # add skip connection
-        x = lstm_out[0]
+        x = x + lstm_out[0]
 
         # first dense stage + batch norm
         x = self.fc2(x.reshape(-1, self.hidden_size))
