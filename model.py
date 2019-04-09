@@ -99,7 +99,7 @@ class OSU(nn.Module):
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)
-            or (nb_samples, nb_bins, nb_frames, 2)
+            or (nb_frames, nb_samples, nb_channels, nb_bins)
         Output: Power/Mag Spectrogram
                 (nb_frames, nb_samples, nb_channels, nb_bins)
         """
