@@ -41,7 +41,7 @@ class STFT(nn.Module):
         stft_f = torch.stft(
             x,
             n_fft=self.n_fft, hop_length=self.n_hop,
-            window=self.window, center=True,
+            window=self.window, center=False,
             normalized=False, onesided=True,
             pad_mode='reflect'
         )
@@ -187,6 +187,7 @@ class OSU(nn.Module):
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
 
         x = self.in0(x)
+
         # reduce feature dimensions, therefore we reshape
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
