@@ -40,7 +40,7 @@ class PescadorSampler(object):
         shuffle=True,
         seed=42,
         active_streamers=10
-    ):  
+    ):
         self.dataset = dataset
         self.batch_size = batch_size
         self.ex_length = ex_length
