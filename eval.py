@@ -2,6 +2,7 @@ import argparse
 import musdb
 import museval
 import test
+import pandas
 
 
 if __name__ == '__main__':
@@ -67,6 +68,7 @@ if __name__ == '__main__':
     models, params = test.load_models(args.model_dir, args.targets)
 
     mus = musdb.DB(download=True, subsets='test')
+    results = []
     for track in mus:
         estimates = test.separate(
             audio=track.audio,
@@ -84,3 +86,9 @@ if __name__ == '__main__':
                 track, estimates, output_dir=args.evaldir
             )
             print(scores)
+            results.append(museval.to_df(scores, track))
+
+    df = pandas.concat(results, ignore_index=True)
+    # aggregate methods by median of track
+    df_agg = df.groupby(['target', 'metric']).median()['score']
+    print(df_agg.unstack())
