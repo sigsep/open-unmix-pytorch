@@ -17,6 +17,7 @@ class STFT(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
+        center=False
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -25,6 +26,7 @@ class STFT(nn.Module):
         )
         self.n_fft = n_fft
         self.n_hop = n_hop
+        self.center = center
 
     def forward(self, x):
         """
@@ -41,7 +43,7 @@ class STFT(nn.Module):
         stft_f = torch.stft(
             x,
             n_fft=self.n_fft, hop_length=self.n_hop,
-            window=self.window, center=False,
+            window=self.window, center=self.center,
             normalized=False, onesided=True,
             pad_mode='reflect'
         )
@@ -165,13 +167,12 @@ class OSU(nn.Module):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         x = self.transform(x)
-
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
 
-        x = self.in0(x)
+        x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # reduce feature dimensions, therefore we reshape
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
@@ -187,8 +188,7 @@ class OSU(nn.Module):
         lstm_out = self.lstm(x)
 
         # reshape to 1D vector (seq_len*batch, hidden_size)
-        # add skip connection
-        x = x + lstm_out[0]
+        x = lstm_out[0]
 
         # first dense stage + batch norm
         x = self.fc2(x.reshape(-1, self.hidden_size))
