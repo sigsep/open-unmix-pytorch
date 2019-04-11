@@ -30,6 +30,7 @@ def load_models(directory, targets):
                 model.eval()
                 models[target_dir.stem] = model
                 params[target_dir.stem] = results
+                print("%s model loaded." % target_dir.stem)
     return models, params
 
 
