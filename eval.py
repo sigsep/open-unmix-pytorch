@@ -3,6 +3,7 @@ import musdb
 import museval
 import test
 import pandas
+import tqdm
 
 
 if __name__ == '__main__':
@@ -67,9 +68,9 @@ if __name__ == '__main__':
 
     models, params = test.load_models(args.model_dir, args.targets)
 
-    mus = musdb.DB(download=True, subsets='test')
+    mus = musdb.DB(download=False, subsets='test')
     results = []
-    for track in mus:
+    for track in tqdm.tqdm(mus):
         estimates = test.separate(
             audio=track.audio,
             models=models,
