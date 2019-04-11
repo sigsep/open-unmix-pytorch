@@ -99,7 +99,7 @@ elif args.db == 'musdb':
         'seq_duration': args.seq_dur,
         'subsets': 'train',
         'target': args.target,
-        'download': True
+        'download': False
     }
 
     train_dataset = MUSDBDataset(validation_split='train', **dataset_kwargs)
