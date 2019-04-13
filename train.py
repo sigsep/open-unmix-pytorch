@@ -56,6 +56,8 @@ parser.add_argument('--nfft', type=int, default=4096,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
+parser.add_argument('--bandwidth', type=int, default=14000,
+                    help='maximum model bandwidth in herz')
 
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
@@ -123,6 +125,13 @@ spec = torch.nn.Sequential(
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
+    break
+
+freqs = np.linspace(
+    0, float(train_dataset.sample_rate) / 2, Y.shape[-1] + 1,
+    endpoint=True
+)
+ind = np.max(np.where(freqs <= 15000 + 1)[0])
 
 model = model.OSU(
     power=1,
@@ -208,7 +217,7 @@ for epoch in t:
         'best_loss': str(best_loss),
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
-        'rate': 44100
+        'rate': train_dataset.sample_rate
     }
 
     with open(Path(target_path,  "output.json"), 'w') as outfile:

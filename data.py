@@ -125,6 +125,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
             *args, **kwargs
         )
         self.samples = self.create_sample_indices()
+        self.sample_rate = 44100
 
     def __getitem__(self, index):
         # get musdb track object
