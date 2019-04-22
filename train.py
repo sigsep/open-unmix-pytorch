@@ -117,28 +117,30 @@ valid_sampler = torch.utils.data.DataLoader(
 )
 
 print("Compute global average spectrogram")
+
+freqs = np.linspace(
+    0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
+    endpoint=True
+)
+max_bin = np.max(np.where(freqs <= args.bandwidth + 1)[0])
+
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
     model.STFT(n_fft=args.nfft, n_hop=args.nhop),
     model.Spectrogram(mono=True)
 )
+
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
-    break
-
-freqs = np.linspace(
-    0, float(train_dataset.sample_rate) / 2, Y.shape[-1] + 1,
-    endpoint=True
-)
-ind = np.max(np.where(freqs <= 15000 + 1)[0])
 
 model = model.OSU(
     power=1,
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
     n_fft=args.nfft,
-    n_hop=args.nhop
+    n_hop=args.nhop,
+    max_bin=max_bin
 ).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)

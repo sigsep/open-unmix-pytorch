@@ -97,7 +97,8 @@ class OSU(nn.Module):
         nb_layers=3,
         hidden_size=512,
         image=False,
-        output_mean=None
+        output_mean=None,
+        max_bin=None
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)
@@ -108,8 +109,14 @@ class OSU(nn.Module):
 
         super(OSU, self).__init__()
 
+        self.nb_output_bins = n_fft // 2 + 1
+        if max_bin:
+            self.nb_bins = max_bin
+        else:
+            self.nb_bins = self.nb_output_bins
+
         self.hidden_size = hidden_size
-        self.nb_bins = n_fft // 2 + 1
+
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
 
@@ -145,14 +152,14 @@ class OSU(nn.Module):
 
         self.fc3 = Linear(
             in_features=hidden_size,
-            out_features=self.nb_bins*nb_channels,
+            out_features=self.nb_output_bins*nb_channels,
             bias=False
         )
 
         self.in3 = InstanceNorm1d(hidden_size)
 
         self.output_scale = Parameter(
-            torch.ones(self.nb_bins).float()
+            torch.ones(self.nb_output_bins).float()
         )
         if output_mean is not None:
             self.output_mean = Parameter(
@@ -160,21 +167,20 @@ class OSU(nn.Module):
             )
         else:
             self.output_mean = Parameter(
-                torch.rand(self.nb_bins.shape).float()
+                torch.rand(self.nb_output_bins.shape).float()
             )
 
     def forward(self, x):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
-        x = self.transform(x)
+        # and reduce feature dimensions, therefore we reshape
+        x = self.transform(x)[..., :self.nb_bins]
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
         x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
 
         x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
-
-        # reduce feature dimensions, therefore we reshape
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
         x = self.fc1(x.reshape(-1, nb_channels*nb_bins))
@@ -199,11 +205,11 @@ class OSU(nn.Module):
 
         # second dense stage + layer norm
         x = self.fc3(x.reshape(-1, self.hidden_size))
-        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
+        x = x.reshape(nb_frames, nb_samples, nb_channels*self.nb_output_bins)
         x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # reshape back to original dim
-        x = x.reshape(nb_frames, nb_samples, nb_channels, nb_bins)
+        x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
 
         # apply output scaling
         x *= self.output_scale
