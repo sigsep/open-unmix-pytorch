@@ -105,7 +105,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         target='vocals',
         seq_duration=None,
         validation_split='train',
-        samples_per_track="all",
+        samples_per_track=64,
         *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper that samples from the musdb tracks
@@ -142,18 +142,11 @@ class MUSDBDataset(torch.utils.data.Dataset):
     def create_sample_indices(self):
         samples = []
         for index, track in enumerate(self.mus.tracks):
-            if self.samples_per_track == "all":
-                # compute non-overlapping segments
-                sample_positions = np.arange(
-                    0, track.duration - self.seq_duration,
-                    self.seq_duration
-                )
-            else:
-                # compute a fixed number of segements
-                sample_positions = np.linspace(
-                    0, track.duration - self.seq_duration,
-                    self.samples_per_track
-                )
+            # compute a fixed number of segements per track
+            sample_positions = np.linspace(
+                0, track.duration - self.seq_duration,
+                self.samples_per_track
+            )
             for start in sample_positions:
                 samples.append({
                     'trk': index,
