@@ -71,6 +71,7 @@ if __name__ == '__main__':
     mus = musdb.DB(download=False, subsets='test')
     results = []
     for track in tqdm.tqdm(mus):
+        print(track.name, track.duration)
         estimates = test.separate(
             audio=track.audio,
             models=models,
@@ -79,6 +80,7 @@ if __name__ == '__main__':
             alpha=args.alpha,
             logit=args.logit
         )
+
         if args.outdir:
             mus.save_estimates(estimates, track, args.outdir)
 
