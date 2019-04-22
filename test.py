@@ -26,6 +26,7 @@ def load_models(directory, targets):
                     map_location='cpu'
                 )
                 model.to(torch.device("cpu"))
+                model.stft.center = True
                 # set model into evaluation mode
                 model.eval()
                 models[target_dir.stem] = model
@@ -173,6 +174,5 @@ if __name__ == '__main__':
         logit=args.logit
     )
     base = os.path.basename(args.input)
-
     for key in estimates:
         sf.write(key+'_' + base, estimates[key], samplerate)
