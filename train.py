@@ -59,6 +59,8 @@ parser.add_argument('--nhop', type=int, default=1024,
 
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
+parser.add_argument('--quiet', action='store_true', default=False,
+                    help='less verbose during training')
 
 args = parser.parse_args()
 
@@ -142,7 +144,7 @@ def train(epoch):
     model.train()
     end = time.time()
 
-    for x, y in tqdm.tqdm(train_sampler):
+    for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         Y_hat = model(x)
