@@ -56,6 +56,8 @@ parser.add_argument('--nfft', type=int, default=4096,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
+parser.add_argument('--bandwidth', type=int, default=14000,
+                    help='maximum model bandwidth in herz')
 
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
@@ -117,11 +119,19 @@ valid_sampler = torch.utils.data.DataLoader(
 )
 
 print("Compute global average spectrogram")
+
+freqs = np.linspace(
+    0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
+    endpoint=True
+)
+max_bin = np.max(np.where(freqs <= args.bandwidth + 1)[0])
+
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
     model.STFT(n_fft=args.nfft, n_hop=args.nhop),
     model.Spectrogram(mono=True)
 )
+
 for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
@@ -131,7 +141,8 @@ model = model.OSU(
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
     n_fft=args.nfft,
-    n_hop=args.nhop
+    n_hop=args.nhop,
+    max_bin=max_bin
 ).to(device)
 
 optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
@@ -210,7 +221,7 @@ for epoch in t:
         'best_loss': str(best_loss),
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
-        'rate': 44100
+        'rate': train_dataset.sample_rate
     }
 
     with open(Path(target_path,  "output.json"), 'w') as outfile:
