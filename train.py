@@ -52,11 +52,11 @@ parser.add_argument('--lr', type=float, default=0.001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
-parser.add_argument('--nfft', type=int, default=4096,
+parser.add_argument('--nfft', type=int, default=2048,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
-parser.add_argument('--bandwidth', type=int, default=14000,
+parser.add_argument('--bandwidth', type=int, default=15000,
                     help='maximum model bandwidth in herz')
 
 parser.add_argument('--nb-channels', type=int, default=1,
