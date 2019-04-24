@@ -56,7 +56,7 @@ parser.add_argument('--nfft', type=int, default=2048,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
-parser.add_argument('--bandwidth', type=int, default=15000,
+parser.add_argument('--bandwidth', type=int, default=16000,
                     help='maximum model bandwidth in herz')
 
 parser.add_argument('--nb-channels', type=int, default=1,
