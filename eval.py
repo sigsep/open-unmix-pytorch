@@ -93,5 +93,10 @@ if __name__ == '__main__':
 
     df = pandas.concat(results, ignore_index=True)
     # aggregate methods by median of track
+
+    df = df.groupby(
+        ['track', 'target', 'metric']
+    ).median().reset_index()
+
     df_agg = df.groupby(['target', 'metric']).median()['score']
     print(df_agg.unstack())
