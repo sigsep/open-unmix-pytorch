@@ -126,18 +126,29 @@ freqs = np.linspace(
 )
 max_bin = np.max(np.where(freqs <= args.bandwidth + 1)[0])
 
+input_scaler = sklearn.preprocessing.StandardScaler()
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
     model.STFT(n_fft=args.nfft, n_hop=args.nhop),
     model.Spectrogram(mono=True)
 )
 
-for _, y in tqdm.tqdm(train_dataset):
+for x, y in tqdm.tqdm(train_dataset):
+    X = spec(x[None, ...])
     Y = spec(y[None, ...])
+    input_scaler.partial_fit(np.squeeze(X))
     output_scaler.partial_fit(np.squeeze(Y))
+
+# set inital input scaler values
+safe_input_scaler = np.maximum(
+    input_scaler.scale_,
+    1e-4*np.max(input_scaler.scale_)
+)
 
 model = model.OSU(
     power=1,
+    input_mean=input_scaler.mean_,
+    input_scale=safe_input_scaler,
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
     n_fft=args.nfft,

@@ -97,6 +97,8 @@ class OSU(nn.Module):
         nb_layers=3,
         hidden_size=512,
         image=False,
+        input_mean=None,
+        input_scale=None,
         output_mean=None,
         max_bin=None
     ):
@@ -158,6 +160,14 @@ class OSU(nn.Module):
 
         self.in3 = InstanceNorm1d(hidden_size)
 
+        self.input_mean = Parameter(
+            torch.from_numpy(input_mean).float()
+        )
+
+        self.input_scale = Parameter(
+            torch.from_numpy(input_scale).float(),
+        )
+
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
         )
@@ -174,16 +184,19 @@ class OSU(nn.Module):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         # and reduce feature dimensions, therefore we reshape
-        x = self.transform(x)[..., :self.nb_bins]
+        x = self.transform(x)
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         # shift and scale input to mean=0 std=1 (across all bins)
-        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
+        x -= self.input_mean
+        x /= self.input_scale
 
-        x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
+        # crop
+        x = x[..., :self.nb_bins]
+
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
-        x = self.fc1(x.reshape(-1, nb_channels*nb_bins))
+        x = self.fc1(x.reshape(-1, nb_channels*self.nb_bins))
         x = x.reshape(nb_frames, nb_samples, self.hidden_size)
         # normalize every instance in a batch
         x = self.in1(x.permute(1, 2, 0)).permute(2, 0, 1)
