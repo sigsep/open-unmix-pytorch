@@ -14,41 +14,46 @@ except ImportError:
     musdb = None
 
 
-class SourceFolderDataset(torch.utils.data.Dataset):
+class SourcesDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
         seq_duration=None,
-        input_file='mixture.wav',
-        output_file='vocals.wav',
+        input_sources_paths=['noises', 'vocals'],
+        output_source_path='vocals',
         sample_rate=44100,
+        nb_samples=1000
     ):
-        """Random'n'Raw Dataset
+        """A dataset of that assumes folders with unmatched sources
+        generating input mixtures matched to a target
+
+        Example:
+            -- Sample 1 ----------------------
+
+            /noise/10923.wav --+
+                               +--> mixed input
+            /vocals/1.wav -----+
+            /vocals/1.wav --------> output target
 
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
         """
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
+        # convert sequence duration into samples as torchaudio is samplebased
         if seq_duration is not None:
             self.seq_duration = int(seq_duration * sample_rate)
-        # set the input and output files (accept glob)
-        self.targets = {'x': input_file, 'y': output_file}
-        self.audio_files = list(self.get_track_paths())
+        self.nb_samples = nb_samples
+        self.samples = list(self.get_track_paths())
 
     def __getitem__(self, index):
-        X_audio = self.load_audio(self.audio_files[index]['x'])
-        Y_audio = self.load_audio(self.audio_files[index]['y'])
+        input_path, output_path = self.samples[index]
+        X_audio = self.load_audio(input_path)
+        Y_audio = self.load_audio(output_path)
         return X_audio, Y_audio
 
     def __len__(self):
-        return len(self.audio_files)
-
-    def get_duration(self, fp):
-        # get length of file in samples
-        si, _ = torchaudio.info(str(fp))
-        # sox_info state the length as the `nb_samples * nb_channels`
-        return si.length // si.channels / si.rate
+        return self.nb_samples
 
     def get_samples(self, fp):
         # get length of file in samples
@@ -57,35 +62,22 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         return si.length // si.channels
 
     def load_audio(self, fp):
+        # loads the full track duration
         if self.seq_duration is None:
             sig, rate = torchaudio.load(fp)
-            assert rate == self.sample_rate
             return sig
+        # otherwise loads a random excerpt
         else:
             # compare if length is larger than excerpt length
             nb_samples = self.get_samples(fp)
-            if nb_samples > self.seq_duration:
-                seek_pos = random.randint(0, nb_samples - self.seq_duration)
-                sig, rate = torchaudio.load(
-                    fp, num_frames=self.seq_duration, offset=seek_pos
-                )
-                assert rate == self.sample_rate
-                return sig
-
-    @property
-    def get_total_duration(self):
-        total_duration = 0
-        for track_paths in self.audio_files:
-            total_duration += self.get_duration(track_paths['x'])
-        return total_duration
-
-    def _get_track_samples(self):
-        samples = [
-            range(0, self.get_samples(track_paths['x']) - self.excerpt, self.excerpt) for track_paths in self.audio_files
-        ]
-        return samples
+            seek_pos = random.randint(0, nb_samples - self.seq_duration)
+            sig, rate = torchaudio.load(
+                fp, num_frames=self.seq_duration, offset=seek_pos
+            )
+            return sig
 
     def get_track_paths(self):
+        """Loads input and output tracks"""
         p = Path(self.root)
         for track_folder in p.iterdir():
             if track_folder.is_dir():
@@ -93,7 +85,81 @@ class SourceFolderDataset(torch.utils.data.Dataset):
                 output_path = list(track_folder.glob(self.targets['y']))
                 # if both targets are available in the subfolder add them
                 if input_path and output_path:
-                    yield {'x': input_path[0], 'y': output_path[0]}
+                    yield input_path[0], output_path[0]
+
+
+class TargetsDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        root_path,
+        seq_duration=None,
+        input_target_file='mixture.wav',
+        output_target_file='vocals.wav',
+        sample_rate=44100,
+    ):
+        """A dataset of that assumes folders with sources
+
+        Example:
+            -- Sample 1 ----------------------
+            /01/mixture.wav --> input target
+            /01/vocals.wav ---> output target
+            -- Sample 2 -----------------------
+            /02/mixture.wav --> input target
+            /02/vocals.wav ---> output target
+
+        Scales to a large amount of audio data.
+        Uses pytorch' index based sample access
+        """
+        self.root_path = Path(root_path).expanduser()
+        self.sample_rate = sample_rate
+        # convert sequence duration into samples as torchaudio is samplebased
+        if seq_duration is not None:
+            self.seq_duration = int(seq_duration * sample_rate)
+        # set the input and output files (accept glob)
+        self.input_target_file = input_target_file
+        self.output_target_file = output_target_file
+        self.audio_files = list(self.get_track_paths())
+
+    def __getitem__(self, index):
+        input_path, output_path = self.audio_files[index]
+        X_audio = self.load_audio(input_path)
+        Y_audio = self.load_audio(output_path)
+        return X_audio, Y_audio
+
+    def __len__(self):
+        return len(self.audio_files)
+
+    def get_samples(self, fp):
+        # get length of file in samples
+        si, _ = torchaudio.info(str(fp))
+        # sox_info state the length as the `nb_samples * nb_channels`
+        return si.length // si.channels
+
+    def load_audio(self, fp):
+        # loads the full track duration
+        if self.seq_duration is None:
+            sig, rate = torchaudio.load(fp)
+            return sig
+        # otherwise loads a random excerpt
+        else:
+            # compare if length is larger than excerpt length
+            nb_samples = self.get_samples(fp)
+            seek_pos = random.randint(0, nb_samples - self.seq_duration)
+            sig, rate = torchaudio.load(
+                fp, num_frames=self.seq_duration, offset=seek_pos
+            )
+            return sig
+
+    def get_track_paths(self):
+        """Loads input and output tracks"""
+        p = Path(self.root_path)
+        for track_folder in p.iterdir():
+            if track_folder.is_dir():
+                input_path = list(track_folder.glob(self.input_target_file))
+                output_path = list(track_folder.glob(self.output_target_file))
+                # if both targets are available in the subfolder add them
+                if input_path and output_path:
+                    yield input_path[0], output_path[0]
 
 
 class MUSDBDataset(torch.utils.data.Dataset):
@@ -106,10 +172,11 @@ class MUSDBDataset(torch.utils.data.Dataset):
         seq_duration=None,
         validation_split='train',
         samples_per_track=64,
+        dtype=torch.float32,
         *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper that samples from the musdb tracks
-        in a linear way.
+        using excerpts without replacement spaced
         """
         self.is_wav = is_wav
         self.seq_duration = seq_duration
@@ -126,6 +193,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         )
         self.samples = self.create_sample_indices()
         self.sample_rate = 44100
+        self.dtype = dtype
 
     def __getitem__(self, index):
         # get musdb track object
@@ -133,9 +201,9 @@ class MUSDBDataset(torch.utils.data.Dataset):
         track = self.mus.tracks[sample['trk']]
         track.start = sample['pos']
         track.dur = self.seq_duration
-        x = track.audio.T
-        y = track.targets[self.target].audio.T
-        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+        x = torch.tensor(track.audio.T, dtype=self.dtype)
+        y = torch.tensor(track.targets[self.target].audio.T, dtype=self.dtype)
+        return x, y
 
     def __len__(self):
         return len(self.samples)
