@@ -140,7 +140,6 @@ class OSU(nn.Module):
             num_layers=nb_layers,
             bidirectional=True,
             batch_first=False,
-            dropout=0.5
         )
 
         self.fc2 = Linear(
