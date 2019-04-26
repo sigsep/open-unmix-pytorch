@@ -20,20 +20,19 @@ def random_product(*args, repeat=1):
     return tuple(random.choice(pool) for pool in pools)
 
 
-class SourcesDataset(torch.utils.data.Dataset):
+class UnalignedSources(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
         seq_duration=None,
-        input_sources_paths=['noises', 'vocals'],
-        output_source_path='vocals',
-        ext="*.wav",
+        target='drums',
+        interferences=['noise'],
+        glob="*.wav",
         sample_rate=44100,
         nb_samples=1000,
-        paired=True
     ):
-        """A dataset of that assumes folders with unmatched sources
-        generating input mixtures matched to a target
+        """A dataset of that assumes sources to be unaligned,
+        organized 
 
         Example:
             -- Sample 1 ----------------------
@@ -54,17 +53,15 @@ class SourcesDataset(torch.utils.data.Dataset):
         else:
             self.seq_duration = None
         self.nb_samples = nb_samples
-        self.ext = ext
-        self.input_sources_paths = input_sources_paths
-        self.output_source_path = output_source_path
-        self.sources_samples = self.get_track_paths()
+        self.glob = glob
+        self.source_folders = interferences + [target]
+        self.sources = self._get_paths()
 
     def __getitem__(self, index):
-        input_tuple = random_product(*self.sources_samples)
-        sources = list(map(self.load_audio, input_tuple))
-        mix = torch.stack(sources, dim=0).sum(dim=0)
-        ind = self.input_sources_paths.index(self.output_source_path)
-        target = self.load_audio(input_tuple[ind])
+        input_tuple = random_product(*self.sources)
+        sample_sources = list(map(self.load_audio, input_tuple))
+        mix = torch.stack(sample_sources, dim=0).sum(dim=0)
+        target = self.load_audio(input_tuple[-1])
         return mix, target
 
     def __len__(self):
@@ -91,24 +88,24 @@ class SourcesDataset(torch.utils.data.Dataset):
             )
             return sig
 
-    def get_track_paths(self):
+    def _get_paths(self):
         """Loads input and output tracks"""
 
         sources_paths = []
-        for sources_folder in self.input_sources_paths:
-            p = Path(self.root, sources_folder)
-            sources_paths.append(list(p.glob(self.ext)))
+        for source_folder in self.source_folders:
+            p = Path(self.root, source_folder)
+            sources_paths.append(list(p.glob(self.glob)))
 
         return sources_paths
 
 
-class TargetsDataset(torch.utils.data.Dataset):
+class AlignedSources(torch.utils.data.Dataset):
     def __init__(
         self,
-        root_path,
+        root,
+        input_file='mixture.wav',
+        output_file='vocals.wav',
         seq_duration=None,
-        input_target_file='mixture.wav',
-        output_target_file='vocals.wav',
         sample_rate=44100,
     ):
         """A dataset of that assumes folders with sources
@@ -124,24 +121,26 @@ class TargetsDataset(torch.utils.data.Dataset):
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
         """
-        self.root_path = Path(root_path).expanduser()
+        self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
         # convert sequence duration into samples as torchaudio is samplebased
         if seq_duration is not None:
             self.seq_duration = int(seq_duration * sample_rate)
+        else:
+            self.seq_duration = None
         # set the input and output files (accept glob)
-        self.input_target_file = input_target_file
-        self.output_target_file = output_target_file
-        self.audio_files = list(self.get_track_paths())
+        self.input_file = input_file
+        self.output_file = output_file
+        self.tuple_paths = list(self._get_paths())
 
     def __getitem__(self, index):
-        input_path, output_path = self.audio_files[index]
+        input_path, output_path = self.tuple_paths[index]
         X_audio = self.load_audio(input_path)
         Y_audio = self.load_audio(output_path)
         return X_audio, Y_audio
 
     def __len__(self):
-        return len(self.audio_files)
+        return len(self.tuple_paths)
 
     def get_samples(self, fp):
         # get length of file in samples
@@ -164,13 +163,13 @@ class TargetsDataset(torch.utils.data.Dataset):
             )
             return sig
 
-    def get_track_paths(self):
+    def _get_paths(self):
         """Loads input and output tracks"""
-        p = Path(self.root_path)
+        p = Path(self.root)
         for track_folder in p.iterdir():
             if track_folder.is_dir():
-                input_path = list(track_folder.glob(self.input_target_file))
-                output_path = list(track_folder.glob(self.output_target_file))
+                input_path = list(track_folder.glob(self.input_file))
+                output_path = list(track_folder.glob(self.output_file))
                 # if both targets are available in the subfolder add them
                 if input_path and output_path:
                     yield input_path[0], output_path[0]
@@ -180,6 +179,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root=None,
+        download=False,
         is_wav=False,
         subsets=['train'],
         target='vocals',
@@ -203,6 +203,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
             is_wav=is_wav,
             validation_split=validation_split,
             subsets=subsets,
+            download=download,
             *args, **kwargs
         )
         self.samples = self.create_sample_indices()
