@@ -2,6 +2,7 @@ import random
 from pathlib import Path
 import torch
 import numpy as np
+import argparse
 
 try:
     import torchaudio
@@ -12,6 +13,75 @@ try:
     import musdb
 except ImportError:
     musdb = None
+
+
+def load_datasets(parser, args):
+    if args.dataset == 'unaligned':
+        parser.add_argument('--split', type=float, default="0.1")
+        parser.add_argument('--interferences', type=str, nargs="+")
+        args = parser.parse_args()
+
+        sources_dataset = UnalignedSources(
+            root=Path(args.root),
+            seq_duration=args.seq_dur,
+            target=args.target,
+            interferences=args.interferences
+        )
+
+        split = args.split
+
+        lengths = [
+            len(sources_dataset) - int(len(sources_dataset)*split),
+            int(len(sources_dataset)*split)
+        ]
+        train_dataset, valid_dataset = torch.utils.data.random_split(
+            sources_dataset, lengths
+        )
+    elif args.dataset == 'aligned':
+        parser.add_argument('--split', type=float, default="0.1")
+        parser.add_argument('--input_file', type=str)
+        parser.add_argument('--output_file', type=str)
+
+        args = parser.parse_args()
+
+        sources_dataset = UnalignedSources(
+            root=Path(args.root),
+            seq_duration=args.seq_dur,
+            input_file=args.input_file,
+            output_file=args.output_file,
+        )
+
+        split = args.split
+
+        lengths = [
+            len(sources_dataset) - int(len(sources_dataset)*split),
+            int(len(sources_dataset)*split)
+        ]
+        train_dataset, valid_dataset = torch.utils.data.random_split(
+            sources_dataset, lengths
+        )
+    elif args.dataset == 'musdb':
+        parser.add_argument('--is-wav', action='store_true', default=False,
+                            help='flags wav version of the dataset')
+
+        args = parser.parse_args()
+        dataset_kwargs = {
+            'root': args.root,
+            'is_wav': args.is_wav,
+            'seq_duration': args.seq_dur,
+            'subsets': 'train',
+            'target': args.target,
+            'download': False
+        }
+
+        train_dataset = MUSDBDataset(
+            validation_split='train', **dataset_kwargs
+        )
+        valid_dataset = MUSDBDataset(
+            validation_split='valid', **dataset_kwargs
+        )
+
+    return train_dataset, valid_dataset
 
 
 def random_product(*args, repeat=1):
@@ -32,7 +102,7 @@ class UnalignedSources(torch.utils.data.Dataset):
         nb_samples=1000,
     ):
         """A dataset of that assumes sources to be unaligned,
-        organized 
+        organized in subfolders with the name of sources
 
         Example:
             -- Sample 1 ----------------------
@@ -240,16 +310,3 @@ class MUSDBDataset(torch.utils.data.Dataset):
             random.seed(42)
             random.shuffle(samples)
         return samples
-
-
-if __name__ == "__main__":
-    # dataset iterator test
-    dataset = MUSDBDataset(
-        seq_duration=1.0,
-        download=True,
-        subsets="train",
-        validation_split='train'
-    )
-    print(len(dataset))
-    for x, y in dataset:
-        print(x.shape)

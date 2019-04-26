@@ -3,6 +3,7 @@ import torch.optim as optim
 import torch.nn
 import argparse
 import model
+import data
 import torch
 import time
 from pathlib import Path
@@ -17,21 +18,17 @@ import numpy as np
 tqdm.monitor_interval = 0
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch MUSMAG')
+parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
+parser.add_argument('--dataset', type=str, default="musdb",
+                    choices=['musdb', 'aligned', 'unaligned'],
+                    help='Name of the dataset.')
 
 parser.add_argument('--root', type=str, help='root path of dataset')
-parser.add_argument('--is-wav', action='store_true', default=False,
-                    help='flags wav version of the dataset')
-
-parser.add_argument('--db', type=str, default="musdb",
-                    help='provide output path base folder name')
-
-parser.add_argument('--sourcefiles', type=str, nargs="+", default=[None, None])
 
 # I/O Parameters
 parser.add_argument('--seq-dur', type=float, default=5.0)
@@ -64,7 +61,7 @@ parser.add_argument('--nb-channels', type=int, default=1,
 parser.add_argument('--quiet', action='store_true', default=False,
                     help='less verbose during training')
 
-args = parser.parse_args()
+args, __pybind11_internals_v2__ = parser.parse_known_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
@@ -78,36 +75,7 @@ torch.manual_seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-if args.db == 'sourcefolder':
-    from data import SourceFolderDataset
-    sources_dataset = SourceFolderDataset(
-        root=Path(args.root),
-        seq_duration=args.seq_dur,
-        input_file=args.sourcefiles[0],
-        output_file=args.sourcefiles[1]
-    )
-
-    split = 0.1
-    lengths = [
-        len(sources_dataset) - int(len(sources_dataset)*split),
-        int(len(sources_dataset)*split)
-    ]
-    train_dataset, valid_dataset = torch.utils.data.random_split(
-        sources_dataset, lengths
-    )
-elif args.db == 'musdb':
-    from data import MUSDBDataset
-    dataset_kwargs = {
-        'root': args.root,
-        'is_wav': args.is_wav,
-        'seq_duration': args.seq_dur,
-        'subsets': 'train',
-        'target': args.target,
-        'download': False
-    }
-
-    train_dataset = MUSDBDataset(validation_split='train', **dataset_kwargs)
-    valid_dataset = MUSDBDataset(validation_split='valid', **dataset_kwargs)
+train_dataset, valid_dataset = data.load_datasets(parser, args)
 
 train_sampler = torch.utils.data.DataLoader(
     train_dataset, batch_size=args.batch_size, shuffle=True,
