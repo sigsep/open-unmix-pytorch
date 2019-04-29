@@ -15,7 +15,7 @@ class NoOp(nn.Module):
 class STFT(nn.Module):
     def __init__(
         self,
-        n_fft=2048,
+        n_fft=4096,
         n_hop=1024,
         center=False
     ):
@@ -90,7 +90,7 @@ class Spectrogram(nn.Module):
 class OSU(nn.Module):
     def __init__(
         self,
-        n_fft=2048,
+        n_fft=4096,
         n_hop=1024,
         power=1,
         nb_channels=1,

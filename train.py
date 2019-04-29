@@ -49,7 +49,7 @@ parser.add_argument('--lr', type=float, default=0.001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
-parser.add_argument('--nfft', type=int, default=2048,
+parser.add_argument('--nfft', type=int, default=4096,
                     help='fft size')
 parser.add_argument('--nhop', type=int, default=1024,
                     help='fft size')
@@ -61,7 +61,7 @@ parser.add_argument('--nb-channels', type=int, default=1,
 parser.add_argument('--quiet', action='store_true', default=False,
                     help='less verbose during training')
 
-args, __pybind11_internals_v2__ = parser.parse_known_args()
+args, _ = parser.parse_known_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
