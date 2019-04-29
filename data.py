@@ -1,8 +1,8 @@
 import random
 from pathlib import Path
 import torch
+import torch.utils.data
 import numpy as np
-import argparse
 
 try:
     import torchaudio
@@ -44,7 +44,7 @@ def load_datasets(parser, args):
 
         args = parser.parse_args()
 
-        sources_dataset = UnalignedSources(
+        sources_dataset = AlignedSources(
             root=Path(args.root),
             seq_duration=args.seq_dur,
             input_file=args.input_file,
@@ -71,7 +71,7 @@ def load_datasets(parser, args):
             'seq_duration': args.seq_dur,
             'subsets': 'train',
             'target': args.target,
-            'download': False
+            'download': args.root is None
         }
 
         train_dataset = MUSDBDataset(

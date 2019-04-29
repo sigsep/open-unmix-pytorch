@@ -104,7 +104,7 @@ for _, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
 
-model = model.OSU(
+unmix = model.OpenUnmix(
     power=1,
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
@@ -113,21 +113,21 @@ model = model.OSU(
     max_bin=max_bin
 ).to(device)
 
-optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
+optimizer = optim.RMSprop(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
 
 
 def train(epoch):
     data_time = utils.AverageMeter()
     losses = utils.AverageMeter()
-    model.train()
+    unmix.train()
     end = time.time()
 
     for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        Y_hat = model(x)
-        Y = model.transform(y)
+        Y_hat = unmix(x)
+        Y = unmix.transform(y)
         loss = criterion(Y_hat, Y)
         loss.backward()
         optimizer.step()
@@ -139,12 +139,12 @@ def train(epoch):
 def valid():
     losses = utils.AverageMeter()
 
-    model.eval()
+    unmix.eval()
     with torch.no_grad():
         for x, y in valid_sampler:
             x, y = x.to(device), y.to(device)
-            Y_hat = model(x)
-            Y = model.transform(y)
+            Y_hat = unmix(x)
+            Y = unmix.transform(y)
             loss = F.mse_loss(Y_hat, Y)
             losses.update(loss.item(), x.size(1))
         return losses.avg
@@ -168,14 +168,14 @@ for epoch in t:
 
     utils.save_checkpoint({
             'epoch': epoch + 1,
-            'state_dict': model.state_dict(),
+            'state_dict': unmix.state_dict(),
             'best_loss': best_loss,
             'optimizer': optimizer.state_dict(),
         },
         is_best,
         target_path,
         args.target,
-        model
+        unmix
     )
 
     if es.step(valid_loss):

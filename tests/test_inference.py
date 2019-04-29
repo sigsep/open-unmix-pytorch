@@ -35,7 +35,7 @@ def audio(request, nb_samples, nb_channels, nb_timesteps):
 
 
 def test_stft(audio, nb_channels, nfft, hop):
-    unmix = model.OSU(nb_channels=nb_channels)
+    unmix = model.OpenUnmix(nb_channels=nb_channels)
     X = unmix.spec(audio)
     X = X.detach().numpy()
     X_complex_np = X[..., 0] + X[..., 1]*1j
