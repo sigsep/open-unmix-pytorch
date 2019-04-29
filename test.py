@@ -35,7 +35,7 @@ def load_models(directory, targets):
     return models, params
 
 
-def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
+def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     t, audio = scipy.signal.istft(
         X / (n_fft / 2),
         rate,
