@@ -73,6 +73,13 @@ if __name__ == '__main__':
         type=str,
         help='Path to wav file. If not provided, will process the MUSDB18'
     )
+
+    parser.add_argument(
+        '--root',
+        type=str,
+        help='Path to MUSDB18'
+    )
+
     parser.add_argument(
         '--cores',
         type=int,
@@ -102,7 +109,7 @@ if __name__ == '__main__':
 
     models, params = test.load_models(args.model_dir, args.targets)
 
-    mus = musdb.DB(download=False, subsets='test')
+    mus = musdb.DB(root=args.root, download=False, subsets='test')
     pool = multiprocessing.Pool(args.cores)
     results = list(
         pool.imap_unordered(
