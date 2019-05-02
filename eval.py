@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     models, params = test.load_models(args.model_dir, args.targets)
 
-    mus = musdb.DB(root=args.root, download=False, subsets='test')
+    mus = musdb.DB(root_dir=args.root, download=False, subsets='test')
     pool = multiprocessing.Pool(args.cores)
     results = list(
         pool.imap_unordered(
