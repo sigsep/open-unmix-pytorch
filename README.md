@@ -2,10 +2,10 @@
 
 This repository contains the PyTorch implementation of __open-unmix__, a simple reference implementation for research and applications on music source separation.
 
-* _open unmix_ is __not__ a state-of-the-art model but instead serves as baseline. The results of are comparable to the results of `UHL1`, as evaluated in the [SiSEC 2018 Evaluation campaign](https://sisec18.unmix.app)
-* _open unmix_ uses only few external code as possible to allow researchers to reproduce existing results, quickly develop new architectures and add own user data for training and testing. As a result, we used framework specific implementations. We provide a model for [pytorch], [tensorflow] and [nnabla], however the performance is not identical due to the differences between frameworks.
-* _open unmix_ provides a ready-to-use pre trained model that allows users to separate pop music into individual stems.
-* _open unmix_ is community focused project, we therefore encourage the community to submit bug-fixes and comments. However, we are not looking for changes that only focused on improving the performance. 
+* Design choices for _open unmix_ favored simplicity over performance, to promote clearness of the code. The rationale is to have the model serve as a __baseline__ with performance still meeting current standards. The results are comparable to those of `UHL1`, which obtained the best performance over all systems trained on MUSDB18 in the [SiSEC 2018 Evaluation campaign](https://sisec18.unmix.app)
+* _open unmix_ uses as few external code as possible to allow researchers to reproduce existing results, quickly develop new architectures and add own user data for training and testing. As a result, we used framework specific implementations. We provide a fully working implementation for [pytorch], as well as guidelines for designing models in [tensorflow] and [nnabla].
+* _open unmix_ provides a ready-to-use pre-trained model that allows users to separate pop music into individual stems.
+* _open unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and comments. However, we are not looking for changes that only focused on improving the performance.
 
 ## Model Design
 
@@ -13,7 +13,7 @@ _Open Unmix_ is a recurrent model, based on a bi-directional deep [LSTM network]
 
 #### Input
 
-The input of the model is a single or multichannel time domain signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`. The model processes spectrograms based on `torch.STFT` on the fly. Alternatively _open unmix_ also takes magnitude spectrograms 
+The input of the model is a single or multichannel time domain signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` is the batch size and `nb_timesteps` is the number of audio samples. The model processes spectrograms based on `torch.STFT` on the fly. Alternatively _open unmix_ also takes magnitude spectrograms
 directly using `(nb_frames, nb_samples, nb_channels, nb_bins)`.
 
 #### Normalization
@@ -45,12 +45,12 @@ _open-unmix_ support standard pytorch `[Dataset](https://pytorch.org/docs/stable
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) is the largest freely available dataset for professionally produced music tracks (~10h duration) of different styles. It comes with isolated `drums`, `bass`, `vocals` and `others` stems.
 
-_MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs. 
+_MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
 To train the _open unmix_ using the MUSDB18 dataset, you just need to set the following parameters:
 
 ```
 python train.py --dataset musdb --root /data/musdb --target vocals
-``` 
+```
 
 #### `AlignedDataset`
 
@@ -60,7 +60,7 @@ To start training one need to run
 
 ```
 python train.py --dataset aligned --root /data/data --input_file mixture.wav --output_file vocals.wav
-``` 
+```
 
 
 #### `UnalignedDataset`
@@ -71,7 +71,7 @@ In the following example, we have three folders with a unmatched number of vocal
 
 ```
 python train.py --dataset unaligned --root /data/data --target vocals --interferences music noises
-``` 
+```
 
 ### Model Parameters
 
@@ -126,14 +126,6 @@ The inference can be controlled with additional parameters that influence the pe
 | `--alpha <float>`         |this value changes the exponent for the softmask $X^\alpha$. A smaller value allows for more X, whereas a larger value results in Y.                                                          | `1.0`            |
 | `--logit`       | this option makes the softmask go through a logistic function, tending to binarize the filtering: this tends to reduce interference, but to augment distortion.      | not set            |
 
-
-### Pre-trained model
-
-t.b.a.
-
-### Citation
-
-t.b.a.
 
 ### Authors
 
