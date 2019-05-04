@@ -37,6 +37,7 @@ def load_datasets(parser, args):
         train_dataset, valid_dataset = torch.utils.data.random_split(
             sources_dataset, lengths
         )
+        train_dataset.sample_rate = sources_dataset.sample_rate
     elif args.dataset == 'aligned':
         parser.add_argument('--split', type=float, default="0.1")
         parser.add_argument('--input_file', type=str)
@@ -60,6 +61,8 @@ def load_datasets(parser, args):
         train_dataset, valid_dataset = torch.utils.data.random_split(
             sources_dataset, lengths
         )
+        train_dataset.sample_rate = sources_dataset.sample_rate
+
     elif args.dataset == 'musdb':
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='flags wav version of the dataset')
