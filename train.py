@@ -67,9 +67,6 @@ args, _ = parser.parse_known_args()
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
-# create output dir if not exist
-target_path = Path(args.output, args.target)
-target_path.mkdir(parents=True, exist_ok=True)
 
 # use jpg or npy
 torch.manual_seed(args.seed)
@@ -78,6 +75,10 @@ random.seed(args.seed)
 device = torch.device("cuda" if use_cuda else "cpu")
 
 train_dataset, valid_dataset = data.load_datasets(parser, args)
+
+# create output dir if not exist
+target_path = Path(args.output, args.target)
+target_path.mkdir(parents=True, exist_ok=True)
 
 train_sampler = torch.utils.data.DataLoader(
     train_dataset, batch_size=args.batch_size, shuffle=True,
