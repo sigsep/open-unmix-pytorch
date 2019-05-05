@@ -3,6 +3,13 @@ from pathlib import Path
 import torch
 import torch.utils.data
 import numpy as np
+import sys
+
+
+try:
+    import soundfile as sf
+except ImportError:
+    soundfile = None
 
 try:
     import torchaudio
@@ -13,6 +20,77 @@ try:
     import musdb
 except ImportError:
     musdb = None
+
+
+def soundfile_info(path):
+    info = {}
+    sfi = sf.info(path)
+    info['samplerate'] = sfi.samplerate
+    info['samples'] = int(sfi.duration * sfi.samplerate)
+    info['duration'] = sfi.duration
+    return info
+
+
+def soundfile_loader(path, start=0, dur=None):
+    # get metadata
+    info = soundfile_info(path)
+    start = int(start * info['samplerate'])
+    # check if dur is none
+    if dur:
+        # stop in soundfile is calc in samples, not seconds
+        stop = start + int(dur * info['samplerate'])
+    else:
+        # set to None for reading complete file
+        stop = dur
+
+    audio, _ = sf.read(
+        path,
+        always_2d=True,
+        start=start,
+        stop=stop
+    )
+    return torch.FloatTensor(audio.T)
+
+
+def torchaudio_info(path):
+    # get length of file in samples
+    info = {}
+    si, _ = torchaudio.info(str(path))
+    info['samplerate'] = si.rate
+    info['samples'] = si.length // si.channels
+    info['duration'] = info['samples'] / si.rate
+    return info
+
+
+def torchaudio_loader(path, start=0, dur=None):
+    info = torchaudio_info(path)
+    # loads the full track duration
+    if dur is None:
+        sig, rate = torchaudio.load(path)
+        return sig
+        # otherwise loads a random excerpt
+    else:
+        num_frames = int(dur * info['samplerate'])
+        offset = int(start * info['samplerate'])
+        sig, rate = torchaudio.load(
+            path, num_frames=num_frames, offset=offset
+        )
+        return sig
+
+
+def audioloader(path, start=0, dur=None):
+    if 'torchaudio' in sys.modules:
+        print("torch")
+        return torchaudio_loader(path, start=start, dur=dur)
+    else:
+        return soundfile_loader(path, start=start, dur=dur)
+
+
+def audioinfo(path):
+    if 'torchaudio' in sys.modules:
+        return torchaudio_info(path)
+    else:
+        return soundfile_info(path)
 
 
 def load_datasets(parser, args):
@@ -121,11 +199,7 @@ class UnalignedSources(torch.utils.data.Dataset):
         """
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
-        # convert sequence duration into samples as torchaudio is samplebased
-        if seq_duration is not None:
-            self.seq_duration = int(seq_duration * sample_rate)
-        else:
-            self.seq_duration = None
+        self.seq_duration = seq_duration
         self.nb_samples = nb_samples
         self.glob = glob
         self.source_folders = interferences + [target]
@@ -141,26 +215,15 @@ class UnalignedSources(torch.utils.data.Dataset):
     def __len__(self):
         return self.nb_samples
 
-    def get_samples(self, fp):
-        # get length of file in samples
-        si, _ = torchaudio.info(str(fp))
-        # sox_info state the length as the `nb_samples * nb_channels`
-        return si.length // si.channels
-
     def load_audio(self, fp):
         # loads the full track duration
         if self.seq_duration is None:
-            sig, rate = torchaudio.load(fp)
-            return sig
-        # otherwise loads a random excerpt
+            return audioloader(fp, start=0, dur=None)
         else:
-            # compare if length is larger than excerpt length
-            nb_samples = self.get_samples(fp)
-            seek_pos = random.randint(0, nb_samples - self.seq_duration)
-            sig, rate = torchaudio.load(
-                fp, num_frames=self.seq_duration, offset=seek_pos
-            )
-            return sig
+            info = audioinfo(fp)
+            # random start in seconds
+            start = random.uniform(0, info['duration'] - self.seq_duration)
+            return audioloader(fp, start=start, dur=self.seq_duration)
 
     def _get_paths(self):
         """Loads input and output tracks"""
@@ -198,10 +261,7 @@ class AlignedSources(torch.utils.data.Dataset):
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
         # convert sequence duration into samples as torchaudio is samplebased
-        if seq_duration is not None:
-            self.seq_duration = int(seq_duration * sample_rate)
-        else:
-            self.seq_duration = None
+        self.seq_duration = seq_duration
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
@@ -216,26 +276,15 @@ class AlignedSources(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.tuple_paths)
 
-    def get_samples(self, fp):
-        # get length of file in samples
-        si, _ = torchaudio.info(str(fp))
-        # sox_info state the length as the `nb_samples * nb_channels`
-        return si.length // si.channels
-
     def load_audio(self, fp):
         # loads the full track duration
         if self.seq_duration is None:
-            sig, rate = torchaudio.load(fp)
-            return sig
-        # otherwise loads a random excerpt
+            return audioloader(fp, start=0, dur=None)
         else:
-            # compare if length is larger than excerpt length
-            nb_samples = self.get_samples(fp)
-            seek_pos = random.randint(0, nb_samples - self.seq_duration)
-            sig, rate = torchaudio.load(
-                fp, num_frames=self.seq_duration, offset=seek_pos
-            )
-            return sig
+            info = audioinfo(fp)
+            # random start in seconds
+            start = random.uniform(0, info['duration'] - self.seq_duration)
+            return audioloader(fp, start=start, dur=self.seq_duration)
 
     def _get_paths(self):
         """Loads input and output tracks"""

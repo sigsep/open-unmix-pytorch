@@ -13,6 +13,7 @@ import torch.utils.data
 import utils
 import sklearn.preprocessing
 import numpy as np
+import random
 
 
 tqdm.monitor_interval = 0
@@ -72,6 +73,7 @@ target_path.mkdir(parents=True, exist_ok=True)
 
 # use jpg or npy
 torch.manual_seed(args.seed)
+random.seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
