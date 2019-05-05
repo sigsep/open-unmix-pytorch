@@ -92,8 +92,7 @@ freqs = np.linspace(
     0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
     endpoint=True
 )
-max_bin = np.max(np.where(freqs <= args.bandwidth + 1)[0])
-
+max_bin = np.max(np.where(freqs <= args.bandwidth)[0]) + 1
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
     model.STFT(n_fft=args.nfft, n_hop=args.nhop),
