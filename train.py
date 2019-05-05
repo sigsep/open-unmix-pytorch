@@ -117,10 +117,8 @@ criterion = torch.nn.MSELoss()
 
 
 def train(epoch):
-    data_time = utils.AverageMeter()
     losses = utils.AverageMeter()
     unmix.train()
-    end = time.time()
 
     for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
         x, y = x.to(device), y.to(device)
@@ -131,7 +129,6 @@ def train(epoch):
         loss.backward()
         optimizer.step()
         losses.update(loss.item(), Y.size(1))
-        data_time.update(time.time() - end)
     return losses.avg
 
 
@@ -154,7 +151,9 @@ best_loss = 1000
 t = tqdm.trange(1, args.epochs + 1)
 train_losses = []
 valid_losses = []
+train_times = []
 for epoch in t:
+    end = time.time()
     train_loss = train(epoch)
     valid_loss = valid()
     train_losses.append(train_loss)
@@ -176,6 +175,7 @@ for epoch in t:
         args.target,
         unmix
     )
+    train_times.append(time.time() - end)
 
     if es.step(valid_loss):
         print("Apply Early Stopping")
@@ -188,6 +188,7 @@ for epoch in t:
         'best_loss': str(best_loss),
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
+        'train_time_history': train_times,
         'rate': train_dataset.sample_rate
     }
 
