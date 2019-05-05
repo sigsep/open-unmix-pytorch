@@ -80,7 +80,6 @@ def torchaudio_loader(path, start=0, dur=None):
 
 def audioloader(path, start=0, dur=None):
     if 'torchaudio' in sys.modules:
-        print("torch")
         return torchaudio_loader(path, start=start, dur=dur)
     else:
         return soundfile_loader(path, start=start, dur=dur)
