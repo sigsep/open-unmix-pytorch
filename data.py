@@ -44,7 +44,8 @@ def load_datasets(parser, args):
         parser.add_argument('--output_file', type=str)
 
         args = parser.parse_args()
-
+        # set output target to basename of output file
+        args.target = Path(args.output_file).stem
         sources_dataset = AlignedSources(
             root=Path(args.root),
             seq_duration=args.seq_dur,
