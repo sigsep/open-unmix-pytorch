@@ -102,7 +102,8 @@ def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
 
     if not logit:
         logit = None
-        Y = norbert.wiener(V, X, niter, logit=logit)
+
+    Y = norbert.wiener(V, X, niter, logit=logit)
 
     estimates = {}
     for j, name in enumerate(source_names):
@@ -157,7 +158,8 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
 
     if not logit:
         logit = None
-        Y = norbert.wiener(V, X, niter, logit=logit)
+
+    Y = norbert.wiener(V, X, niter, logit=logit)
 
     estimates = {}
     for j, name in enumerate(source_names):
