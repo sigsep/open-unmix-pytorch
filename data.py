@@ -94,7 +94,7 @@ def audioinfo(path):
 
 def load_datasets(parser, args):
     if args.dataset == 'unaligned':
-        parser.add_argument('--split', type=float, default="0.1")
+        parser.add_argument('--valid_split', type=float, default="0.1")
         parser.add_argument('--interferences', type=str, nargs="+")
         args = parser.parse_args()
 
@@ -105,18 +105,18 @@ def load_datasets(parser, args):
             interferences=args.interferences
         )
 
-        split = args.split
+        valid_split = args.valid_split
 
         lengths = [
-            len(sources_dataset) - int(len(sources_dataset)*split),
-            int(len(sources_dataset)*split)
+            len(sources_dataset) - int(len(sources_dataset)*valid_split),
+            int(len(sources_dataset)*valid_split)
         ]
         train_dataset, valid_dataset = torch.utils.data.random_split(
             sources_dataset, lengths
         )
         train_dataset.sample_rate = sources_dataset.sample_rate
     elif args.dataset == 'aligned':
-        parser.add_argument('--split', type=float, default="0.1")
+        parser.add_argument('--valid_split', type=float, default="0.1")
         parser.add_argument('--input_file', type=str)
         parser.add_argument('--output_file', type=str)
 
@@ -130,11 +130,11 @@ def load_datasets(parser, args):
             output_file=args.output_file,
         )
 
-        split = args.split
+        valid_split = args.valid_split
 
         lengths = [
-            len(sources_dataset) - int(len(sources_dataset)*split),
-            int(len(sources_dataset)*split)
+            len(sources_dataset) - int(len(sources_dataset)*valid_split),
+            int(len(sources_dataset)*valid_split)
         ]
         train_dataset, valid_dataset = torch.utils.data.random_split(
             sources_dataset, lengths
@@ -198,7 +198,10 @@ class UnalignedSources(torch.utils.data.Dataset):
         """
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
-        self.seq_duration = seq_duration
+        if seq_duration <= 0:
+            self.seq_duration = None
+        else:
+            self.seq_duration = seq_duration
         self.nb_samples = nb_samples
         self.glob = glob
         self.source_folders = interferences + [target]
@@ -216,13 +219,7 @@ class UnalignedSources(torch.utils.data.Dataset):
 
     def load_audio(self, fp):
         # loads the full track duration
-        if self.seq_duration is None:
-            return audioloader(fp, start=0, dur=None)
-        else:
-            info = audioinfo(fp)
-            # random start in seconds
-            start = random.uniform(0, info['duration'] - self.seq_duration)
-            return audioloader(fp, start=start, dur=self.seq_duration)
+        return audioloader(fp, start=0, dur=self.seq_duration)
 
     def _get_paths(self):
         """Loads input and output tracks"""
@@ -259,8 +256,10 @@ class AlignedSources(torch.utils.data.Dataset):
         """
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
-        # convert sequence duration into samples as torchaudio is samplebased
-        self.seq_duration = seq_duration
+        if seq_duration <= 0:
+            self.seq_duration = None
+        else:
+            self.seq_duration = seq_duration
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
@@ -276,14 +275,7 @@ class AlignedSources(torch.utils.data.Dataset):
         return len(self.tuple_paths)
 
     def load_audio(self, fp):
-        # loads the full track duration
-        if self.seq_duration is None:
-            return audioloader(fp, start=0, dur=None)
-        else:
-            info = audioinfo(fp)
-            # random start in seconds
-            start = random.uniform(0, info['duration'] - self.seq_duration)
-            return audioloader(fp, start=start, dur=self.seq_duration)
+        return audioloader(fp, start=0, dur=self.seq_duration)
 
     def _get_paths(self):
         """Loads input and output tracks"""
