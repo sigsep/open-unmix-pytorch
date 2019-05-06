@@ -94,7 +94,7 @@ def audioinfo(path):
 
 def load_datasets(parser, args):
     if args.dataset == 'unaligned':
-        parser.add_argument('--valid_split', type=float, default="0.1")
+        parser.add_argument('--valid_split', type=float, default="0.2")
         parser.add_argument('--interferences', type=str, nargs="+")
         args = parser.parse_args()
 
@@ -116,7 +116,7 @@ def load_datasets(parser, args):
         )
         train_dataset.sample_rate = sources_dataset.sample_rate
     elif args.dataset == 'aligned':
-        parser.add_argument('--valid_split', type=float, default="0.1")
+        parser.add_argument('--valid_split', type=float, default="0.2")
         parser.add_argument('--input_file', type=str)
         parser.add_argument('--output_file', type=str)
 
