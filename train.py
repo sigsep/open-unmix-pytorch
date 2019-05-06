@@ -77,7 +77,7 @@ random.seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-train_dataset, valid_dataset = data.load_datasets(parser, args)
+train_dataset, valid_dataset, args = data.load_datasets(parser, args)
 
 # create output dir if not exist
 target_path = Path(args.output, args.target)

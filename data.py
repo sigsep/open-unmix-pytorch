@@ -162,7 +162,7 @@ def load_datasets(parser, args):
             validation_split='valid', **dataset_kwargs
         )
 
-    return train_dataset, valid_dataset
+    return train_dataset, valid_dataset, args
 
 
 def random_product(*args, repeat=1):
