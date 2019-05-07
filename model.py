@@ -156,7 +156,7 @@ class OpenUnmix(nn.Module):
             bias=False
         )
 
-        self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels,)
+        self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
 
         self.input_mean = Parameter(
             torch.from_numpy(input_mean).float()
