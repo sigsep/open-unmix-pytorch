@@ -24,7 +24,6 @@ def separate_and_evaluate(
         alpha=alpha,
         logit=logit
     )
-
     if args.outdir:
         mus.save_estimates(estimates, track, args.outdir)
 
@@ -110,22 +109,34 @@ if __name__ == '__main__':
     models, params = test.load_models(args.model_dir, args.targets)
 
     mus = musdb.DB(root_dir=args.root, download=False, subsets='test')
-    pool = multiprocessing.Pool(args.cores)
-    results = list(
-        pool.imap_unordered(
-            func=functools.partial(
-                separate_and_evaluate,
+    if args.cores > 1:
+        pool = multiprocessing.Pool(args.cores)
+        results = list(
+            pool.imap_unordered(
+                func=functools.partial(
+                    separate_and_evaluate,
+                    models=models,
+                    params=params,
+                    niter=args.niter,
+                    alpha=args.alpha,
+                    logit=args.logit,
+                    output_dir=args.evaldir
+                ),
+                iterable=mus.tracks,
+                chunksize=1
+            )
+        )
+
+        pool.close()
+        pool.join()
+    else:
+        for track in mus.tracks:
+            separate_and_evaluate(
+                track,
                 models=models,
                 params=params,
                 niter=args.niter,
                 alpha=args.alpha,
                 logit=args.logit,
                 output_dir=args.evaldir
-            ),
-            iterable=mus.tracks,
-            chunksize=1
-        )
-    )
-
-    pool.close()
-    pool.join()
+            )
