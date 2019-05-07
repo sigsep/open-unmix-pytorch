@@ -2,8 +2,38 @@ import argparse
 import musdb
 import museval
 import test
-import pandas
-import tqdm
+import multiprocessing
+import functools
+
+
+def separate_and_evaluate(
+    track,
+    models,
+    params,
+    niter,
+    alpha,
+    logit,
+    output_dir
+):
+    print(track.name, track.duration)
+    estimates = test.separate(
+        audio=track.audio,
+        models=models,
+        params=params,
+        niter=niter,
+        alpha=alpha,
+        logit=logit
+    )
+
+    if args.outdir:
+        mus.save_estimates(estimates, track, args.outdir)
+
+    if args.evaldir is not None:
+        scores = museval.eval_mus_track(
+            track, estimates, output_dir=args.evaldir
+        )
+        print(scores)
+        return scores
 
 
 if __name__ == '__main__':
@@ -45,6 +75,17 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--root',
+        type=str,
+        help='Path to MUSDB18'
+    )
+
+    parser.add_argument(
+        '--cores',
+        type=int,
+        default=1
+    )
+    parser.add_argument(
         '--niter',
         type=int,
         default=0,
@@ -68,35 +109,23 @@ if __name__ == '__main__':
 
     models, params = test.load_models(args.model_dir, args.targets)
 
-    mus = musdb.DB(download=False, subsets='test')
-    results = []
-    for track in tqdm.tqdm(mus):
-        print(track.name, track.duration)
-        estimates = test.separate(
-            audio=track.audio,
-            models=models,
-            params=params,
-            niter=args.niter,
-            alpha=args.alpha,
-            logit=args.logit
+    mus = musdb.DB(root_dir=args.root, download=False, subsets='test')
+    pool = multiprocessing.Pool(args.cores)
+    results = list(
+        pool.imap_unordered(
+            func=functools.partial(
+                separate_and_evaluate,
+                models=models,
+                params=params,
+                niter=args.niter,
+                alpha=args.alpha,
+                logit=args.logit,
+                output_dir=args.evaldir
+            ),
+            iterable=mus.tracks,
+            chunksize=1
         )
+    )
 
-        if args.outdir:
-            mus.save_estimates(estimates, track, args.outdir)
-
-        if args.evaldir is not None:
-            scores = museval.eval_mus_track(
-                track, estimates, output_dir=args.evaldir
-            )
-            print(scores)
-            results.append(museval.to_df(scores, track))
-
-    df = pandas.concat(results, ignore_index=True)
-    # aggregate methods by median of track
-
-    df = df.groupby(
-        ['track', 'target', 'metric']
-    ).median().reset_index()
-
-    df_agg = df.groupby(['target', 'metric']).median()['score']
-    print(df_agg.unstack())
+    pool.close()
+    pool.join()

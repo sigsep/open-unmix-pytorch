@@ -35,7 +35,7 @@ def load_models(directory, targets):
     return models, params
 
 
-def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
+def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     t, audio = scipy.signal.istft(
         X / (n_fft / 2),
         rate,
@@ -102,7 +102,8 @@ def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
 
     if not logit:
         logit = None
-        Y = norbert.wiener(V, X, niter, logit=logit)
+
+    Y = norbert.wiener(V, X, niter, logit=logit)
 
     estimates = {}
     for j, name in enumerate(source_names):
@@ -157,7 +158,8 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
 
     if not logit:
         logit = None
-        Y = norbert.wiener(V, X, niter, logit=logit)
+
+    Y = norbert.wiener(V, X, niter, logit=logit)
 
     estimates = {}
     for j, name in enumerate(source_names):

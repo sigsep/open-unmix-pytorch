@@ -24,12 +24,12 @@ def audio(request, nb_samples, nb_channels, nb_timesteps):
 
 
 def test_model(audio, nb_channels):
-    osu = model.OSU(nb_channels=nb_channels)
-    assert osu(audio)
+    unmix = model.OpenUnmix(nb_channels=nb_channels)
+    assert unmix(audio)
 
 
 def test_shape(audio, nb_channels):
-    unmix = model.OSU(nb_channels=nb_channels)
+    unmix = model.OpenUnmix(nb_channels=nb_channels)
     X = unmix.spec(audio)
     Y = unmix(X)
     assert X.shape == Y.shape

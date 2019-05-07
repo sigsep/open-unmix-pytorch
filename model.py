@@ -87,7 +87,7 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-class OSU(nn.Module):
+class OpenUnmix(nn.Module):
     def __init__(
         self,
         n_fft=4096,
@@ -109,7 +109,7 @@ class OSU(nn.Module):
                 (nb_frames, nb_samples, nb_channels, nb_bins)
         """
 
-        super(OSU, self).__init__()
+        super(OpenUnmix, self).__init__()
 
         self.nb_output_bins = n_fft // 2 + 1
         if max_bin:
