@@ -94,52 +94,36 @@ def audioinfo(path):
 
 def load_datasets(parser, args):
     if args.dataset == 'unaligned':
-        parser.add_argument('--valid_split', type=float, default="0.2")
         parser.add_argument('--interferences', type=str, nargs="+")
         args = parser.parse_args()
 
-        sources_dataset = UnalignedSources(
-            root=Path(args.root),
-            seq_duration=args.seq_dur,
-            target=args.target,
-            interferences=args.interferences
-        )
+        dataset_kwargs = {
+            'root': Path(args.root),
+            'seq_duration': args.seq_dur,
+            'target': args.target,
+            'interferences': args.interferences
+        }
 
-        valid_split = args.valid_split
+        train_dataset = UnalignedSources(split='train', **dataset_kwargs)
+        valid_dataset = UnalignedSources(split='valid', **dataset_kwargs)
 
-        lengths = [
-            len(sources_dataset) - int(len(sources_dataset)*valid_split),
-            int(len(sources_dataset)*valid_split)
-        ]
-        train_dataset, valid_dataset = torch.utils.data.random_split(
-            sources_dataset, lengths
-        )
-        train_dataset.sample_rate = sources_dataset.sample_rate
     elif args.dataset == 'aligned':
-        parser.add_argument('--valid_split', type=float, default="0.2")
         parser.add_argument('--input_file', type=str)
         parser.add_argument('--output_file', type=str)
 
         args = parser.parse_args()
         # set output target to basename of output file
         args.target = Path(args.output_file).stem
-        sources_dataset = AlignedSources(
-            root=Path(args.root),
-            seq_duration=args.seq_dur,
-            input_file=args.input_file,
-            output_file=args.output_file,
-        )
 
-        valid_split = args.valid_split
+        dataset_kwargs = {
+            'root': Path(args.root),
+            'seq_duration': args.seq_dur,
+            'input_file': args.input_file,
+            'output_file': args.output_file
+        }
 
-        lengths = [
-            len(sources_dataset) - int(len(sources_dataset)*valid_split),
-            int(len(sources_dataset)*valid_split)
-        ]
-        train_dataset, valid_dataset = torch.utils.data.random_split(
-            sources_dataset, lengths
-        )
-        train_dataset.sample_rate = sources_dataset.sample_rate
+        train_dataset = AlignedSources(split='train', **dataset_kwargs)
+        valid_dataset = AlignedSources(split='valid', **dataset_kwargs)
 
     elif args.dataset == 'musdb':
         parser.add_argument('--is-wav', action='store_true', default=False,
@@ -175,6 +159,7 @@ class UnalignedSources(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
+        split='train',
         seq_duration=None,
         target='drums',
         interferences=['noise'],
@@ -188,10 +173,10 @@ class UnalignedSources(torch.utils.data.Dataset):
         Example:
             -- Sample 1 ----------------------
 
-            /noise/10923.wav --+
-                               +--> mixed input
-            /vocals/1.wav -----+
-            /vocals/1.wav --------> output target
+            train/noise/10923.wav --+
+                                    +--> mixed input
+            train/vocals/1.wav -----+
+            train/vocals/1.wav --------> output target
 
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
@@ -226,7 +211,7 @@ class UnalignedSources(torch.utils.data.Dataset):
 
         sources_paths = []
         for source_folder in self.source_folders:
-            p = Path(self.root, source_folder)
+            p = Path(self.root, self.split, source_folder)
             sources_paths.append(list(p.glob(self.glob)))
 
         return sources_paths
@@ -236,6 +221,7 @@ class AlignedSources(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
+        split='train',
         input_file='mixture.wav',
         output_file='vocals.wav',
         seq_duration=None,
@@ -245,21 +231,23 @@ class AlignedSources(torch.utils.data.Dataset):
 
         Example:
             -- Sample 1 ----------------------
-            /01/mixture.wav --> input target
-            /01/vocals.wav ---> output target
+            train/01/mixture.wav --> input target
+            train/01/vocals.wav ---> output target
             -- Sample 2 -----------------------
-            /02/mixture.wav --> input target
-            /02/vocals.wav ---> output target
+            train/02/mixture.wav --> input target
+            train/02/vocals.wav ---> output target
 
         Scales to a large amount of audio data.
         Uses pytorch' index based sample access
         """
         self.root = Path(root).expanduser()
+        self.split = split
         self.sample_rate = sample_rate
         if seq_duration <= 0:
             self.seq_duration = None
         else:
             self.seq_duration = seq_duration
+        self.random_excerpt = (split == 'train')
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
@@ -267,19 +255,24 @@ class AlignedSources(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
-        X_audio = self.load_audio(input_path)
-        Y_audio = self.load_audio(output_path)
+        if self.random_excerpt:
+            info = audioinfo(input_path)
+            # random start in seconds
+            start = random.uniform(0, info['duration'] - self.seq_duration)
+            if start < 0:
+                start = 0
+        else:
+            start = 0
+        X_audio = audioloader(input_path, start=start, dur=self.seq_duration)
+        Y_audio = audioloader(output_path, start=start, dur=self.seq_duration)
         return X_audio, Y_audio
 
     def __len__(self):
         return len(self.tuple_paths)
 
-    def load_audio(self, fp):
-        return audioloader(fp, start=0, dur=self.seq_duration)
-
     def _get_paths(self):
         """Loads input and output tracks"""
-        p = Path(self.root)
+        p = Path(self.root, self.split)
         for track_folder in p.iterdir():
             if track_folder.is_dir():
                 input_path = list(track_folder.glob(self.input_file))
