@@ -156,7 +156,7 @@ class OpenUnmix(nn.Module):
             bias=False
         )
 
-        self.in3 = InstanceNorm1d(hidden_size)
+        self.in3 = InstanceNorm1d(self.nb_output_bins*nb_channels)
 
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
