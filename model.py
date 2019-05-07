@@ -1,4 +1,4 @@
-from torch.nn import LSTM, Linear, InstanceNorm1d, Parameter
+from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -127,14 +127,12 @@ class OpenUnmix(nn.Module):
         else:
             self.transform = nn.Sequential(self.stft, self.spec)
 
-        self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
-
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
             bias=False
         )
 
-        self.in1 = InstanceNorm1d(hidden_size)
+        self.bn1 = BatchNorm1d(hidden_size)
 
         self.lstm = LSTM(
             input_size=hidden_size,
@@ -150,7 +148,7 @@ class OpenUnmix(nn.Module):
             bias=False
         )
 
-        self.in2 = InstanceNorm1d(hidden_size)
+        self.bn2 = BatchNorm1d(hidden_size)
 
         self.fc3 = Linear(
             in_features=hidden_size,
@@ -158,7 +156,7 @@ class OpenUnmix(nn.Module):
             bias=False
         )
 
-        self.in3 = InstanceNorm1d(hidden_size)
+        self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels,)
 
         self.input_mean = Parameter(
             torch.from_numpy(input_mean).float()
@@ -197,9 +195,9 @@ class OpenUnmix(nn.Module):
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
         x = self.fc1(x.reshape(-1, nb_channels*self.nb_bins))
-        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
         # normalize every instance in a batch
-        x = self.in1(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.bn1(x)
+        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
         # squash range ot [-1, 1]
         x = torch.tanh(x)
 
@@ -207,19 +205,17 @@ class OpenUnmix(nn.Module):
         lstm_out = self.lstm(x)
 
         # reshape to 1D vector (seq_len*batch, hidden_size)
-        x = lstm_out[0]
+        x = x + lstm_out[0]
 
         # first dense stage + batch norm
         x = self.fc2(x.reshape(-1, self.hidden_size))
-        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
-        x = self.in2(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.bn2(x)
 
         x = F.relu(x)
 
         # second dense stage + layer norm
-        x = self.fc3(x.reshape(-1, self.hidden_size))
-        x = x.reshape(nb_frames, nb_samples, nb_channels*self.nb_output_bins)
-        x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.fc3(x)
+        x = self.bn3(x)
 
         # reshape back to original dim
         x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
