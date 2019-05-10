@@ -236,8 +236,8 @@ if __name__ == '__main__':
     models, params = load_models(args.model_dir, args.targets)
 
     # handling an input audio path
-    audio, samplerate = sf.read(args.input)
-    estimates = separate(
+    audio, samplerate = sf.read(args.input, always_2d=True)
+    estimates = separate_chunked(
         audio,
         models,
         params,
