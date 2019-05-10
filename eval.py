@@ -16,7 +16,7 @@ def separate_and_evaluate(
     output_dir
 ):
     print(track.name, track.duration)
-    estimates = test.separate(
+    estimates = test.separate_chunked(
         audio=track.audio,
         models=models,
         params=params,
