@@ -112,6 +112,7 @@ for x, y in tqdm.tqdm(train_dataset):
     Y = spec(y[None, ...])
     input_scaler.partial_fit(np.squeeze(X))
     output_scaler.partial_fit(np.squeeze(Y))
+    break
 
 # set inital input scaler values
 safe_input_scaler = np.maximum(

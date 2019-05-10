@@ -169,14 +169,9 @@ class OpenUnmix(nn.Module):
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
         )
-        if output_mean is not None:
-            self.output_mean = Parameter(
-                torch.from_numpy(output_mean).float()
-            )
-        else:
-            self.output_mean = Parameter(
-                torch.rand(self.nb_output_bins.shape).float()
-            )
+        self.output_mean = Parameter(
+            torch.ones(self.nb_output_bins).float()
+        )
 
     def forward(self, x):
         # check for waveform or image
@@ -184,6 +179,8 @@ class OpenUnmix(nn.Module):
         # and reduce feature dimensions, therefore we reshape
         x = self.transform(x)
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+
+        mix = x.detach().clone()
 
         # shift and scale input to mean=0 std=1 (across all bins)
         x -= self.input_mean
@@ -225,6 +222,6 @@ class OpenUnmix(nn.Module):
         x += self.output_mean
 
         # since our output is non-negative, we can apply RELU
-        x = F.relu(x)
+        x = F.relu(x) * mix
 
         return x
