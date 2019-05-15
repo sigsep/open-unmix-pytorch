@@ -130,7 +130,7 @@ unmix = model.OpenUnmix(
     max_bin=max_bin
 ).to(device)
 
-optimizer = optim.RMSprop(unmix.parameters(), lr=args.lr)
+optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
 
 
