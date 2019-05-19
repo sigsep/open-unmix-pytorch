@@ -88,7 +88,7 @@ train_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 valid_sampler = torch.utils.data.DataLoader(
-    valid_dataset, batch_size=args.batch_size,
+    valid_dataset, batch_size=1,
     **dataloader_kwargs
 )
 
@@ -114,7 +114,7 @@ for x, y in tqdm.tqdm(train_dataset):
     output_scaler.partial_fit(np.squeeze(Y))
 
 # set inital input scaler values
-safe_input_scaler = np.maximum(
+safe_input_scale = np.maximum(
     input_scaler.scale_,
     1e-4*np.max(input_scaler.scale_)
 )
@@ -122,7 +122,7 @@ safe_input_scaler = np.maximum(
 unmix = model.OpenUnmix(
     power=1,
     input_mean=input_scaler.mean_,
-    input_scale=safe_input_scaler,
+    input_scale=safe_input_scale,
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
     n_fft=args.nfft,

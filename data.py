@@ -128,22 +128,26 @@ def load_datasets(parser, args):
     elif args.dataset == 'musdb':
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='flags wav version of the dataset')
+        parser.add_argument('--samples-per-track', type=int, default=64)
 
         args = parser.parse_args()
         dataset_kwargs = {
             'root': args.root,
             'is_wav': args.is_wav,
-            'seq_duration': args.seq_dur,
             'subsets': 'train',
             'target': args.target,
             'download': args.root is None
         }
 
         train_dataset = MUSDBDataset(
-            validation_split='train', **dataset_kwargs
+            validation_split='train', 
+            samples_per_track=args.samples_per_track,
+            seq_duration=args.seq_dur,
+            **dataset_kwargs
         )
         valid_dataset = MUSDBDataset(
-            validation_split='valid', **dataset_kwargs
+            validation_split='valid', samples_per_track=1, seq_duration=None,
+            **dataset_kwargs
         )
 
     return train_dataset, valid_dataset, args
@@ -336,15 +340,22 @@ class MUSDBDataset(torch.utils.data.Dataset):
         samples = []
         for index, track in enumerate(self.mus.tracks):
             # compute a fixed number of segements per track
-            sample_positions = np.linspace(
-                0, track.duration - self.seq_duration,
-                self.samples_per_track
-            )
-            for start in sample_positions:
+            if self.seq_duration:
+                sample_positions = np.linspace(
+                    0, track.duration - self.seq_duration,
+                    self.samples_per_track
+                )
+                for start in sample_positions:
+                    samples.append({
+                        'trk': index,
+                        'pos': start
+                    })
+            else:
                 samples.append({
                     'trk': index,
-                    'pos': start
+                    'pos': 0
                 })
+
         if self.validation_split == 'train':
             random.seed(42)
             random.shuffle(samples)
