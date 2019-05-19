@@ -88,7 +88,7 @@ train_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 valid_sampler = torch.utils.data.DataLoader(
-    valid_dataset, batch_size=args.batch_size,
+    valid_dataset, batch_size=1,
     **dataloader_kwargs
 )
 
