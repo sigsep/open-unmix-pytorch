@@ -118,11 +118,11 @@ unmix = model.OpenUnmix(
     max_bin=max_bin
 ).to(device)
 
-optimizer = optim.RMSprop(unmix.parameters(), lr=args.lr)
+optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
 
 
-def train(epoch):
+def train():
     losses = utils.AverageMeter()
     unmix.train()
 
@@ -148,7 +148,7 @@ def valid():
             Y_hat = unmix(x)
             Y = unmix.transform(y)
             loss = F.mse_loss(Y_hat, Y)
-            losses.update(loss.item(), x.size(1))
+            losses.update(loss.item(), Y.size(1))
         return losses.avg
 
 
@@ -160,7 +160,7 @@ valid_losses = []
 train_times = []
 for epoch in t:
     end = time.time()
-    train_loss = train(epoch)
+    train_loss = train()
     valid_loss = valid()
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
