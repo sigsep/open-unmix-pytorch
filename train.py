@@ -129,7 +129,7 @@ unmix = model.OpenUnmix(
 
 optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 
 def train():

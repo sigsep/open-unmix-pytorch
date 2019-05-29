@@ -93,7 +93,7 @@ class OpenUnmix(nn.Module):
         power=1,
         nb_channels=1,
         nb_layers=3,
-        hidden_size=512,
+        hidden_size=1024,
         image=False,
         input_mean=None,
         input_scale=None,
