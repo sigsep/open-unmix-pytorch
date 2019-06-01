@@ -79,9 +79,7 @@ class Spectrogram(nn.Module):
 
         # downmix in the mag domain
         if self.mono:
-            stft_f = torch.sum(
-                stft_f**(2/self.power), 1, keepdim=True
-            ) ** (self.power/2)
+            stft_f = torch.mean(stft_f, 1, keepdim=True)
 
         # permute output for LSTM convenience
         return stft_f.permute(2, 0, 1, 3)
