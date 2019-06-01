@@ -109,10 +109,7 @@ spec = torch.nn.Sequential(
 
 for x, y in tqdm.tqdm(train_dataset):
     X = spec(x[None, ...])
-    Y = spec(y[None, ...])
     input_scaler.partial_fit(np.squeeze(X))
-    output_scaler.partial_fit(np.squeeze(Y))
-
 # set inital input scaler values
 safe_input_scale = np.maximum(
     input_scaler.scale_,
@@ -123,7 +120,7 @@ unmix = model.OpenUnmix(
     power=1,
     input_mean=input_scaler.mean_,
     input_scale=safe_input_scale,
-    output_mean=output_scaler.mean_,
+    output_mean=None,
     nb_channels=args.nb_channels,
     n_fft=args.nfft,
     n_hop=args.nhop,
@@ -132,6 +129,7 @@ unmix = model.OpenUnmix(
 
 optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 
 def train():
@@ -173,6 +171,7 @@ for epoch in t:
     end = time.time()
     train_loss = train()
     valid_loss = valid()
+    scheduler.step()
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
