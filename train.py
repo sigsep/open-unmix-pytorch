@@ -146,7 +146,7 @@ def train():
         loss = criterion(Y_hat, Y)
         loss.backward()
         optimizer.step()
-        losses.update(loss.item(), Y.size(1))
+        losses.update(loss.item())
     return losses.avg
 
 
@@ -159,7 +159,7 @@ def valid():
             Y_hat = unmix(x)
             Y = unmix.transform(y)
             loss = F.mse_loss(Y_hat, Y)
-            losses.update(loss.item(), Y.size(1))
+            losses.update(loss.item())
         return losses.avg
 
 
