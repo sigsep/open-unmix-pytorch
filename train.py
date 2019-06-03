@@ -50,6 +50,10 @@ parser.add_argument('--batch_size', type=int, default=16,
                     help='batch size')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
+parser.add_argument('--lr-decay-stepsize', type=int, default=60,
+                    help='stepsize after lr will decay by `--lr-decay-gamma`')
+parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
+                    help='gamma of learning rate scheduler decay')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
@@ -110,6 +114,7 @@ spec = torch.nn.Sequential(
 for x, y in tqdm.tqdm(train_dataset):
     X = spec(x[None, ...])
     input_scaler.partial_fit(np.squeeze(X))
+
 # set inital input scaler values
 safe_input_scale = np.maximum(
     input_scaler.scale_,
@@ -129,7 +134,11 @@ unmix = model.OpenUnmix(
 
 optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
 criterion = torch.nn.MSELoss()
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=60, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer,
+    step_size=args.lr_decay_stepsize,
+    gamma=args.lr_decay_gamma
+)
 
 
 def train():
