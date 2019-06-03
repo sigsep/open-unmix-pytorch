@@ -46,9 +46,8 @@ def gain_augment(x, y):
 
 
 def channel_augment(x, y):
-    if x.shape[0] == 2:
-        channel = torch.randint(0, 2, (1,))
-        return x[channel], y[channel]
+    if x.shape[0] == 2 and torch.rand(1) > 0.5:
+        return x.flip(0), y.flip(0)
     else:
         return x, y
 
