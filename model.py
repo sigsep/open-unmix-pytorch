@@ -142,7 +142,7 @@ class OpenUnmix(nn.Module):
         )
 
         self.fc2 = Linear(
-            in_features=hidden_size,
+            in_features=hidden_size*2,
             out_features=hidden_size,
             bias=False
         )
@@ -200,11 +200,11 @@ class OpenUnmix(nn.Module):
         # apply 3-layers of stacked LSTM
         lstm_out = self.lstm(x)
 
-        # reshape to 1D vector (seq_len*batch, hidden_size)
-        x = x + lstm_out[0]
-
+        # lstm skip connection
+        x = torch.cat([x, lstm_out[0]], -1)
+        import ipdb; ipdb.set_trace()
         # first dense stage + batch norm
-        x = self.fc2(x.reshape(-1, self.hidden_size))
+        x = self.fc2(x.reshape(-1, x.shape[-1]))
         x = self.bn2(x)
 
         x = F.relu(x)
