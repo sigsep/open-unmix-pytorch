@@ -92,7 +92,8 @@ valid_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 
-print("Compute global average spectrogram")
+if not args.quiet:
+    print("Compute global average spectrogram")
 
 freqs = np.linspace(
     0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
@@ -105,7 +106,7 @@ spec = torch.nn.Sequential(
     model.Spectrogram(mono=True)
 )
 
-for _, y in tqdm.tqdm(train_dataset):
+for _, y in tqdm.tqdm(train_dataset, disable=args.quiet):
     Y = spec(y[None, ...])
     output_scaler.partial_fit(np.squeeze(Y))
 
@@ -153,11 +154,12 @@ def valid():
 
 
 es = utils.EarlyStopping(patience=args.patience)
-best_loss = 1000
-t = tqdm.trange(1, args.epochs + 1)
+t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
 train_losses = []
 valid_losses = []
 train_times = []
+best_epoch = 0
+
 for epoch in t:
     end = time.time()
     train_loss = train()
@@ -165,33 +167,33 @@ for epoch in t:
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
-    t.set_postfix(train_loss=train_loss, val_loss=valid_loss)
+    t.set_postfix(
+        train_loss=train_loss, val_loss=valid_loss
+    )
 
-    is_best = valid_loss < best_loss
-    best_loss = min(valid_loss, best_loss)
+    stop = es.step(valid_loss)
+
+    if valid_loss == es.best:
+        best_epoch = epoch
 
     utils.save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': unmix.state_dict(),
-            'best_loss': best_loss,
+            'best_loss': es.best,
             'optimizer': optimizer.state_dict(),
         },
-        is_best,
+        es.is_better(valid_loss, es.best),
         target_path,
         args.target,
         unmix
     )
-    train_times.append(time.time() - end)
-
-    if es.step(valid_loss):
-        print("Apply Early Stopping")
-        break
 
     # save params
     params = {
         'epochs_trained': epoch,
         'args': vars(args),
-        'best_loss': str(best_loss),
+        'best_loss': es.best,
+        'best_epoch': best_epoch,
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
         'train_time_history': train_times,
@@ -200,3 +202,9 @@ for epoch in t:
 
     with open(Path(target_path,  "output.json"), 'w') as outfile:
         outfile.write(json.dumps(params, indent=4, sort_keys=True))
+
+    train_times.append(time.time() - end)
+
+    if stop:
+        print("Apply Early Stopping")
+        break
