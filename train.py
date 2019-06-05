@@ -54,9 +54,11 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
 parser.add_argument('--nfft', type=int, default=4096,
-                    help='fft size')
+                    help='STFT fft size and window size')
 parser.add_argument('--nhop', type=int, default=1024,
-                    help='fft size')
+                    help='STFT hop size')
+parser.add_argument('--hidden-size', type=int, default=512,
+                    help='hidden size parameter of FC bottleneck layers')
 parser.add_argument('--bandwidth', type=int, default=15000,
                     help='maximum model bandwidth in herz')
 
@@ -114,6 +116,7 @@ unmix = model.OpenUnmix(
     power=1,
     output_mean=output_scaler.mean_,
     nb_channels=args.nb_channels,
+    hidden_size=args.hidden_size,
     n_fft=args.nfft,
     n_hop=args.nhop,
     max_bin=max_bin
