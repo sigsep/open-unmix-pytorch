@@ -1,4 +1,4 @@
-from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
+from torch.nn import LSTM, Linear, InstanceNorm1d, BatchNorm1d, Parameter
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -125,6 +125,8 @@ class OpenUnmix(nn.Module):
         else:
             self.transform = nn.Sequential(self.stft, self.spec)
 
+        self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
+
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
             bias=False
@@ -157,14 +159,6 @@ class OpenUnmix(nn.Module):
 
         self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
 
-        self.input_mean = Parameter(
-            torch.from_numpy(-input_mean).float()
-        )
-
-        self.input_scale = Parameter(
-            torch.from_numpy(1.0/input_scale).float(),
-        )
-
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
         )
@@ -181,9 +175,8 @@ class OpenUnmix(nn.Module):
 
         mix = x.detach().clone()
 
-        # shift and scale input to mean=0 std=1 (across all bins)
-        x += self.input_mean
-        x *= self.input_scale
+        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
+        x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
 
         # crop
         x = x[..., :self.nb_bins]
