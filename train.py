@@ -32,10 +32,8 @@ parser.add_argument('--dataset', type=str, default="musdb",
 parser.add_argument('--root', type=str, help='root path of dataset')
 
 # I/O Parameters
-parser.add_argument(
-    '--seq-dur', type=float, default=5.0,
-    help='Duration of <=0.0 will result in the full audio being loaded'
-)
+parser.add_argument('--seq-dur', type=float, default=5.0,
+                    help='Duration of <=0.0 will result in the full audio')
 
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
