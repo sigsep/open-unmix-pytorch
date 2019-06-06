@@ -96,6 +96,9 @@ valid_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 
+if not args.quiet:
+    print("Compute global average spectrogram")
+
 freqs = np.linspace(
     0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
     endpoint=True
@@ -104,9 +107,25 @@ freqs = np.linspace(
 max_bin = np.max(np.where(freqs <= args.bandwidth)[0]) + 1
 input_scaler = sklearn.preprocessing.StandardScaler()
 output_scaler = sklearn.preprocessing.StandardScaler()
+spec = torch.nn.Sequential(
+    model.STFT(n_fft=args.nfft, n_hop=args.nhop),
+    model.Spectrogram(mono=True)
+)
+
+for x, y in tqdm.tqdm(train_dataset, disable=args.quiet):
+    X = spec(x[None, ...])
+    input_scaler.partial_fit(np.squeeze(X))
+
+# set inital input scaler values
+safe_input_scale = np.maximum(
+    input_scaler.scale_,
+    1e-4*np.max(input_scaler.scale_)
+)
 
 unmix = model.OpenUnmix(
     power=1,
+    input_mean=input_scaler.mean_,
+    input_scale=safe_input_scale,
     output_mean=None,
     nb_channels=args.nb_channels,
     hidden_size=args.hidden_size,
