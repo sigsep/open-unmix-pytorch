@@ -134,7 +134,7 @@ unmix = model.OpenUnmix(
     max_bin=max_bin
 ).to(device)
 
-optimizer = optim.Adam(unmix.parameters(), lr=args.lr)
+optimizer = optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=1e-5)
 criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.StepLR(
     optimizer,
