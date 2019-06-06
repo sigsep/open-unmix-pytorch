@@ -4,6 +4,7 @@ import torch
 import torch.utils.data
 import numpy as np
 import sys
+import argparse
 
 
 try:
@@ -368,7 +369,10 @@ class MUSDBDataset(torch.utils.data.Dataset):
         track = self.mus.tracks[sample['trk']]
         track.start = sample['pos']
         track.dur = self.seq_duration
-        x = torch.tensor(track.audio.T, dtype=self.dtype)
+        if self.augmentations:
+            for source in track.sources.values():
+                source.gain = random.uniform(0.25, 1.25)
+        x = torch.tensor(track.targets['linear_mix'].audio.T, dtype=self.dtype)
         y = torch.tensor(track.targets[self.target].audio.T, dtype=self.dtype)
         if self.augmentations:
             x, y = self.augmentations(x, y)
@@ -401,3 +405,31 @@ class MUSDBDataset(torch.utils.data.Dataset):
             random.seed(42)
             random.shuffle(samples)
         return samples
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Open Unmix Trainer')
+    parser.add_argument(
+        '--dataset', type=str, default="musdb",
+        choices=['musdb', 'aligned', 'unaligned'],
+        help='Name of the dataset.'
+    )
+
+    parser.add_argument(
+        '--root', type=str, help='root path of dataset'
+    )
+
+    parser.add_argument('--target', type=str, default='vocals')
+
+    # I/O Parameters
+    parser.add_argument(
+        '--seq-dur', type=float, default=5.0,
+        help='Duration of <=0.0 will result in the full audio'
+    )
+
+    args, _ = parser.parse_known_args()
+    train_dataset, valid_dataset, args = load_datasets(parser, args)
+
+    for k, (x, y) in enumerate(train_dataset):
+        torchaudio.save("test/" + str(k) + 'x.wav', x, 44100, precision=16, channels_first=True)
+        torchaudio.save("test/" + str(k) + 'y.wav', y, 44100, precision=16, channels_first=True)
