@@ -367,11 +367,13 @@ class MUSDBDataset(torch.utils.data.Dataset):
         # get musdb track object
         sample = self.samples[index]
         track = self.mus.tracks[sample['trk']]
-        track.start = sample['pos']
         track.dur = self.seq_duration
         if self.augmentations:
+            track.start = random.uniform(0, track.duration - self.seq_duration)
             for source in track.sources.values():
                 source.gain = random.uniform(0.25, 1.25)
+        else:
+            track.start = sample['pos']
         x = torch.tensor(track.targets['linear_mix'].audio.T, dtype=self.dtype)
         y = torch.tensor(track.targets[self.target].audio.T, dtype=self.dtype)
         if self.augmentations:
