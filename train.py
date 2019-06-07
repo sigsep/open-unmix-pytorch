@@ -136,10 +136,10 @@ unmix = model.OpenUnmix(
 
 optimizer = optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=1e-5)
 criterion = torch.nn.MSELoss()
-scheduler = torch.optim.lr_scheduler.StepLR(
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
-    step_size=args.lr_decay_stepsize,
-    gamma=args.lr_decay_gamma
+    factor=args.lr_decay_gamma,
+    patience=args.patience // 3
 )
 
 
@@ -183,7 +183,7 @@ for epoch in t:
     end = time.time()
     train_loss = train()
     valid_loss = valid()
-    scheduler.step()
+    scheduler.step(valid_loss)
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
