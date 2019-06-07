@@ -433,5 +433,17 @@ if __name__ == "__main__":
     train_dataset, valid_dataset, args = load_datasets(parser, args)
 
     for k, (x, y) in enumerate(train_dataset):
-        torchaudio.save("test/" + str(k) + 'x.wav', x, 44100, precision=16, channels_first=True)
-        torchaudio.save("test/" + str(k) + 'y.wav', y, 44100, precision=16, channels_first=True)
+        torchaudio.save(
+            "test/" + str(k) + 'x.wav',
+            x,
+            44100,
+            precision=16,
+            channels_first=True
+        )
+        torchaudio.save(
+            "test/" + str(k) + 'y.wav',
+            y,
+            44100,
+            precision=16,
+            channels_first=True
+        )
