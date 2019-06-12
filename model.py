@@ -1,4 +1,4 @@
-from torch.nn import LSTM, Linear, InstanceNorm1d, Parameter
+from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,6 +95,8 @@ class OpenUnmix(nn.Module):
         nb_layers=3,
         hidden_size=512,
         image=False,
+        input_mean=None,
+        input_scale=None,
         output_mean=None,
         max_bin=None
     ):
@@ -123,14 +125,12 @@ class OpenUnmix(nn.Module):
         else:
             self.transform = nn.Sequential(self.stft, self.spec)
 
-        self.in0 = InstanceNorm1d(self.nb_bins*nb_channels)
-
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
             bias=False
         )
 
-        self.in1 = InstanceNorm1d(hidden_size)
+        self.bn1 = BatchNorm1d(hidden_size)
 
         self.lstm = LSTM(
             input_size=hidden_size,
@@ -138,15 +138,16 @@ class OpenUnmix(nn.Module):
             num_layers=nb_layers,
             bidirectional=True,
             batch_first=False,
+            dropout=0.4,
         )
 
         self.fc2 = Linear(
-            in_features=hidden_size,
+            in_features=hidden_size*2,
             out_features=hidden_size,
             bias=False
         )
 
-        self.in2 = InstanceNorm1d(hidden_size)
+        self.bn2 = BatchNorm1d(hidden_size)
 
         self.fc3 = Linear(
             in_features=hidden_size,
@@ -154,57 +155,63 @@ class OpenUnmix(nn.Module):
             bias=False
         )
 
-        self.in3 = InstanceNorm1d(self.nb_output_bins*nb_channels)
+        self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
+
+        self.input_mean = Parameter(
+            torch.from_numpy(-input_mean).float()
+        )
+
+        self.input_scale = Parameter(
+            torch.from_numpy(1.0/input_scale).float(),
+        )
 
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
         )
-        if output_mean is not None:
-            self.output_mean = Parameter(
-                torch.from_numpy(output_mean).float()
-            )
-        else:
-            self.output_mean = Parameter(
-                torch.rand(self.nb_output_bins.shape).float()
-            )
+        self.output_mean = Parameter(
+            torch.ones(self.nb_output_bins).float()
+        )
 
     def forward(self, x):
         # check for waveform or image
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         # and reduce feature dimensions, therefore we reshape
-        x = self.transform(x)[..., :self.nb_bins]
+        x = self.transform(x)
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
-        # shift and scale input to mean=0 std=1 (across all bins)
-        x = x.reshape(nb_frames, nb_samples, nb_channels*nb_bins)
+        mix = x.detach().clone()
 
-        x = self.in0(x.permute(1, 2, 0)).permute(2, 0, 1)
+        # shift and scale input to mean=0 std=1 (across all bins)
+        x += self.input_mean
+        x *= self.input_scale
+
+        # crop
+        x = x[..., :self.nb_bins]
+
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
-        x = self.fc1(x.reshape(-1, nb_channels*nb_bins))
-        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
+        x = self.fc1(x.reshape(-1, nb_channels*self.nb_bins))
         # normalize every instance in a batch
-        x = self.in1(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.bn1(x)
+        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
         # squash range ot [-1, 1]
         x = torch.tanh(x)
 
         # apply 3-layers of stacked LSTM
         lstm_out = self.lstm(x)
 
-        # reshape to 1D vector (seq_len*batch, hidden_size)
-        x = lstm_out[0]
+        # lstm skip connection
+        x = torch.cat([x, lstm_out[0]], -1)
 
         # first dense stage + batch norm
-        x = self.fc2(x.reshape(-1, self.hidden_size))
-        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
-        x = self.in2(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.fc2(x.reshape(-1, x.shape[-1]))
+        x = self.bn2(x)
 
         x = F.relu(x)
 
         # second dense stage + layer norm
-        x = self.fc3(x.reshape(-1, self.hidden_size))
-        x = x.reshape(nb_frames, nb_samples, nb_channels*self.nb_output_bins)
-        x = self.in3(x.permute(1, 2, 0)).permute(2, 0, 1)
+        x = self.fc3(x)
+        x = self.bn3(x)
 
         # reshape back to original dim
         x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
@@ -214,6 +221,6 @@ class OpenUnmix(nn.Module):
         x += self.output_mean
 
         # since our output is non-negative, we can apply RELU
-        x = F.relu(x)
+        x = F.relu(x) * mix
 
         return x

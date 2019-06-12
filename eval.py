@@ -16,7 +16,7 @@ def separate_and_evaluate(
     output_dir
 ):
     print(track.name, track.duration)
-    estimates = test.separate_chunked(
+    estimates = test.separate(
         audio=track.audio,
         models=models,
         params=params,
@@ -68,15 +68,15 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--input',
-        type=str,
-        help='Path to wav file. If not provided, will process the MUSDB18'
-    )
-
-    parser.add_argument(
         '--root',
         type=str,
         help='Path to MUSDB18'
+    )
+
+    parser.add_argument(
+        '--subset',
+        type=str,
+        help='MUSDB subset (`train`/`test`)'
     )
 
     parser.add_argument(
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
     models, params = test.load_models(args.model_dir, args.targets)
 
-    mus = musdb.DB(root_dir=args.root, download=False, subsets='test')
+    mus = musdb.DB(root_dir=args.root, download=False, subsets=args.subset)
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = list(

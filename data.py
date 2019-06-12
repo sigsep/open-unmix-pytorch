@@ -4,6 +4,7 @@ import torch
 import torch.utils.data
 import numpy as np
 import sys
+import argparse
 
 
 try:
@@ -20,6 +21,36 @@ try:
     import musdb
 except ImportError:
     musdb = None
+
+
+class Compose(object):
+    """Composes several augmentation transforms.
+    Args:
+        augmentations: list of augmentations to compose.
+    """
+
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, x, y):
+        for t in self.transforms:
+            x, y = t(x, y)
+        return x, y
+
+
+def gain_augment(x, y):
+    dis = torch.distributions.uniform.Uniform(
+        torch.tensor([0.25]), torch.tensor([1.25])
+    )
+    g = dis.sample()
+    return x*g, y*g
+
+
+def channel_augment(x, y):
+    if x.shape[0] == 2 and torch.rand(1) > 0.5:
+        return x.flip(0), y.flip(0)
+    else:
+        return x, y
 
 
 def soundfile_info(path):
@@ -129,6 +160,9 @@ def load_datasets(parser, args):
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='flags wav version of the dataset')
         parser.add_argument('--samples-per-track', type=int, default=64)
+        parser.add_argument(
+            '--augments', nargs="+", type=str, default=["gain"]
+        )
 
         args = parser.parse_args()
         dataset_kwargs = {
@@ -139,12 +173,16 @@ def load_datasets(parser, args):
             'download': args.root is None
         }
 
+        augmentations = Compose([channel_augment, gain_augment])
+
         train_dataset = MUSDBDataset(
-            validation_split='train', 
+            validation_split='train',
             samples_per_track=args.samples_per_track,
             seq_duration=args.seq_dur,
+            augmentations=augmentations,
             **dataset_kwargs
         )
+
         valid_dataset = MUSDBDataset(
             validation_split='valid', samples_per_track=1, seq_duration=None,
             **dataset_kwargs
@@ -299,6 +337,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         seq_duration=None,
         validation_split='train',
         samples_per_track=64,
+        augmentations=None,
         dtype=torch.float32,
         *args, **kwargs
     ):
@@ -311,6 +350,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         self.subsets = subsets
         self.validation_split = validation_split
         self.samples_per_track = samples_per_track
+        self.augmentations = augmentations
         self.mus = musdb.DB(
             root_dir=root,
             is_wav=is_wav,
@@ -327,10 +367,17 @@ class MUSDBDataset(torch.utils.data.Dataset):
         # get musdb track object
         sample = self.samples[index]
         track = self.mus.tracks[sample['trk']]
-        track.start = sample['pos']
         track.dur = self.seq_duration
-        x = torch.tensor(track.audio.T, dtype=self.dtype)
+        if self.augmentations:
+            track.start = random.uniform(0, track.duration - self.seq_duration)
+            for source in track.sources.values():
+                source.gain = random.uniform(0.25, 1.25)
+        else:
+            track.start = sample['pos']
+        x = torch.tensor(track.targets['linear_mix'].audio.T, dtype=self.dtype)
         y = torch.tensor(track.targets[self.target].audio.T, dtype=self.dtype)
+        if self.augmentations:
+            x, y = self.augmentations(x, y)
         return x, y
 
     def __len__(self):
@@ -360,3 +407,43 @@ class MUSDBDataset(torch.utils.data.Dataset):
             random.seed(42)
             random.shuffle(samples)
         return samples
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Open Unmix Trainer')
+    parser.add_argument(
+        '--dataset', type=str, default="musdb",
+        choices=['musdb', 'aligned', 'unaligned'],
+        help='Name of the dataset.'
+    )
+
+    parser.add_argument(
+        '--root', type=str, help='root path of dataset'
+    )
+
+    parser.add_argument('--target', type=str, default='vocals')
+
+    # I/O Parameters
+    parser.add_argument(
+        '--seq-dur', type=float, default=5.0,
+        help='Duration of <=0.0 will result in the full audio'
+    )
+
+    args, _ = parser.parse_known_args()
+    train_dataset, valid_dataset, args = load_datasets(parser, args)
+
+    for k, (x, y) in enumerate(train_dataset):
+        torchaudio.save(
+            "test/" + str(k) + 'x.wav',
+            x,
+            44100,
+            precision=16,
+            channels_first=True
+        )
+        torchaudio.save(
+            "test/" + str(k) + 'y.wav',
+            y,
+            44100,
+            precision=16,
+            channels_first=True
+        )
