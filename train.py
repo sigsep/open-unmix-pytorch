@@ -52,6 +52,8 @@ parser.add_argument('--lr-decay-stepsize', type=int, default=60,
                     help='stepsize after lr will decay by `--lr-decay-gamma`')
 parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
                     help='gamma of learning rate scheduler decay')
+parser.add_argument('--weight-decay', type=float, default=0.00001,
+                    help='gamma of learning rate scheduler decay')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
@@ -134,7 +136,11 @@ unmix = model.OpenUnmix(
     max_bin=max_bin
 ).to(device)
 
-optimizer = optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=1e-5)
+optimizer = optim.Adam(
+    unmix.parameters(),
+    lr=args.lr,
+    weight_decay=args.weight_decay
+)
 criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
