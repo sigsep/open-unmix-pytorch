@@ -12,7 +12,8 @@ def separate_and_evaluate(
     params,
     niter,
     alpha,
-    logit,
+    softmask,
+    final_smoothing,
     output_dir
 ):
     print(track.name, track.duration)
@@ -22,7 +23,8 @@ def separate_and_evaluate(
         params=params,
         niter=niter,
         alpha=alpha,
-        logit=logit
+        softmask=softmask,
+        final_smoothing=final_smoothing
     )
     if args.outdir:
         mus.save_estimates(estimates, track, args.outdir)
@@ -99,15 +101,24 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--logit',
-        type=float,
-        help='apply logit compression. 0 means no compression'
+        '--softmask',
+        type=int,
+        default=0,
+        help=('if zero, will use mixture phase with spectrogram estimates. '
+              'if nonzero, will use softmask')
+    )
+
+    parser.add_argument(
+        '--final_smoothing',
+        type=int,
+        default=1,
+        help=('final smoothing of estimates. Reduces distortion, adds '
+              'interference')
     )
 
     args = parser.parse_args()
 
     models, params = test.load_models(args.model_dir, args.targets)
-
     mus = musdb.DB(root_dir=args.root, download=False, subsets=args.subset)
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
@@ -119,7 +130,8 @@ if __name__ == '__main__':
                     params=params,
                     niter=args.niter,
                     alpha=args.alpha,
-                    logit=args.logit,
+                    softmask=args.softmask,
+                    final_smoothing=args.final_smoothing,
                     output_dir=args.evaldir
                 ),
                 iterable=mus.tracks,
@@ -137,6 +149,7 @@ if __name__ == '__main__':
                 params=params,
                 niter=args.niter,
                 alpha=args.alpha,
-                logit=args.logit,
+                softmask=args.softmask,
+                final_smoothing=args.final_smoothing,
                 output_dir=args.evaldir
             )

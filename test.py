@@ -46,7 +46,8 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     return audio
 
 
-def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
+def separate_chunked(audio, models, params, niter=0, softmask=0, alpha=1,
+                     final_smoothing=0):
     import torch.nn.functional as F
     import model
     # for now only check the first model, as they are assumed to be the same
@@ -86,7 +87,10 @@ def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
     V = []
     for j, (target, unmix) in enumerate(models.items()):
         unmix.transform = model.NoOp()
-        Vj = unmix(M_unfolded.clone()).cpu().detach().numpy()**alpha
+        Vj = unmix(M_unfolded.clone()).cpu().detach().numpy()
+        if softmask:
+            # only exponentiate if we use softmask
+            Vj = Vj**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj)  # remove sample dim
         source_names += [target]
@@ -100,10 +104,8 @@ def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
         V = norbert.residual(V, X, alpha)
         source_names += ['accompaniment']
 
-    if not logit:
-        logit = None
-
-    Y = norbert.wiener(V, X, niter, logit=logit)
+    Y = norbert.wiener(V, X, niter, softmask=softmask,
+                       final_smoothing=final_smoothing)
 
     estimates = {}
     for j, name in enumerate(source_names):
@@ -117,7 +119,8 @@ def separate_chunked(audio, models, params, niter=0, alpha=2, logit=0):
     return estimates
 
 
-def separate(audio, models, params, niter=0, alpha=2, logit=0):
+def separate(audio, models, params, niter=0, softmask=0, alpha=1,
+             final_smoothing=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
 
@@ -145,7 +148,10 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
     for j, (target, model) in enumerate(models.items()):
         Vj = model(
             torch.tensor(audio.T[None, ...]).float()
-        ).cpu().detach().numpy()**alpha
+        ).cpu().detach().numpy()
+        if softmask:
+            # only exponentiate the model if we use softmask
+            Vj = Vj**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj[:, 0, ...])  # remove sample dim
         source_names += [target]
@@ -156,10 +162,8 @@ def separate(audio, models, params, niter=0, alpha=2, logit=0):
         V = norbert.residual(V, X, alpha)
         source_names += ['accompaniment']
 
-    if not logit:
-        logit = None
-
-    Y = norbert.wiener(V, X, niter, logit=logit)
+    Y = norbert.wiener(V, X, niter, softmask=softmask,
+                       final_smoothing=final_smoothing)
 
     estimates = {}
     for j, name in enumerate(source_names):
@@ -212,23 +216,33 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--softmask',
+        type=int,
+        default=0,
+        help=('if zero, will use mixture phase with spectrogram estimates. '
+              'if nonzero, will use softmask')
+    )
+
+    parser.add_argument(
         '--niter',
         type=int,
         default=0,
-        help='number of iterations. 0 is softmask'
+        help='number of iterations for refining results.'
     )
 
     parser.add_argument(
         '--alpha',
         type=int,
         default=1,
-        help='exponent for softmasks'
+        help='exponent in case of softmask separation'
     )
 
     parser.add_argument(
-        '--logit',
-        type=float,
-        help='apply logit compression. 0 means no compression'
+        '--final_smoothing',
+        type=int,
+        default=1,
+        help=('final smoothing of estimates. Reduces distortion, adds '
+              'interference')
     )
 
     args = parser.parse_args()
@@ -243,7 +257,8 @@ if __name__ == '__main__':
         params,
         niter=args.niter,
         alpha=args.alpha,
-        logit=args.logit
+        softmask=args.softmask,
+        final_smoothing=args.final_smoothing
     )
     base = os.path.basename(args.input)
     for key in estimates:
