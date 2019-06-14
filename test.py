@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
     # handling an input audio path
     audio, samplerate = sf.read(args.input, always_2d=True)
-    estimates = separate(
+    estimates = separate_chunked(
         audio,
         models,
         params,
