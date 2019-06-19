@@ -32,25 +32,22 @@ class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, x, y):
+    def __call__(self, audio):
         for t in self.transforms:
-            x, y = t(x, y)
-        return x, y
+            audio = t(audio)
+        return audio
 
 
-def gain_augment(x, y):
-    dis = torch.distributions.uniform.Uniform(
-        torch.tensor([0.25]), torch.tensor([1.25])
-    )
-    g = dis.sample()
-    return x*g, y*g
+def gain_augment(audio):
+    g = random.uniform(0.25, 1.25)
+    return audio * g
 
 
-def channel_augment(x, y):
-    if x.shape[0] == 2 and torch.rand(1) > 0.5:
-        return x.flip(0), y.flip(0)
+def channel_augment(audio):
+    if audio.shape[0] == 2 and random.random() < 0.5:
+        return np.flip(audio, 0)
     else:
-        return x, y
+        return audio
 
 
 def soundfile_info(path):
@@ -339,11 +336,13 @@ class MUSDBDataset(torch.utils.data.Dataset):
         samples_per_track=64,
         augmentations=None,
         dtype=torch.float32,
+        seed=42,
         *args, **kwargs
     ):
         """MUSDB18 Dataset wrapper that samples from the musdb tracks
         using excerpts without replacement spaced
         """
+        random.seed(seed)
         self.is_wav = is_wav
         self.seq_duration = seq_duration
         self.target = target
@@ -359,54 +358,55 @@ class MUSDBDataset(torch.utils.data.Dataset):
             download=download,
             *args, **kwargs
         )
-        self.samples = self.create_sample_indices()
         self.sample_rate = 44100
         self.dtype = dtype
 
     def __getitem__(self, index):
-        # get musdb track object
-        sample = self.samples[index]
-        track = self.mus.tracks[sample['trk']]
-        track.dur = self.seq_duration
         if self.augmentations:
-            track.start = random.uniform(0, track.duration - self.seq_duration)
-            for source in track.sources.values():
-                source.gain = random.uniform(0.25, 1.25)
+            audio_sources = []
+            target_ind = None
+            # for each musdb target, get a random track
+            for k, source in enumerate(self.mus.setup['sources']):
+                if source == self.target:
+                    target_ind = k
+                # select a random track
+                track = random.choice(self.mus.tracks)
+                # set the excerpt duration
+                track.dur = self.seq_duration
+                # set random start position
+                track.start = random.uniform(
+                    0, track.duration - self.seq_duration
+                )
+                # load source audio and apply augmentation to source
+                audio = self.augmentations(track.sources[source].audio.T)
+                audio_sources.append(audio)
+
+            stems = torch.tensor(audio_sources, dtype=self.dtype)
+            x = stems.sum(0)
+            if target_ind is not None:
+                # apply linear mix over source index=0
+                y = stems[target_ind]
+            else:
+                # assuming vocal/accompaniment scenario
+                vocind = list(self.mus.setup['sources'].keys()).index('vocals')
+                # apply subtraction
+                y = x - stems[vocind]
         else:
-            track.start = sample['pos']
-        x = torch.tensor(track.targets['linear_mix'].audio.T, dtype=self.dtype)
-        y = torch.tensor(track.targets[self.target].audio.T, dtype=self.dtype)
-        if self.augmentations:
-            x, y = self.augmentations(x, y)
+            track = self.mus.tracks[index // self.samples_per_track]
+            # get the non-linear source mix straight from musdb
+            x = torch.tensor(
+                track.audio.T,
+                dtype=self.dtype
+            )
+            y = torch.tensor(
+                track.targets[self.target].audio.T,
+                dtype=self.dtype
+            )
+
         return x, y
 
     def __len__(self):
-        return len(self.samples)
-
-    def create_sample_indices(self):
-        samples = []
-        for index, track in enumerate(self.mus.tracks):
-            # compute a fixed number of segements per track
-            if self.seq_duration:
-                sample_positions = np.linspace(
-                    0, track.duration - self.seq_duration,
-                    self.samples_per_track
-                )
-                for start in sample_positions:
-                    samples.append({
-                        'trk': index,
-                        'pos': start
-                    })
-            else:
-                samples.append({
-                    'trk': index,
-                    'pos': 0
-                })
-
-        if self.validation_split == 'train':
-            random.seed(42)
-            random.shuffle(samples)
-        return samples
+        return len(self.mus.tracks) * self.samples_per_track
 
 
 if __name__ == "__main__":
@@ -429,21 +429,32 @@ if __name__ == "__main__":
         help='Duration of <=0.0 will result in the full audio'
     )
 
+    parser.add_argument('--batch_size', type=int, default=16)
+
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)
+    save = True
+
+    train_sampler = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True
+    )
+
+    # for x, y in train_sampler:
+    #     print(x.shape)
 
     for k, (x, y) in enumerate(train_dataset):
-        torchaudio.save(
-            "test/" + str(k) + 'x.wav',
-            x,
-            44100,
-            precision=16,
-            channels_first=True
-        )
-        torchaudio.save(
-            "test/" + str(k) + 'y.wav',
-            y,
-            44100,
-            precision=16,
-            channels_first=True
-        )
+        if save:
+            torchaudio.save(
+                "test/" + str(k) + 'x.wav',
+                x,
+                44100,
+                precision=16,
+                channels_first=True
+            )
+            torchaudio.save(
+                "test/" + str(k) + 'y.wav',
+                y,
+                44100,
+                precision=16,
+                channels_first=True
+            )
