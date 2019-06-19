@@ -1,9 +1,7 @@
 import torch
 import numpy as np
 import argparse
-import os.path
 import soundfile as sf
-import os
 import norbert
 import json
 from pathlib import Path
@@ -199,7 +197,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
-        default="OSU_RESULTS",
         help='Results path where audio evaluation results are stored'
     )
 
@@ -249,6 +246,11 @@ if __name__ == '__main__':
 
     models, params = load_models(args.model_dir, args.targets)
 
+    if not args.outdir:
+        outdir = Path(Path(args.input).stem + '_' + Path(args.model_dir).stem)
+    else:
+        outdir = Path(args.outdir)
+
     # handling an input audio path
     audio, samplerate = sf.read(args.input, always_2d=True)
     estimates = separate_chunked(
@@ -260,6 +262,10 @@ if __name__ == '__main__':
         softmask=args.softmask,
         final_smoothing=args.final_smoothing
     )
-    base = os.path.basename(args.input)
-    for key in estimates:
-        sf.write(key+'_' + base, estimates[key], samplerate)
+    outdir.mkdir(exist_ok=True)
+    for target in estimates:
+        sf.write(
+            outdir / Path(target).with_suffix('.wav'),
+            estimates[target],
+            samplerate
+        )
