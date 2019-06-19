@@ -6,6 +6,7 @@ import numpy as np
 import sys
 import argparse
 import tqdm
+import os
 
 
 try:
@@ -380,11 +381,14 @@ class MUSDBDataset(torch.utils.data.Dataset):
                     0, track.duration - self.seq_duration
                 )
                 # load source audio and apply time domain augmentations
-                audio = self.augmentations(track.sources[source].audio.T)
+                audio = torch.tensor(
+                    self.augmentations(track.sources[source].audio.T),
+                    dtype=self.dtype
+                )
                 audio_sources.append(audio)
 
             # create stem tensor of shape (source, channel, samples)
-            stems = torch.tensor(audio_sources, dtype=self.dtype)
+            stems = torch.stack(audio_sources)
             # # apply linear mix over source index=0
             x = stems.sum(0)
             # get the target stem
@@ -441,7 +445,7 @@ if __name__ == "__main__":
     save = False
 
     train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4,
     )
 
     for x, y in tqdm.tqdm(train_sampler):
