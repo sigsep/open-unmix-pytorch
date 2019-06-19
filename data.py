@@ -365,8 +365,9 @@ class MUSDBDataset(torch.utils.data.Dataset):
         if self.augmentations:
             audio_sources = []
             target_ind = None
-            # for each musdb target, get a random track
+            # iterate over musdb sources
             for k, source in enumerate(self.mus.setup['sources']):
+                # memorize index of target source
                 if source == self.target:
                     target_ind = k
                 # select a random track
@@ -377,20 +378,23 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 track.start = random.uniform(
                     0, track.duration - self.seq_duration
                 )
-                # load source audio and apply augmentation to source
+                # load source audio and apply time domain augmentations
                 audio = self.augmentations(track.sources[source].audio.T)
                 audio_sources.append(audio)
 
+            # create stem tensor of shape (source, channel, samples)
             stems = torch.tensor(audio_sources, dtype=self.dtype)
+            # # apply linear mix over source index=0
             x = stems.sum(0)
+            # get the target stem
             if target_ind is not None:
-                # apply linear mix over source index=0
                 y = stems[target_ind]
+            # assuming vocal/accompaniment scenario if target!=source
             else:
-                # assuming vocal/accompaniment scenario
                 vocind = list(self.mus.setup['sources'].keys()).index('vocals')
-                # apply subtraction
+                # apply time domain subtraction
                 y = x - stems[vocind]
+        # yield full musd track for deterministic validation and test
         else:
             track = self.mus.tracks[index // self.samples_per_track]
             # get the non-linear source mix straight from musdb
