@@ -14,6 +14,7 @@ import utils
 import sklearn.preprocessing
 import numpy as np
 import random
+import copy
 
 
 tqdm.monitor_interval = 0
@@ -98,9 +99,6 @@ valid_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 
-if not args.quiet:
-    print("Compute global average spectrogram")
-
 freqs = np.linspace(
     0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
     endpoint=True
@@ -114,9 +112,15 @@ spec = torch.nn.Sequential(
     model.Spectrogram(mono=True)
 )
 
-for x, y in tqdm.tqdm(train_dataset, disable=args.quiet):
+train_dataset_scaler = copy.deepcopy(train_dataset)
+train_dataset_scaler.samples_per_track = 1
+train_dataset_scaler.augmentations = None
+for x, y in tqdm.tqdm(train_dataset_scaler, disable=args.quiet):
     X = spec(x[None, ...])
     input_scaler.partial_fit(np.squeeze(X))
+
+if not args.quiet:
+    print("Computed global average spectrogram")
 
 # set inital input scaler values
 safe_input_scale = np.maximum(
