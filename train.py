@@ -75,7 +75,7 @@ parser.add_argument('--quiet', action='store_true', default=False,
 args, _ = parser.parse_known_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
-dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+dataloader_kwargs = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
 
 
 # use jpg or npy
