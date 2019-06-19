@@ -5,6 +5,7 @@ import torch.utils.data
 import numpy as np
 import sys
 import argparse
+import tqdm
 
 
 try:
@@ -437,14 +438,14 @@ if __name__ == "__main__":
 
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)
-    save = True
+    save = False
 
     train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
     )
 
-    # for x, y in train_sampler:
-    #     print(x.shape)
+    for x, y in tqdm.tqdm(train_sampler):
+        pass
 
     for k, (x, y) in enumerate(train_dataset):
         if save:
