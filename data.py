@@ -299,11 +299,13 @@ class AlignedSources(torch.utils.data.Dataset):
         if self.random_excerpt:
             input_info = audioinfo(input_path)
             output_info = audioinfo(output_path)
+            # use the minimum of x and y in case they differ
             duration = min(input_info['duration'], output_info['duration'])
+            if duration < self.seq_duration:
+                index = index - 1 if index > 0 else index + 1
+                return self.__getitem__(index)
             # random start in seconds
             start = random.uniform(0, duration - self.seq_duration)
-            if start < 0:
-                start = 0
         else:
             start = 0
         X_audio = audioloader(input_path, start=start, dur=self.seq_duration)
