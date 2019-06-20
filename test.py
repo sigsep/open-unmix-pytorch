@@ -253,6 +253,7 @@ if __name__ == '__main__':
 
     # handling an input audio path
     audio, samplerate = sf.read(args.input, always_2d=True)
+    # audio = np.repeat(audio, 2, 1)
     estimates = separate_chunked(
         audio,
         models,
