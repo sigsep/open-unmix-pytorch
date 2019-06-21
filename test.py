@@ -6,6 +6,7 @@ import norbert
 import json
 from pathlib import Path
 import scipy.signal
+import resampy
 
 eps = np.finfo(np.float32).eps
 
@@ -58,11 +59,11 @@ def separate_chunked(audio, models, params, niter=0, softmask=0, alpha=1,
     seq_len = int(seq_dur * rate)
     # correct sequence length to multiple of n_fft
     # seq_len -= seq_len % st_model.stft.n_fft
-    seq_len = int((seq_len - int(st_model.stft.n_fft // 2)) // st_model.stft.n_hop)
-
+    seq_len = int(
+        (seq_len - int(st_model.stft.n_fft // 2)) // st_model.stft.n_hop
+    )
     # compute STFT of mixture
     audio = torch.tensor(audio.T).float()
-
     # audio_torch = torch.tensor(audio.T[None, ...]).float()
     # get complex STFT from torch
     X = st_model.stft(audio[None, ...])
@@ -71,7 +72,9 @@ def separate_chunked(audio, models, params, niter=0, softmask=0, alpha=1,
 
     paddings = (0, seq_len - (M.shape[0] % seq_len))
     # apply padding at the end of file
-    M = F.pad(M.permute(3, 2, 1, 0), paddings, "constant", 0).permute(3, 2, 1, 0)
+    M = F.pad(
+        M.permute(3, 2, 1, 0), paddings, "constant", 0).permute(3, 2, 1, 0
+    )
     M_unfolded = M.unfold(0, seq_len, seq_len)[:, 0, ...]
     # permute to input shape (nb_frames, nb_samples, nb_channels, nb_bins)
     M_unfolded = M_unfolded.permute(3, 0, 1, 2)
@@ -144,9 +147,7 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
     source_names = []
     V = []
     for j, (target, model) in enumerate(models.items()):
-        Vj = model(
-            torch.tensor(audio.T[None, ...]).float()
-        ).cpu().detach().numpy()
+        Vj = model(audio_torch).cpu().detach().numpy()
         if softmask:
             # only exponentiate the model if we use softmask
             Vj = Vj**alpha
@@ -235,6 +236,13 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--samplerate',
+        type=int,
+        default=44100,
+        help='model samplerate'
+    )
+
+    parser.add_argument(
         '--final_smoothing',
         type=int,
         default=1,
@@ -252,7 +260,9 @@ if __name__ == '__main__':
         outdir = Path(args.outdir)
 
     # handling an input audio path
-    audio, samplerate = sf.read(args.input, always_2d=True)
+    audio, rate = sf.read(args.input, always_2d=True)
+    # todo: implement other sample rates
+    audio = resampy.resample(audio, rate, args.samplerate, axis=0)
     # audio = np.repeat(audio, 2, 1)
     estimates = separate_chunked(
         audio,
@@ -268,5 +278,5 @@ if __name__ == '__main__':
         sf.write(
             outdir / Path(target).with_suffix('.wav'),
             estimates[target],
-            samplerate
+            args.samplerate
         )

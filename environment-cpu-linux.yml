@@ -12,6 +12,7 @@ dependencies:
   - pescador==2.0.0
   - tqdm==4.28.1
   - ffmpeg
+  - resampy
   - pip:
     - git+https://github.com/sigsep/sigsep-mus-db.git@v3#egg=musdb
     - git+https://github.com/sigsep/norbert#egg=norbert
