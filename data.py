@@ -335,6 +335,10 @@ class AlignedSources(torch.utils.data.Dataset):
             print("error in ", input_path, output_path)
             index = index - 1 if index > 0 else index + 1
             return self.__getitem__(index)
+
+        if X_audio.shape[1] < int(self.seq_duration * input_info['samplerate']) or Y_audio.shape[1] < int(self.seq_duration * output_info['samplerate']):
+            index = index - 1 if index > 0 else index + 1
+            return self.__getitem__(index)
         return X_audio, Y_audio
 
     def __len__(self):
