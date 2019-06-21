@@ -453,19 +453,19 @@ if __name__ == "__main__":
     for x, y in tqdm.tqdm(train_sampler):
         pass
 
-    for k, (x, y) in enumerate(train_dataset):
-        if save:
-            torchaudio.save(
-                "test/" + str(k) + 'x.wav',
-                x,
-                44100,
-                precision=16,
-                channels_first=True
-            )
-            torchaudio.save(
-                "test/" + str(k) + 'y.wav',
-                y,
-                44100,
-                precision=16,
-                channels_first=True
-            )
+    if save:
+        for k, (x, y) in enumerate(train_dataset):
+                torchaudio.save(
+                    "test/" + str(k) + 'x.wav',
+                    x,
+                    44100,
+                    precision=16,
+                    channels_first=True
+                )
+                torchaudio.save(
+                    "test/" + str(k) + 'y.wav',
+                    y,
+                    44100,
+                    precision=16,
+                    channels_first=True
+                )
