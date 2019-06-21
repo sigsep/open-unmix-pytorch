@@ -27,7 +27,7 @@ parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
 parser.add_argument('--dataset', type=str, default="musdb",
-                    choices=['musdb', 'aligned', 'unaligned'],
+                    choices=['musdb', 'aligned', 'unaligned', 'mixedsources'],
                     help='Name of the dataset.')
 
 parser.add_argument('--root', type=str, help='root path of dataset')
