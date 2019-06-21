@@ -308,8 +308,17 @@ class AlignedSources(torch.utils.data.Dataset):
             start = random.uniform(0, duration - self.seq_duration)
         else:
             start = 0
-        X_audio = audioloader(input_path, start=start, dur=self.seq_duration)
-        Y_audio = audioloader(output_path, start=start, dur=self.seq_duration)
+        try:
+            X_audio = audioloader(
+                input_path, start=start, dur=self.seq_duration
+            )
+            Y_audio = audioloader(
+                output_path, start=start, dur=self.seq_duration
+            )
+        except RuntimeError:
+            print("error in ", input_path, output_path)
+            index = index - 1 if index > 0 else index + 1
+            return self.__getitem__(index)
         return X_audio, Y_audio
 
     def __len__(self):
