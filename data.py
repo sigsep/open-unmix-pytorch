@@ -312,9 +312,9 @@ class AlignedSources(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
+        input_info = audioinfo(input_path)
+        output_info = audioinfo(output_path)
         if self.random_excerpt:
-            input_info = audioinfo(input_path)
-            output_info = audioinfo(output_path)
             # use the minimum of x and y in case they differ
             duration = min(input_info['duration'], output_info['duration'])
             if duration < self.seq_duration:
