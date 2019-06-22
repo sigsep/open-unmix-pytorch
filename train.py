@@ -43,14 +43,14 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 
 parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                     help='number of epochs to train (default: 1000)')
-parser.add_argument('--patience', type=int, default=20,
+parser.add_argument('--patience', type=int, default=140,
                     help='early stopping patience (default: 20)')
 parser.add_argument('--batch_size', type=int, default=16,
                     help='batch size')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
-parser.add_argument('--lr-decay-stepsize', type=int, default=60,
-                    help='stepsize after lr will decay by `--lr-decay-gamma`')
+parser.add_argument('--lr-decay-patience', type=int, default=70,
+                    help='lr decay patience for plateaeu scheduler')
 parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
                     help='gamma of learning rate scheduler decay')
 parser.add_argument('--weight-decay', type=float, default=0.00001,
@@ -149,7 +149,7 @@ criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     factor=args.lr_decay_gamma,
-    patience=args.patience // 2
+    patience=args.lr_decay_patience
 )
 
 
