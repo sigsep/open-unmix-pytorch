@@ -41,8 +41,11 @@ class Compose(object):
 
 
 def gain_augment(audio):
-    g = random.uniform(0.25, 1.25)
-    return audio * g
+    """
+    Apply per channel gain augmentation
+    """
+    g = np.random.uniform(0.25, 1.25, size=audio.shape[0])
+    return (g * audio.T).T
 
 
 def channel_augment(audio):
@@ -451,7 +454,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         root=None,
         download=False,
         is_wav=False,
-        subsets=['train'],
+        subsets='train',
         target='vocals',
         seq_duration=None,
         split='train',
