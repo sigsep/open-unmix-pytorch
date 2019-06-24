@@ -9,13 +9,13 @@ def save_checkpoint(
 ):
 
     torch.save(
-        model,
+        state,
         os.path.join(path, target + '_chkpnt.pth.tar')
     )
     if is_best:
         shutil.copyfile(
             os.path.join(path, target + '_chkpnt.pth.tar'),
-            os.path.join(path, target + '_model.pth.tar')
+            os.path.join(path, target + '.pth.tar')
         )
 
 
