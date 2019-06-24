@@ -256,16 +256,17 @@ if __name__ == '__main__':
 
     models, params = load_models(args.model_dir, args.targets)
 
-    for input in args.input:
+    for input_file in args.input:
         if not args.outdir:
-            outdir = Path(Path(input).stem + '_' + Path(args.model_dir).stem)
+            outdir = Path(
+                Path(input_file).stem + '_' + Path(args.model_dir).stem
+            )
         else:
             outdir = Path(args.outdir)
 
-        print('Processing ', input)
+        print('Processing ', input_file)
         # handling an input audio path
-        audio, rate = sf.read(input, always_2d=True)
-        import ipdb; ipdb.set_trace()
+        audio, rate = sf.read(input_file, always_2d=True)
         # todo: implement other sample rates
         audio = resampy.resample(audio, rate, args.samplerate, axis=0)
         # audio = np.repeat(audio, 2, 1)
