@@ -119,7 +119,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     models, params = test.load_models(args.model_dir, args.targets)
-    mus = musdb.DB(root_dir=args.root, download=False, subsets=args.subset)
+    mus = musdb.DB(root=args.root, download=False, subsets=args.subset)
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = list(

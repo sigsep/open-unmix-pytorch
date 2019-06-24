@@ -191,7 +191,7 @@ def load_datasets(parser, args):
         augmentations = Compose([channel_augment, gain_augment])
 
         train_dataset = MUSDBDataset(
-            validation_split='train',
+            split='train',
             samples_per_track=args.samples_per_track,
             seq_duration=args.seq_dur,
             augmentations=augmentations,
@@ -199,7 +199,7 @@ def load_datasets(parser, args):
         )
 
         valid_dataset = MUSDBDataset(
-            validation_split='valid', samples_per_track=1, seq_duration=None,
+            split='valid', samples_per_track=1, seq_duration=None,
             **dataset_kwargs
         )
 
@@ -454,7 +454,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         subsets=['train'],
         target='vocals',
         seq_duration=None,
-        validation_split='train',
+        split='train',
         samples_per_track=64,
         augmentations=None,
         dtype=torch.float32,
@@ -469,13 +469,13 @@ class MUSDBDataset(torch.utils.data.Dataset):
         self.seq_duration = seq_duration
         self.target = target
         self.subsets = subsets
-        self.validation_split = validation_split
+        self.split = split
         self.samples_per_track = samples_per_track
         self.augmentations = augmentations
         self.mus = musdb.DB(
-            root_dir=root,
+            root=root,
             is_wav=is_wav,
-            validation_split=validation_split,
+            split=split,
             subsets=subsets,
             download=download,
             *args, **kwargs
@@ -495,7 +495,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 # select a random track
                 track = random.choice(self.mus.tracks)
                 # set the excerpt duration
-                track.dur = self.seq_duration
+                track.duration = self.seq_duration
                 # set random start position
                 track.start = random.uniform(
                     0, track.duration - self.seq_duration
