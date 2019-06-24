@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import scipy.signal
 import resampy
-
+import glob
 eps = np.finfo(np.float32).eps
 
 
@@ -210,7 +210,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--input',
         type=str,
-        help='Path to wav file. If not provided, will process the MUSDB18'
+        nargs='+',
+        help='List of paths to wav files. '
+             'If not provided, will process the MUSDB18'
     )
 
     parser.add_argument(
@@ -254,29 +256,32 @@ if __name__ == '__main__':
 
     models, params = load_models(args.model_dir, args.targets)
 
-    if not args.outdir:
-        outdir = Path(Path(args.input).stem + '_' + Path(args.model_dir).stem)
-    else:
-        outdir = Path(args.outdir)
+    for input in args.input:
+        if not args.outdir:
+            outdir = Path(Path(input).stem + '_' + Path(args.model_dir).stem)
+        else:
+            outdir = Path(args.outdir)
 
-    # handling an input audio path
-    audio, rate = sf.read(args.input, always_2d=True)
-    # todo: implement other sample rates
-    audio = resampy.resample(audio, rate, args.samplerate, axis=0)
-    # audio = np.repeat(audio, 2, 1)
-    estimates = separate_chunked(
-        audio,
-        models,
-        params,
-        niter=args.niter,
-        alpha=args.alpha,
-        softmask=args.softmask,
-        final_smoothing=args.final_smoothing
-    )
-    outdir.mkdir(exist_ok=True)
-    for target in estimates:
-        sf.write(
-            outdir / Path(target).with_suffix('.wav'),
-            estimates[target],
-            args.samplerate
+        print('Processing ', input)
+        # handling an input audio path
+        audio, rate = sf.read(input, always_2d=True)
+        import ipdb; ipdb.set_trace()
+        # todo: implement other sample rates
+        audio = resampy.resample(audio, rate, args.samplerate, axis=0)
+        # audio = np.repeat(audio, 2, 1)
+        estimates = separate_chunked(
+            audio,
+            models,
+            params,
+            niter=args.niter,
+            alpha=args.alpha,
+            softmask=args.softmask,
+            final_smoothing=args.final_smoothing
         )
+        outdir.mkdir(exist_ok=True)
+        for target in estimates:
+            sf.write(
+                outdir / Path(target).with_suffix('.wav'),
+                estimates[target],
+                args.samplerate
+            )
