@@ -7,7 +7,9 @@ import json
 from pathlib import Path
 import scipy.signal
 import resampy
-import glob
+import model
+import utils
+
 eps = np.finfo(np.float32).eps
 
 
@@ -20,15 +22,31 @@ def load_models(directory, targets):
                 with open(Path(target_dir, 'output.json'), 'r') as stream:
                     results = json.load(stream)
 
-                model = torch.load(
-                    Path(target_dir, target_dir.stem + '_model.pth.tar'),
+                state = torch.load(
+                    Path(target_dir, target_dir.stem + '.pth.tar'),
                     map_location='cpu'
+                )['state_dict']
+
+                max_bin = utils.bandwidth_to_max_bin(
+                    state['sample_rate'],
+                    results['args']['nfft'],
+                    results['args']['bandwidth']
                 )
-                model.to(torch.device("cpu"))
-                model.stft.center = True
+
+                unmix = model.OpenUnmix(
+                    n_fft=results['args']['nfft'],
+                    n_hop=results['args']['nhop'],
+                    nb_channels=results['args']['nb_channels'],
+                    hidden_size=results['args']['hidden_size'],
+                    max_bin=max_bin
+                )
+
+                unmix.load_state_dict(state)
+                unmix.to(torch.device("cpu"))
+                unmix.stft.center = True
                 # set model into evaluation mode
-                model.eval()
-                models[target_dir.stem] = model
+                unmix.eval()
+                models[target_dir.stem] = unmix
                 params[target_dir.stem] = results
                 print("%s model loaded." % target_dir.stem)
     return models, params
@@ -54,7 +72,7 @@ def separate_chunked(audio, models, params, niter=0, softmask=0, alpha=1,
     # get the first model
     st_model = models[list(models.keys())[0]]
 
-    rate = params[list(params.keys())[0]]['rate']
+    rate = st_model.sample_rate
     seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
     seq_len = int(seq_dur * rate)
     # correct sequence length to multiple of n_fft

@@ -99,12 +99,6 @@ valid_sampler = torch.utils.data.DataLoader(
     **dataloader_kwargs
 )
 
-freqs = np.linspace(
-    0, float(train_dataset.sample_rate) / 2, args.nfft // 2 + 1,
-    endpoint=True
-)
-
-max_bin = np.max(np.where(freqs <= args.bandwidth)[0]) + 1
 input_scaler = sklearn.preprocessing.StandardScaler()
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
@@ -126,6 +120,10 @@ if not args.quiet:
 safe_input_scale = np.maximum(
     input_scaler.scale_,
     1e-4*np.max(input_scaler.scale_)
+)
+
+max_bin = utils.bandwidth_to_max_bin(
+    train_dataset.sample_rate, args.nfft, args.bandwidth
 )
 
 unmix = model.OpenUnmix(
@@ -166,6 +164,7 @@ def train():
         loss.backward()
         optimizer.step()
         losses.update(loss.item())
+        break
     return losses.avg
 
 
@@ -227,7 +226,6 @@ for epoch in t:
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
         'train_time_history': train_times,
-        'rate': train_dataset.sample_rate
     }
 
     with open(Path(target_path,  "output.json"), 'w') as outfile:

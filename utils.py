@@ -4,6 +4,15 @@ import os
 import numpy as np
 
 
+def bandwidth_to_max_bin(rate, nfft, bandwidth):
+    freqs = np.linspace(
+        0, float(rate) / 2, nfft // 2 + 1,
+        endpoint=True
+    )
+
+    return np.max(np.where(freqs <= bandwidth)[0]) + 1
+
+
 def save_checkpoint(
     state, is_best, path, target, model
 ):

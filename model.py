@@ -90,11 +90,12 @@ class OpenUnmix(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        power=1,
-        nb_channels=1,
-        nb_layers=3,
         hidden_size=512,
+        nb_channels=1,
         input_is_spectrogram=False,
+        sample_rate=44100,
+        power=1,
+        nb_layers=3,
         input_mean=None,
         input_scale=None,
         output_mean=None,
@@ -119,6 +120,7 @@ class OpenUnmix(nn.Module):
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
+        self.register_buffer('sample_rate', torch.tensor(sample_rate))
 
         if input_is_spectrogram:
             self.transform = NoOp()
@@ -157,13 +159,17 @@ class OpenUnmix(nn.Module):
 
         self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
 
-        if input_mean:
-            input_mean = torch.from_numpy(-input_mean[:self.nb_bins])
+        if input_mean is not None:
+            input_mean = torch.from_numpy(
+                -input_mean[:self.nb_bins]
+            ).float()
         else:
             input_mean = torch.zeros(self.nb_bins)
 
-        if input_scale:
-            input_scale = torch.from_numpy(1.0/input_scale[:self.nb_bins])
+        if input_scale is not None:
+            input_scale = torch.from_numpy(
+                1.0/input_scale[:self.nb_bins]
+            ).float()
         else:
             input_scale = torch.ones(self.nb_bins)
 
