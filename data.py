@@ -495,9 +495,9 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 # select a random track
                 track = random.choice(self.mus.tracks)
                 # set the excerpt duration
-                track.duration = self.seq_duration
+                track.chunk_duration = self.seq_duration
                 # set random start position
-                track.start = random.uniform(
+                track.chunk_start = random.uniform(
                     0, track.duration - self.seq_duration
                 )
                 # load source audio and apply time domain augmentations
