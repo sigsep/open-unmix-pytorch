@@ -1,10 +1,11 @@
 import pytest
 import numpy as np
+import torch
 import model
 import test
 
 
-@pytest.fixture(params=[4094, 44100, 1249012])
+@pytest.fixture(params=[4096, 4096*10])
 def nb_timesteps(request):
     return int(request.param)
 
@@ -31,13 +32,14 @@ def hop(request, nfft):
 
 @pytest.fixture
 def audio(request, nb_samples, nb_channels, nb_timesteps):
-    return np.random.random((nb_samples, nb_channels, nb_timesteps))
+    return torch.rand((nb_samples, nb_channels, nb_timesteps))
 
 
 def test_stft(audio, nb_channels, nfft, hop):
     unmix = model.OpenUnmix(nb_channels=nb_channels)
-    X = unmix.spec(audio)
+    unmix.stft.center = True
+    X = unmix.stft(audio)
     X = X.detach().numpy()
     X_complex_np = X[..., 0] + X[..., 1]*1j
     out = test.istft(X_complex_np)
-
+    assert np.sqrt(np.mean((audio.detach().numpy() - out)**2)) < 1e-6

@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 import model
+import torch
 
 
-@pytest.fixture(params=[4094, 44100, 1249012])
+@pytest.fixture(params=[4096, 44100, 1249012])
 def nb_timesteps(request):
     return int(request.param)
 
@@ -20,16 +21,13 @@ def nb_samples(request):
 
 @pytest.fixture
 def audio(request, nb_samples, nb_channels, nb_timesteps):
-    return np.random.random((nb_samples, nb_channels, nb_timesteps))
-
-
-def test_model(audio, nb_channels):
-    unmix = model.OpenUnmix(nb_channels=nb_channels)
-    assert unmix(audio)
+    return torch.rand((nb_samples, nb_channels, nb_timesteps))
 
 
 def test_shape(audio, nb_channels):
-    unmix = model.OpenUnmix(nb_channels=nb_channels)
-    X = unmix.spec(audio)
+    unmix = model.OpenUnmix(nb_channels=nb_channels, input_is_spectrogram=True)
+    unmix.eval()
+    spec = torch.nn.Sequential(unmix.stft, unmix.spec)
+    X = spec(audio)
     Y = unmix(X)
     assert X.shape == Y.shape
