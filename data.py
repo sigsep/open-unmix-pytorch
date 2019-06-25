@@ -6,7 +6,6 @@ import numpy as np
 import sys
 import argparse
 import tqdm
-import os
 
 
 try:
@@ -138,8 +137,8 @@ def load_datasets(parser, args):
         valid_dataset = UnalignedSources(split='valid', **dataset_kwargs)
 
     elif args.dataset == 'aligned':
-        parser.add_argument('--input_file', type=str)
-        parser.add_argument('--output_file', type=str)
+        parser.add_argument('--input-file', type=str)
+        parser.add_argument('--output-file', type=str)
 
         args = parser.parse_args()
         # set output target to basename of output file
@@ -157,7 +156,7 @@ def load_datasets(parser, args):
 
     elif args.dataset == 'mixedsources':
         parser.add_argument('--interferers', type=str, nargs='+')
-        parser.add_argument('--target_file', type=str)
+        parser.add_argument('--target-file', type=str)
 
         args = parser.parse_args()
 
@@ -606,7 +605,7 @@ if __name__ == "__main__":
         help='Duration of <=0.0 will result in the full audio'
     )
 
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--batch-size', type=int, default=16)
 
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)

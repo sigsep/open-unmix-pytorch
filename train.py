@@ -45,7 +45,7 @@ parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                     help='number of epochs to train (default: 1000)')
 parser.add_argument('--patience', type=int, default=140,
                     help='early stopping patience (default: 20)')
-parser.add_argument('--batch_size', type=int, default=16,
+parser.add_argument('--batch-size', type=int, default=16,
                     help='batch size')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')

@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OSU Inference')
 
     parser.add_argument(
-        'model_dir',
+        'modeldir',
         type=str,
         default=".",
         help='path to models'
@@ -217,10 +217,10 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--softmask',
-        type=int,
-        default=0,
-        help=('if zero, will use mixture phase with spectrogram estimates. '
-              'if nonzero, will use softmask')
+        dest='softmask',
+        action='store_true',
+        help=('will use mixture phase with spectrogram'
+              'estimates, if enabled')
     )
 
     parser.add_argument(
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--final_smoothing',
+        '--final-smoothing',
         type=int,
         default=1,
         help=('final smoothing of estimates. Reduces distortion, adds '
@@ -254,12 +254,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    models, params = load_models(args.model_dir, args.targets)
+    models, params = load_models(args.modeldir, args.targets)
 
     for input_file in args.input:
         if not args.outdir:
             outdir = Path(
-                Path(input_file).stem + '_' + Path(args.model_dir).stem
+                Path(input_file).stem + '_' + Path(args.modeldir).stem
             )
         else:
             outdir = Path(args.outdir)

@@ -42,7 +42,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference Example')
 
     parser.add_argument(
-        'model_dir',
+        'modeldir',
         type=str,
         default=".",
         help='path to models'
@@ -102,10 +102,10 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--softmask',
-        type=int,
-        default=0,
-        help=('if zero, will use mixture phase with spectrogram estimates. '
-              'if nonzero, will use softmask')
+        dest='softmask',
+        action='store_true',
+        help=('will use mixture phase with spectrogram'
+              'estimates, if enabled')
     )
 
     parser.add_argument(
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    models, params = test.load_models(args.model_dir, args.targets)
+    models, params = test.load_models(args.modeldir, args.targets)
     mus = musdb.DB(root=args.root, download=False, subsets=args.subset)
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)

@@ -81,7 +81,7 @@ Additional training parameters and their default values are listed below:
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
 | `--epochs <int>`           | number of epochs to train                                                       | `1000`          |
 | `--patience <int>`         | early stopping patience                                                         | `20`            |
-| `--batch_size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
+| `--batch-size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
 | `--seq-dur <int>`          | Sequence duration in seconds of excerpts taken from the dataset.                | `5.0`           |
 | `--lr <float>`             | learning rate                                                                   | `0.0001`        |
 | `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
