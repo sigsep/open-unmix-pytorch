@@ -94,7 +94,7 @@ class OpenUnmix(nn.Module):
         nb_channels=1,
         nb_layers=3,
         hidden_size=512,
-        image=False,
+        input_is_spectrogram=False,
         input_mean=None,
         input_scale=None,
         output_mean=None,
@@ -120,7 +120,7 @@ class OpenUnmix(nn.Module):
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
 
-        if image:
+        if input_is_spectrogram:
             self.transform = NoOp()
         else:
             self.transform = nn.Sequential(self.stft, self.spec)
@@ -157,13 +157,18 @@ class OpenUnmix(nn.Module):
 
         self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
 
-        self.input_mean = Parameter(
-            torch.from_numpy(-input_mean[:self.nb_bins]).float()
-        )
+        if input_mean:
+            input_mean = torch.from_numpy(-input_mean[:self.nb_bins])
+        else:
+            input_mean = torch.zeros(self.nb_bins)
 
-        self.input_scale = Parameter(
-            torch.from_numpy(1.0/input_scale[:self.nb_bins]).float()
-        )
+        if input_scale:
+            input_scale = torch.from_numpy(1.0/input_scale[:self.nb_bins])
+        else:
+            input_scale = torch.ones(self.nb_bins)
+
+        self.input_mean = Parameter(input_mean)
+        self.input_scale = Parameter(input_scale)
 
         self.output_scale = Parameter(
             torch.ones(self.nb_output_bins).float()
@@ -173,7 +178,7 @@ class OpenUnmix(nn.Module):
         )
 
     def forward(self, x):
-        # check for waveform or image
+        # check for waveform or spectrogram
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         # and reduce feature dimensions, therefore we reshape
         x = self.transform(x)
