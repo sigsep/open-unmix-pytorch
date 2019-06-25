@@ -164,7 +164,6 @@ def train():
         loss.backward()
         optimizer.step()
         losses.update(loss.item())
-        break
     return losses.avg
 
 
