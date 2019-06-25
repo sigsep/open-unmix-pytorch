@@ -40,12 +40,12 @@ class Compose(object):
         return audio
 
 
-def gain_augment(audio):
+def augment_source_gain(audio):
     g = random.uniform(0.25, 1.25)
     return audio * g
 
 
-def channel_augment(audio):
+def augment_source_channelswap(audio):
     if audio.shape[0] == 2 and random.random() < 0.5:
         return np.flip(audio, 0)
     else:
@@ -188,13 +188,16 @@ def load_datasets(parser, args):
             'download': args.root is None
         }
 
-        augmentations = Compose([channel_augment, gain_augment])
+        source_augmentations = Compose(
+            [augment_source_channelswap, augment_source_gain]
+        )
 
         train_dataset = MUSDBDataset(
             split='train',
             samples_per_track=args.samples_per_track,
             seq_duration=args.seq_dur,
-            augmentations=augmentations,
+            source_augmentations=source_augmentations,
+            
             **dataset_kwargs
         )
 
@@ -448,21 +451,58 @@ class MixedSources(torch.utils.data.Dataset):
 class MUSDBDataset(torch.utils.data.Dataset):
     def __init__(
         self,
+        target='vocals',
         root=None,
         download=False,
         is_wav=False,
-        subsets=['train'],
-        target='vocals',
-        seq_duration=None,
+        subsets='train',
         split='train',
+        seq_duration=6.0,
         samples_per_track=64,
-        augmentations=None,
+        source_augmentations=lambda audio: audio,
+        random_track_mix=False,
         dtype=torch.float32,
         seed=42,
         *args, **kwargs
     ):
-        """MUSDB18 Dataset wrapper that samples from the musdb tracks
-        using excerpts without replacement spaced
+        """MUSDB18 torch.data.Dataset that samples from the MUSDB tracks
+        using track and excerpts with replacement.
+
+        Parameters
+        ----------
+        target : str
+            target name of the source to be separated, defaults to ``vocals``.
+        root : str
+            root path of MUSDB
+        download : boolean
+            automatically download 7s preview version of MUSDB
+        is_wav : boolean
+            specify if the WAV version (instead of the MP4 STEMS) are used
+        subsets : list-like [str]
+            subset str or list of subset. Defaults to ``train``.
+        split : str
+            use (stratified) track splits for validation split (``valid``),
+            defaults to ``train``.
+        seq_duration : float
+            training is performed in chunks of ``seq_duration`` (in seconds,
+            defaults to ``None`` which loads the full audio track
+        samples_per_track : int
+            sets the number of samples that are yielded from each musdb track
+            in one epoch. Defaults to 64
+        source_augmentations : list[callables]
+            provide list of augmentation function that take a multi-channel 
+            audio file of shape (src, samples) as input and output. Defaults to
+            no-augmentations (input = output)
+        random_track_mix : boolean
+            randomly mixes sources from different tracks to assemble a 
+            custom mix. This augmenation is only applied for the train subset.
+        seed : int
+            control randomness of dataset iterations
+        dtype : numeric type
+            data type of torch output tuple x and y
+        args, kwargs : additional keyword arguments
+            used to add further control for the musdb dataset initialization function.
+        
         """
         random.seed(seed)
         self.is_wav = is_wav
@@ -471,7 +511,8 @@ class MUSDBDataset(torch.utils.data.Dataset):
         self.subsets = subsets
         self.split = split
         self.samples_per_track = samples_per_track
-        self.augmentations = augmentations
+        self.source_augmentations = source_augmentations
+        self.random_track_mix = random_track_mix
         self.mus = musdb.DB(
             root=root,
             is_wav=is_wav,
@@ -480,29 +521,36 @@ class MUSDBDataset(torch.utils.data.Dataset):
             download=download,
             *args, **kwargs
         )
-        self.sample_rate = 44100
+        self.sample_rate = 44100  # musdb is fixed sample rate
         self.dtype = dtype
 
     def __getitem__(self, index):
-        if self.augmentations:
-            audio_sources = []
-            target_ind = None
-            # iterate over musdb sources
+        audio_sources = []
+        target_ind = None
+
+        # select track
+        track = self.mus.tracks[index // self.samples_per_track]
+
+        # at training time we assemble a custom mix
+        if self.split == 'train':
             for k, source in enumerate(self.mus.setup['sources']):
                 # memorize index of target source
                 if source == self.target:
                     target_ind = k
+
                 # select a random track
-                track = random.choice(self.mus.tracks)
+                if self.random_track_mix:
+                    track = random.choice(self.mus.tracks)
+
                 # set the excerpt duration
                 track.chunk_duration = self.seq_duration
                 # set random start position
                 track.chunk_start = random.uniform(
                     0, track.duration - self.seq_duration
                 )
-                # load source audio and apply time domain augmentations
+                # load source audio and apply time domain source_augmentations
                 audio = torch.tensor(
-                    self.augmentations(track.sources[source].audio.T),
+                    self.source_augmentations(track.sources[source].audio.T),
                     dtype=self.dtype
                 )
                 audio_sources.append(audio)
@@ -519,9 +567,9 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 vocind = list(self.mus.setup['sources'].keys()).index('vocals')
                 # apply time domain subtraction
                 y = x - stems[vocind]
-        # yield full musd track for deterministic validation and test
+
+        # for validation and test, we deterministically yield the full pre-mixed musdb track
         else:
-            track = self.mus.tracks[index // self.samples_per_track]
             # get the non-linear source mix straight from musdb
             x = torch.tensor(
                 track.audio.T,
@@ -573,17 +621,17 @@ if __name__ == "__main__":
 
     if save:
         for k, (x, y) in enumerate(train_dataset):
-                torchaudio.save(
-                    "test/" + str(k) + 'x.wav',
-                    x,
-                    44100,
-                    precision=16,
-                    channels_first=True
-                )
-                torchaudio.save(
-                    "test/" + str(k) + 'y.wav',
-                    y,
-                    44100,
-                    precision=16,
-                    channels_first=True
-                )
+            torchaudio.save(
+                "test/" + str(k) + 'x.wav',
+                x,
+                44100,
+                precision=16,
+                channels_first=True
+            )
+            torchaudio.save(
+                "test/" + str(k) + 'y.wav',
+                y,
+                44100,
+                precision=16,
+                channels_first=True
+            )
