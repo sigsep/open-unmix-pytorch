@@ -12,6 +12,8 @@ import utils
 
 eps = np.finfo(np.float32).eps
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def load_models(directory, targets):
     models = {}
@@ -24,7 +26,7 @@ def load_models(directory, targets):
 
                 state = torch.load(
                     Path(target_dir, target_dir.stem + '.pth.tar'),
-                    map_location='cpu'
+                    map_location=device
                 )['state_dict']
 
                 max_bin = utils.bandwidth_to_max_bin(
@@ -42,10 +44,10 @@ def load_models(directory, targets):
                 )
 
                 unmix.load_state_dict(state)
-                unmix.to(torch.device("cpu"))
                 unmix.stft.center = True
                 # set model into evaluation mode
                 unmix.eval()
+                unmix.to(device)
                 models[target_dir.stem] = unmix
                 params[target_dir.stem] = results
                 print("%s model loaded." % target_dir.stem)
@@ -106,7 +108,7 @@ def separate_chunked(audio, models, params, niter=0, softmask=0, alpha=1,
     V = []
     for j, (target, unmix) in enumerate(models.items()):
         unmix.transform = model.NoOp()
-        Vj = unmix(M_unfolded.clone()).cpu().detach().numpy()
+        Vj = unmix(M_unfolded.clone().to(device)).cpu().detach().numpy()
         if softmask:
             # only exponentiate if we use softmask
             Vj = Vj**alpha
@@ -142,20 +144,9 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
              final_smoothing=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
-
-    # rate = params[list(params.keys())[0]]['rate']
-    # seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
-    # seq_len = int(seq_dur * rate)
-
-    # split without overlap
-    # audio_split = torch.tensor(audio).float().unfold(0, seq_len, seq_len)
-    # now its (batch, channels, seq_len/samples)
-
-    # compute STFT of mixture
-    # get the first model
     st_model = models[list(models.keys())[0]]
 
-    audio_torch = torch.tensor(audio.T[None, ...]).float()
+    audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
     # get complex STFT from torch
     X = st_model.stft(audio_torch).detach().numpy()
     # convert to complex numpy type
@@ -164,8 +155,8 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
     nb_frames_X, nb_bins_X, nb_channels_X = X.shape
     source_names = []
     V = []
-    for j, (target, model) in enumerate(models.items()):
-        Vj = model(audio_torch).cpu().detach().numpy()
+    for j, (target, unmix) in enumerate(models.items()):
+        Vj = unmix(audio_torch).cpu().detach().numpy()
         if softmask:
             # only exponentiate the model if we use softmask
             Vj = Vj**alpha
@@ -288,7 +279,7 @@ if __name__ == '__main__':
         # todo: implement other sample rates
         audio = resampy.resample(audio, rate, args.samplerate, axis=0)
         # audio = np.repeat(audio, 2, 1)
-        estimates = separate_chunked(
+        estimates = separate(
             audio,
             models,
             params,
