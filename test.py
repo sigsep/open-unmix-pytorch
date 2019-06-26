@@ -286,8 +286,14 @@ if __name__ == '__main__':
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
         # todo: implement other sample rates
-        audio = resampy.resample(audio, rate, args.samplerate, axis=0)
-        # audio = np.repeat(audio, 2, 1)
+
+        if rate != args.samplerate:
+            audio = resampy.resample(audio, rate, args.samplerate, axis=0)
+
+        if audio.shape[1] == 1:
+            # if we have mono, let's duplicate it
+            audio = np.repeat(audio, 2, axis=1)
+
         estimates = separate_chunked(
             audio,
             models,
