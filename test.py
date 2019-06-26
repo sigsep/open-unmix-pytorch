@@ -148,7 +148,7 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
 
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
     # get complex STFT from torch
-    X = st_model.stft(audio_torch).detach().numpy()
+    X = st_model.stft(audio_torch).detach().cpu().numpy()
     # convert to complex numpy type
     X = X[..., 0] + X[..., 1]*1j
     X = X[0].transpose(2, 1, 0)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--input',
+        'input',
         type=str,
         nargs='+',
         help='List of paths to wav files. '
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--niter',
         type=int,
-        default=0,
+        default=1,
         help='number of iterations for refining results.'
     )
 
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--final-smoothing',
         type=int,
-        default=1,
+        default=0,
         help=('final smoothing of estimates. Reduces distortion, adds '
               'interference')
     )
@@ -285,7 +285,7 @@ if __name__ == '__main__':
             # if we have mono, let's duplicate it
             audio = np.repeat(audio, 2, axis=1)
 
-        estimates = separate_chunked(
+        estimates = separate(
             audio,
             models,
             params,
@@ -294,7 +294,7 @@ if __name__ == '__main__':
             softmask=args.softmask,
             final_smoothing=args.final_smoothing
         )
-        outdir.mkdir(exist_ok=True)
+        outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:
             sf.write(
                 outdir / Path(target).with_suffix('.wav'),
