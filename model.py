@@ -160,12 +160,16 @@ class OpenUnmix(nn.Module):
         self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
 
         if input_mean is not None:
-            input_mean = torch.from_numpy(-input_mean).float()
+            input_mean = torch.from_numpy(
+                -input_mean[:self.nb_bins]
+            ).float()
         else:
             input_mean = torch.zeros(self.nb_bins)
 
         if input_scale is not None:
-            input_scale = torch.from_numpy(1.0/input_scale).float()
+            input_scale = torch.from_numpy(
+                1.0/input_scale[:self.nb_bins]
+            ).float()
         else:
             input_scale = torch.ones(self.nb_bins)
 
@@ -188,12 +192,12 @@ class OpenUnmix(nn.Module):
 
         mix = x.detach().clone()
 
+        # crop
+        x = x[..., :self.nb_bins]
+
         # shift and scale input to mean=0 std=1 (across all bins)
         x += self.input_mean
         x *= self.input_scale
-
-        # crop
-        x = x[..., :self.nb_bins]
 
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
