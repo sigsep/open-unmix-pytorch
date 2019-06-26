@@ -196,7 +196,7 @@ def load_datasets(parser, args):
             samples_per_track=args.samples_per_track,
             seq_duration=args.seq_dur,
             source_augmentations=source_augmentations,
-            
+            random_track_mix=True,
             **dataset_kwargs
         )
 
@@ -489,19 +489,20 @@ class MUSDBDataset(torch.utils.data.Dataset):
             sets the number of samples that are yielded from each musdb track
             in one epoch. Defaults to 64
         source_augmentations : list[callables]
-            provide list of augmentation function that take a multi-channel 
+            provide list of augmentation function that take a multi-channel
             audio file of shape (src, samples) as input and output. Defaults to
             no-augmentations (input = output)
         random_track_mix : boolean
-            randomly mixes sources from different tracks to assemble a 
+            randomly mixes sources from different tracks to assemble a
             custom mix. This augmenation is only applied for the train subset.
         seed : int
             control randomness of dataset iterations
         dtype : numeric type
             data type of torch output tuple x and y
         args, kwargs : additional keyword arguments
-            used to add further control for the musdb dataset initialization function.
-        
+            used to add further control for the musdb dataset
+            initialization function.
+
         """
         random.seed(seed)
         self.is_wav = is_wav
@@ -567,7 +568,8 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 # apply time domain subtraction
                 y = x - stems[vocind]
 
-        # for validation and test, we deterministically yield the full pre-mixed musdb track
+        # for validation and test, we deterministically yield the full
+        # pre-mixed musdb track
         else:
             # get the non-linear source mix straight from musdb
             x = torch.tensor(
@@ -597,6 +599,12 @@ if __name__ == "__main__":
         '--root', type=str, help='root path of dataset'
     )
 
+    parser.add_argument(
+        '--save',
+        action='store_true',
+        help=('write out a fixed dataset of samples')
+    )
+
     parser.add_argument('--target', type=str, default='vocals')
 
     # I/O Parameters
@@ -609,16 +617,12 @@ if __name__ == "__main__":
 
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)
-    save = True
 
     train_sampler = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
     )
 
-    for x, y in tqdm.tqdm(train_sampler):
-        pass
-
-    if save:
+    if args.save:
         for k, (x, y) in enumerate(train_dataset):
             torchaudio.save(
                 "test/" + str(k) + 'x.wav',
@@ -634,3 +638,7 @@ if __name__ == "__main__":
                 precision=16,
                 channels_first=True
             )
+
+    # check datasampler
+    for x, y in tqdm.tqdm(train_sampler):
+        pass
