@@ -11,7 +11,7 @@ dependencies:
   - torchvision==0.2.2
   - pescador==2.0.0
   - tqdm==4.28.1
-  - musdb==0.3.1
+  - musdb==0.3.0
   - ffmpeg
   - resampy
   - pip:
