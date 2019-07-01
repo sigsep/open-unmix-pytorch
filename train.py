@@ -147,7 +147,8 @@ criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     factor=args.lr_decay_gamma,
-    patience=args.lr_decay_patience
+    patience=args.lr_decay_patience,
+    cooldown=10
 )
 
 
