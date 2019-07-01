@@ -14,7 +14,7 @@ def bandwidth_to_max_bin(rate, nfft, bandwidth):
 
 
 def save_checkpoint(
-    state, is_best, path, target, model
+    state, is_best, path, target
 ):
 
     torch.save(

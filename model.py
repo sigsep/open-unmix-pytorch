@@ -99,7 +99,8 @@ class OpenUnmix(nn.Module):
         input_mean=None,
         input_scale=None,
         output_mean=None,
-        max_bin=None
+        max_bin=None,
+        unidirectional=False
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)
@@ -134,11 +135,16 @@ class OpenUnmix(nn.Module):
 
         self.bn1 = BatchNorm1d(hidden_size)
 
+        if unidirectional:
+            lstm_hidden_size = hidden_size
+        else:
+            lstm_hidden_size = hidden_size // 2
+
         self.lstm = LSTM(
             input_size=hidden_size,
-            hidden_size=hidden_size // 2,
+            hidden_size=lstm_hidden_size,
             num_layers=nb_layers,
-            bidirectional=True,
+            bidirectional=not unidirectional,
             batch_first=False,
             dropout=0.4,
         )
