@@ -66,10 +66,11 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(audio, models, params, niter=0, softmask=0, alpha=1,
-             final_smoothing=0):
+             final_smoothing=0, residual_model=False):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
     st_model = models[list(models.keys())[0]]
+
 
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
     # get complex STFT from torch
@@ -91,11 +92,11 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if nb_sources == 1:
-        V = norbert.residual(V, X, alpha)
+    if residual_model:
+        V = norbert.residual(V, X, alpha if softmask else 1)
         source_names += ['accompaniment']
 
-    Y = norbert.wiener(V, X, niter, softmask=softmask,
+    Y = norbert.wiener(V, X, niter, use_softmask=softmask,
                        final_smoothing=final_smoothing)
 
     estimates = {}
@@ -186,11 +187,18 @@ if __name__ == '__main__':
               'interference')
     )
 
+    parser.add_argument(
+        '--residual-model',
+        action='store_true',
+        help='create a model for the residual'
+    )
+
     args = parser.parse_args()
 
     models, params = load_models(args.modeldir, args.targets)
 
     for input_file in args.input:
+        print(input_file)
         if not args.outdir:
             outdir = Path(
                 Path(input_file).stem + '_' + Path(args.modeldir).stem
@@ -201,7 +209,6 @@ if __name__ == '__main__':
         print('Processing ', input_file)
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
-        # todo: implement other sample rates
 
         if rate != args.samplerate:
             audio = resampy.resample(audio, rate, args.samplerate, axis=0)
@@ -217,7 +224,8 @@ if __name__ == '__main__':
             niter=args.niter,
             alpha=args.alpha,
             softmask=args.softmask,
-            final_smoothing=args.final_smoothing
+            final_smoothing=args.final_smoothing,
+            residual_model=args.residual_model
         )
         outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:
