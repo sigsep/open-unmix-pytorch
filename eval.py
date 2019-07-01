@@ -4,12 +4,12 @@ import museval
 import test
 import multiprocessing
 import functools
+from pathlib import Path
 
 
 def separate_and_evaluate(
     track,
     models,
-    params,
     niter,
     alpha,
     softmask,
@@ -20,7 +20,6 @@ def separate_and_evaluate(
     estimates = test.separate(
         audio=track.audio,
         models=models,
-        params=params,
         niter=niter,
         alpha=alpha,
         softmask=softmask,
@@ -39,21 +38,32 @@ def separate_and_evaluate(
 
 if __name__ == '__main__':
     # Training settings
-    parser = argparse.ArgumentParser(description='Inference Example')
-
-    parser.add_argument(
-        'modeldir',
-        type=str,
-        default=".",
-        help='path to models'
+    parser = argparse.ArgumentParser(
+        description='MUSDB18 Evaluation',
+        add_help=False
     )
 
     parser.add_argument(
         '--targets',
         nargs='+',
+        default=['vocals', 'drums', 'bass', 'other'],
         type=str,
         help='provide targets to be processed. \
               If none, all available targets will be computed'
+    )
+
+    parser.add_argument(
+        '--modeldir',
+        type=str,
+        help='path to mode base directory of pretrained models'
+    )
+
+    parser.add_argument(
+        '--modelname',
+        choices=['Unmix16kBLSTMStereo'],
+        default='Unmix16kBLSTMStereo',
+        type=str,
+        help='use pretrained model'
     )
 
     parser.add_argument(
@@ -86,39 +96,22 @@ if __name__ == '__main__':
         type=int,
         default=1
     )
-    parser.add_argument(
-        '--niter',
-        type=int,
-        default=0,
-        help='number of iterations. 0 is softmask'
-    )
 
-    parser.add_argument(
-        '--alpha',
-        type=int,
-        default=1,
-        help='exponent for softmasks'
-    )
+    args, _ = parser.parse_known_args()
+    args = test.inference_args(parser, args)
 
-    parser.add_argument(
-        '--softmask',
-        dest='softmask',
-        action='store_true',
-        help=('will use mixture phase with spectrogram'
-              'estimates, if enabled')
-    )
+    if args.modeldir:
+        models = test.load_models(args.modeldir, args.targets)
+        model_name = Path(args.modeldir).stem
+    else:
+        import hubconf
+        pretrained_model = getattr(hubconf, args.modelname)
+        models = {
+            target: pretrained_model(target=target, device=test.device)
+            for target in args.targets
+        }
+        model_name = args.modelname
 
-    parser.add_argument(
-        '--final_smoothing',
-        type=int,
-        default=1,
-        help=('final smoothing of estimates. Reduces distortion, adds '
-              'interference')
-    )
-
-    args = parser.parse_args()
-
-    models, params = test.load_models(args.modeldir, args.targets)
     mus = musdb.DB(root=args.root, download=False, subsets=args.subset)
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
@@ -127,7 +120,6 @@ if __name__ == '__main__':
                 func=functools.partial(
                     separate_and_evaluate,
                     models=models,
-                    params=params,
                     niter=args.niter,
                     alpha=args.alpha,
                     softmask=args.softmask,
@@ -146,7 +138,6 @@ if __name__ == '__main__':
             separate_and_evaluate(
                 track,
                 models=models,
-                params=params,
                 niter=args.niter,
                 alpha=args.alpha,
                 softmask=args.softmask,

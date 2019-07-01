@@ -66,9 +66,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 def separate(audio, models, niter=0, softmask=False, alpha=1,
              final_smoothing=0, residual_model=False):
     # for now only check the first model, as they are assumed to be the same
-    nb_sources = len(models)
     st_model = models[list(models.keys())[0]]
-
 
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
     # get complex STFT from torch
@@ -90,7 +88,7 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if residual_model or V.shape[-1]==1:
+    if residual_model or V.shape[-1] == 1:
         V = norbert.residual(V, X, alpha if softmask else 1)
         source_names += ['residual']
 
@@ -109,9 +107,65 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
     return estimates
 
 
+def inference_args(parser, remaining_args):
+    inf_parser = argparse.ArgumentParser(
+        description=__doc__,
+        parents=[parser],
+        add_help=True,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    inf_parser.add_argument(
+        '--softmask',
+        dest='softmask',
+        action='store_true',
+        help=('will use mixture phase with spectrogram'
+              'estimates, if enabled')
+    )
+
+    inf_parser.add_argument(
+        '--niter',
+        type=int,
+        default=1,
+        help='number of iterations for refining results.'
+    )
+
+    inf_parser.add_argument(
+        '--alpha',
+        type=int,
+        default=1,
+        help='exponent in case of softmask separation'
+    )
+
+    inf_parser.add_argument(
+        '--samplerate',
+        type=int,
+        default=44100,
+        help='model samplerate'
+    )
+
+    inf_parser.add_argument(
+        '--final-smoothing',
+        type=int,
+        default=0,
+        help=('final smoothing of estimates. Reduces distortion, adds '
+              'interference')
+    )
+
+    inf_parser.add_argument(
+        '--residual-model',
+        action='store_true',
+        help='create a model for the residual'
+    )
+    return inf_parser.parse_args()
+
+
 if __name__ == '__main__':
     # Training settings
-    parser = argparse.ArgumentParser(description='OSU Inference')
+    parser = argparse.ArgumentParser(
+        description='OSU Inference',
+        add_help=False
+    )
 
     parser.add_argument(
         'input',
@@ -136,12 +190,6 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--evaldir',
-        type=str,
-        help='Results path for museval estimates'
-    )
-
-    parser.add_argument(
         '--modeldir',
         type=str,
         help='path to mode base directory of pretrained models'
@@ -154,51 +202,8 @@ if __name__ == '__main__':
         type=str,
         help='use pretrained model'
     )
-
-    parser.add_argument(
-        '--softmask',
-        dest='softmask',
-        action='store_true',
-        help=('will use mixture phase with spectrogram'
-              'estimates, if enabled')
-    )
-
-    parser.add_argument(
-        '--niter',
-        type=int,
-        default=1,
-        help='number of iterations for refining results.'
-    )
-
-    parser.add_argument(
-        '--alpha',
-        type=int,
-        default=1,
-        help='exponent in case of softmask separation'
-    )
-
-    parser.add_argument(
-        '--samplerate',
-        type=int,
-        default=44100,
-        help='model samplerate'
-    )
-
-    parser.add_argument(
-        '--final-smoothing',
-        type=int,
-        default=0,
-        help=('final smoothing of estimates. Reduces distortion, adds '
-              'interference')
-    )
-
-    parser.add_argument(
-        '--residual-model',
-        action='store_true',
-        help='create a model for the residual'
-    )
-
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+    args = inference_args(parser, args)
 
     if args.modeldir:
         models = load_models(args.modeldir, args.targets)
@@ -218,7 +223,6 @@ if __name__ == '__main__':
         else:
             outdir = Path(args.outdir)
 
-        print('Processing ', input_file)
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
 
