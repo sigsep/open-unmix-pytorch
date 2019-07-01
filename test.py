@@ -63,7 +63,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     return audio
 
 
-def separate(audio, models, params, niter=0, softmask=0, alpha=1,
+def separate(audio, models, niter=0, softmask=False, alpha=1,
              final_smoothing=0, residual_model=False):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
@@ -90,9 +90,9 @@ def separate(audio, models, params, niter=0, softmask=0, alpha=1,
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if residual_model:
+    if residual_model or V.shape[-1]==1:
         V = norbert.residual(V, X, alpha if softmask else 1)
-        source_names += ['accompaniment']
+        source_names += ['residual']
 
     Y = norbert.wiener(V, X, niter, use_softmask=softmask,
                        final_smoothing=final_smoothing)
@@ -213,7 +213,6 @@ if __name__ == '__main__':
         model_name = args.modelname
 
     for input_file in args.input:
-        print(input_file)
         if not args.outdir:
             outdir = Path(Path(input_file).stem + '_' + model_name)
         else:
