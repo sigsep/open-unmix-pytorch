@@ -17,7 +17,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def load_models(directory, targets):
     models = {}
-    params = {}
     for target_dir in Path(directory).iterdir():
         if target_dir.is_dir():
             if targets is None or target_dir.stem in targets:
@@ -49,9 +48,8 @@ def load_models(directory, targets):
                 unmix.eval()
                 unmix.to(device)
                 models[target_dir.stem] = unmix
-                params[target_dir.stem] = results
                 print("%s model loaded." % target_dir.stem)
-    return models, params
+    return models
 
 
 def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
@@ -65,7 +63,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     return audio
 
 
-def separate(audio, models, params, niter=0, softmask=0, alpha=1,
+def separate(audio, models, niter=0, softmask=0, alpha=1,
              final_smoothing=0):
     # for now only check the first model, as they are assumed to be the same
     nb_sources = len(models)
@@ -115,15 +113,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='OSU Inference')
 
     parser.add_argument(
-        'modeldir',
+        'input',
         type=str,
-        default=".",
-        help='path to models'
+        nargs='+',
+        help='List of paths to wav/flac files.'
     )
 
     parser.add_argument(
         '--targets',
         nargs='+',
+        default=['vocals', 'drums', 'bass', 'other'],
         type=str,
         help='provide targets to be processed. \
               If none, all available targets will be computed'
@@ -142,11 +141,17 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        'input',
+        '--modeldir',
         type=str,
-        nargs='+',
-        help='List of paths to wav files. '
-             'If not provided, will process the MUSDB18'
+        help='path to mode base directory of pretrained models'
+    )
+
+    parser.add_argument(
+        '--modelname',
+        choices=['Unmix16kBLSTMStereo'],
+        default='Unmix16kBLSTMStereo',
+        type=str,
+        help='use pretrained model'
     )
 
     parser.add_argument(
@@ -188,13 +193,21 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    models, params = load_models(args.modeldir, args.targets)
+    if args.modeldir:
+        models = load_models(args.modeldir, args.targets)
+        model_name = Path(args.modeldir).stem
+    else:
+        import hubconf
+        pretrained_model = getattr(hubconf, args.modelname)
+        models = {
+            target: pretrained_model(target=target, device=device)
+            for target in args.targets
+        }
+        model_name = args.modelname
 
     for input_file in args.input:
         if not args.outdir:
-            outdir = Path(
-                Path(input_file).stem + '_' + Path(args.modeldir).stem
-            )
+            outdir = Path(Path(input_file).stem + '_' + model_name)
         else:
             outdir = Path(args.outdir)
 
@@ -213,7 +226,6 @@ if __name__ == '__main__':
         estimates = separate(
             audio,
             models,
-            params,
             niter=args.niter,
             alpha=args.alpha,
             softmask=args.softmask,

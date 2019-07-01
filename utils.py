@@ -4,9 +4,9 @@ import os
 import numpy as np
 
 
-def bandwidth_to_max_bin(rate, nfft, bandwidth):
+def bandwidth_to_max_bin(rate, n_fft, bandwidth):
     freqs = np.linspace(
-        0, float(rate) / 2, nfft // 2 + 1,
+        0, float(rate) / 2, n_fft // 2 + 1,
         endpoint=True
     )
 
