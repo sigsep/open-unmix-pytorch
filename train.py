@@ -19,28 +19,23 @@ import copy
 
 tqdm.monitor_interval = 0
 
-# Training settings
 parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
+# Dataset paramaters
 parser.add_argument('--dataset', type=str, default="musdb",
                     choices=['musdb', 'aligned', 'unaligned', 'mixedsources'],
                     help='Name of the dataset.')
-
 parser.add_argument('--root', type=str, help='root path of dataset')
-
-# I/O Parameters
-parser.add_argument('--seq-dur', type=float, default=5.0,
-                    help='Duration of <=0.0 will result in the full audio')
-
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
+
+# Trainig Parameters
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-
 parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                     help='number of epochs to train (default: 1000)')
 parser.add_argument('--patience', type=int, default=140,
@@ -58,6 +53,12 @@ parser.add_argument('--weight-decay', type=float, default=0.00001,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
+# Model Parameters
+parser.add_argument('--seq-dur', type=float, default=5.0,
+                    help='Sequence duration in seconds'
+                    'value of <=0.0 will use full/variable length')
+parser.add_argument('--unidirectional', action='store_true', default=False,
+                    help='Use unidirectional LSTM instead of bidirectional')
 parser.add_argument('--nfft', type=int, default=4096,
                     help='STFT fft size and window size')
 parser.add_argument('--nhop', type=int, default=1024,
@@ -66,7 +67,6 @@ parser.add_argument('--hidden-size', type=int, default=512,
                     help='hidden size parameter of FC bottleneck layers')
 parser.add_argument('--bandwidth', type=int, default=15000,
                     help='maximum model bandwidth in herz')
-
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
 parser.add_argument('--quiet', action='store_true', default=False,
@@ -212,8 +212,7 @@ for epoch in t:
         },
         is_best=valid_loss == es.best,
         path=target_path,
-        target=args.target,
-        model=unmix
+        target=args.target
     )
 
     # save params
