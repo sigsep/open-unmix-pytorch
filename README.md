@@ -34,7 +34,7 @@ For installation we recommend to use the [Anaconda](https://anaconda.org/) pytho
 
 ## Training
 
-_open-unmix_ support standard pytorch `[Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)` classes. This repository comes with __three__ different datasets which cover a wide range of tasks. The dataset can be selected through a command line parameter.
+_open-unmix_ support standard pytorch [Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. This repository comes with __three__ different datasets which cover a wide range of tasks. The dataset can be selected through a command line parameter.
 
 | Command line Argument      | Description                                                            | Default      |
 |----------------------------|------------------------------------------------------------------------|--------------|
