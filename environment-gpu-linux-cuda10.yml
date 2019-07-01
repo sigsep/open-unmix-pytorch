@@ -9,7 +9,6 @@ dependencies:
   - numpy==1.15.4
   - pytorch>=1.1.0
   - cudatoolkit=10.0
-  - pescador==2.0.0
   - tqdm==4.28.1
   - ffmpeg
   - resampy
