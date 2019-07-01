@@ -29,22 +29,22 @@ def unidirectional(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 2, 3])
+@pytest.fixture(params=[1, 2])
 def nb_layers(request):
     return request.param
 
 
-@pytest.fixture(params=[32, 128, 512])
+@pytest.fixture(params=[32, 512])
 def hidden_size(request):
     return request.param
 
 
-@pytest.fixture(params=[128, 1111, 4096])
+@pytest.fixture(params=[1024, 4096])
 def n_fft(request):
     return request.param
 
 
-@pytest.fixture(params=[2, 3, 4])
+@pytest.fixture(params=[2, 4])
 def n_hop(request, n_fft):
     return n_fft // request.param
 
