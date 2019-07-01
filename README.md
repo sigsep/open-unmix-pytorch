@@ -43,7 +43,7 @@ _open-unmix_ support standard pytorch [Dataset](https://pytorch.org/docs/stable/
 | `--output <str>`           | path where to save the trained output model                                           | `./OSU`      |
 | `--no_cuda`           | disable cuda even if available                                              | not set      |
 
-#### `MUSDBDataset`
+#### `MUSDBDataset` (default)
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) is the largest freely available dataset for professionally produced music tracks (~10h duration) of different styles. It comes with isolated `drums`, `bass`, `vocals` and `others` stems.
 
