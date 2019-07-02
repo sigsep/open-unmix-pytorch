@@ -202,20 +202,6 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--softmask',
-        dest='softmask',
-        action='store_true',
-        help=('if enabled, will initialize separation with softmask.'
-              'otherwise, will use mixture phase with spectrogram')
-    )
-
-    parser.add_argument(
-        '--niter',
-        type=int,
-        default=1,
-        help='number of iterations for refining results.')
-
-    parser.add_argument(
         '--no-cuda',
         action='store_true',
         default=False,
