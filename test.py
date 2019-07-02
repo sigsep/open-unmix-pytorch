@@ -117,8 +117,8 @@ def inference_args(parser, remaining_args):
         '--softmask',
         dest='softmask',
         action='store_true',
-        help=('will use mixture phase with spectrogram'
-              'estimates, if enabled')
+        help=('if enabled, will initialize separation with softmask.'
+              'otherwise, will use mixture phase with spectrogram')
     )
 
     inf_parser.add_argument(
@@ -200,20 +200,6 @@ if __name__ == '__main__':
         type=str,
         help='use pretrained model'
     )
-
-    parser.add_argument(
-        '--softmask',
-        dest='softmask',
-        action='store_true',
-        help=('if enabled, will initialize separation with softmask.'
-              'otherwise, will use mixture phase with spectrogram')
-    )
-
-    parser.add_argument(
-        '--niter',
-        type=int,
-        default=1,
-        help='number of iterations for refining results.')
 
     parser.add_argument(
         '--no-cuda',
