@@ -7,7 +7,7 @@ from model import OpenUnmix
 dependencies = ['torch', 'numpy']
 
 
-def Unmix16kBLSTMStereo(
+def OpenUnmixBLSTMStereo(
     target='vocals', device='cpu', pretrained=True, *args, **kwargs
 ):
     # set urls for weights
@@ -44,4 +44,4 @@ def Unmix16kBLSTMStereo(
         unmix.stft.center = True
         unmix.eval()
 
-    return unmix
+    return unmix.to(device)

@@ -10,12 +10,8 @@ import resampy
 import model
 import utils
 
-eps = np.finfo(np.float32).eps
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def load_models(directory, targets):
+def load_models(directory, targets, device='cpu'):
     models = {}
     for target_dir in Path(directory).iterdir():
         if target_dir.is_dir():
@@ -64,7 +60,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(audio, models, niter=0, softmask=False, alpha=1,
-             final_smoothing=0, residual_model=False):
+             final_smoothing=0, residual_model=False, device='cpu'):
     # for now only check the first model, as they are assumed to be the same
     st_model = models[list(models.keys())[0]]
 
@@ -109,9 +105,65 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
     return estimates
 
 
+def inference_args(parser, remaining_args):
+    inf_parser = argparse.ArgumentParser(
+        description=__doc__,
+        parents=[parser],
+        add_help=True,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    inf_parser.add_argument(
+        '--softmask',
+        dest='softmask',
+        action='store_true',
+        help=('will use mixture phase with spectrogram'
+              'estimates, if enabled')
+    )
+
+    inf_parser.add_argument(
+        '--niter',
+        type=int,
+        default=1,
+        help='number of iterations for refining results.'
+    )
+
+    inf_parser.add_argument(
+        '--alpha',
+        type=int,
+        default=1,
+        help='exponent in case of softmask separation'
+    )
+
+    inf_parser.add_argument(
+        '--samplerate',
+        type=int,
+        default=44100,
+        help='model samplerate'
+    )
+
+    inf_parser.add_argument(
+        '--final-smoothing',
+        type=int,
+        default=0,
+        help=('final smoothing of estimates. Reduces distortion, adds '
+              'interference')
+    )
+
+    inf_parser.add_argument(
+        '--residual-model',
+        action='store_true',
+        help='create a model for the residual'
+    )
+    return inf_parser.parse_args()
+
+
 if __name__ == '__main__':
     # Training settings
-    parser = argparse.ArgumentParser(description='OSU Inference')
+    parser = argparse.ArgumentParser(
+        description='OSU Inference',
+        add_help=False
+    )
 
     parser.add_argument(
         'input',
@@ -136,12 +188,6 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--evaldir',
-        type=str,
-        help='Results path for museval estimates'
-    )
-
-    parser.add_argument(
         '--modeldir',
         type=str,
         help='path to mode base directory of pretrained models'
@@ -149,8 +195,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--modelname',
-        choices=['OpenUnmix1.0'],
-        default='OpenUnmix1.0',
+        choices=['OpenUnmixBLSTMStereo'],
+        default='OpenUnmixBLSTMStereo',
         type=str,
         help='use pretrained model'
     )
@@ -167,41 +213,23 @@ if __name__ == '__main__':
         '--niter',
         type=int,
         default=1,
-        help='number of iterations for refining results.'
-    )
+        help='number of iterations for refining results.')
 
     parser.add_argument(
-        '--alpha',
-        type=int,
-        default=1,
-        help='exponent in case of softmask separation'
-    )
-
-    parser.add_argument(
-        '--samplerate',
-        type=int,
-        default=44100,
-        help='model samplerate'
-    )
-
-    parser.add_argument(
-        '--final-smoothing',
-        type=int,
-        default=0,
-        help=('final smoothing of estimates. Reduces distortion, adds '
-              'interference')
-    )
-
-    parser.add_argument(
-        '--residual-model',
+        '--no-cuda',
         action='store_true',
-        help='create a model for the residual'
+        default=False,
+        help='disables CUDA inference'
     )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+    args = inference_args(parser, args)
+
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     if args.modeldir:
-        models = load_models(args.modeldir, args.targets)
+        models = load_models(args.modeldir, args.targets, device=device)
         model_name = Path(args.modeldir).stem
     else:
         import hubconf
@@ -218,7 +246,6 @@ if __name__ == '__main__':
         else:
             outdir = Path(args.outdir)
 
-        print('Processing ', input_file)
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
 
@@ -236,7 +263,8 @@ if __name__ == '__main__':
             alpha=args.alpha,
             softmask=args.softmask,
             final_smoothing=args.final_smoothing,
-            residual_model=args.residual_model
+            residual_model=args.residual_model,
+            device=device
         )
         outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:

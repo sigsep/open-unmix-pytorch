@@ -8,10 +8,10 @@ dependencies:
   - python==3.7.1
   - numpy==1.15.4
   - pytorch-cpu>=1.1.0
-  - pescador==2.0.0
   - tqdm==4.28.1
-  - musdb==0.3.0
+  - scikit-learn==0.21.2
   - ffmpeg
   - resampy
   - pip:
+    - musdb==0.3.0
     - git+https://github.com/sigsep/norbert#egg=norbert
