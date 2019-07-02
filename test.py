@@ -66,9 +66,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 def separate(audio, models, niter=0, softmask=False, alpha=1,
              final_smoothing=0, residual_model=False):
     # for now only check the first model, as they are assumed to be the same
-    nb_sources = len(models)
     st_model = models[list(models.keys())[0]]
-
 
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
     # get complex STFT from torch
@@ -90,11 +88,13 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if residual_model or V.shape[-1]==1:
+    if residual_model or len(models) == 1:
         V = norbert.residual(V, X, alpha if softmask else 1)
-        source_names += ['residual']
+        source_names += (['residual'] if len(models) > 1
+                         else ['accompaniment'])
 
-    Y = norbert.wiener(V, X, niter, use_softmask=softmask,
+    Y = norbert.wiener(V, X.astype(np.complex128), niter,
+                       use_softmask=softmask,
                        final_smoothing=final_smoothing)
 
     estimates = {}
@@ -149,8 +149,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--modelname',
-        choices=['Unmix16kBLSTMStereo'],
-        default='Unmix16kBLSTMStereo',
+        choices=['OpenUnmix1.0'],
+        default='OpenUnmix1.0',
         type=str,
         help='use pretrained model'
     )
@@ -159,8 +159,8 @@ if __name__ == '__main__':
         '--softmask',
         dest='softmask',
         action='store_true',
-        help=('will use mixture phase with spectrogram'
-              'estimates, if enabled')
+        help=('if enabled, will initialize separation with softmask.'
+              'otherwise, will use mixture phase with spectrogram')
     )
 
     parser.add_argument(
