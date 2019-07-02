@@ -44,4 +44,4 @@ def OpenUnmixBLSTMStereo(
         unmix.stft.center = True
         unmix.eval()
 
-    return unmix
+    return unmix.to(device)

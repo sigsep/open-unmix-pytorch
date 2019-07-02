@@ -12,10 +12,7 @@ import utils
 
 eps = np.finfo(np.float32).eps
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def load_models(directory, targets):
+def load_models(directory, targets, device='cpu'):
     models = {}
     for target_dir in Path(directory).iterdir():
         if target_dir.is_dir():
@@ -64,7 +61,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(audio, models, niter=0, softmask=False, alpha=1,
-             final_smoothing=0, residual_model=False):
+             final_smoothing=0, residual_model=False, device='cpu'):
     # for now only check the first model, as they are assumed to be the same
     st_model = models[list(models.keys())[0]]
 
@@ -202,11 +199,22 @@ if __name__ == '__main__':
         type=str,
         help='use pretrained model'
     )
+
+    parser.add_argument(
+        '--no-cuda', 
+        action='store_true', 
+        default=False,
+        help='disables CUDA inference'
+    )
+
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
 
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
     if args.modeldir:
-        models = load_models(args.modeldir, args.targets)
+        models = load_models(args.modeldir, args.targets, device=device)
         model_name = Path(args.modeldir).stem
     else:
         import hubconf
@@ -240,7 +248,8 @@ if __name__ == '__main__':
             alpha=args.alpha,
             softmask=args.softmask,
             final_smoothing=args.final_smoothing,
-            residual_model=args.residual_model
+            residual_model=args.residual_model,
+            device=device
         )
         outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:
