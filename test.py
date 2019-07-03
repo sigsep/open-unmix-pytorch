@@ -117,8 +117,8 @@ def inference_args(parser, remaining_args):
         '--softmask',
         dest='softmask',
         action='store_true',
-        help=('will use mixture phase with spectrogram'
-              'estimates, if enabled')
+        help=('if enabled, will initialize separation with softmask.'
+              'otherwise, will use mixture phase with spectrogram')
     )
 
     inf_parser.add_argument(
