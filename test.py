@@ -235,7 +235,12 @@ if __name__ == '__main__':
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
 
+        if audio.shape[1] > 2:
+            # we only support mono
+            audio = audio[:, :2]
+
         if rate != args.samplerate:
+            # resample to model samplerate if needed
             audio = resampy.resample(audio, rate, args.samplerate, axis=0)
 
         if audio.shape[1] == 1:
@@ -252,6 +257,7 @@ if __name__ == '__main__':
             residual_model=args.residual_model,
             device=device
         )
+        estimated_mix = 0
         outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:
             sf.write(
@@ -259,3 +265,8 @@ if __name__ == '__main__':
                 estimates[target],
                 args.samplerate
             )
+            estimated_mix += estimates[target]
+        nsamples = min(estimated_mix.shape[0], audio.shape[0])
+        print('%f mean squared error on %s on mix reconstruction'
+              % (np.mean(np.abs(estimated_mix[:nsamples]-audio[:nsamples])**2),
+                 input_file))
