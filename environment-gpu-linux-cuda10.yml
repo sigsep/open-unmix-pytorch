@@ -8,7 +8,7 @@ dependencies:
   - python==3.7.1
   - numpy==1.15.4
   - pytorch>=1.1.0
-  - cudatoolkit=10.0
+  - cudatoolkit==10.0
   - scikit-learn==0.21.2
   - tqdm==4.28.1
   - ffmpeg

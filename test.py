@@ -195,8 +195,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--modelname',
-        choices=['OpenUnmixBLSTMStereo'],
-        default='OpenUnmixBLSTMStereo',
+        choices=['OpenUnmixStereo'],
+        default='OpenUnmixStereo',
         type=str,
         help='use pretrained model'
     )

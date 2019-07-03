@@ -7,15 +7,18 @@ from model import OpenUnmix
 dependencies = ['torch', 'numpy']
 
 
-def OpenUnmixBLSTMStereo(
+def OpenUnmixStereo(
     target='vocals', device='cpu', pretrained=True, *args, **kwargs
 ):
+    """
+    Stereo BiLSTM Model trained on MUSDB18-WAV 
+    """
     # set urls for weights
     target_urls = {
-        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OSU_BLSTM_e382c88_a04641/bass/bass-4d0b0fa1.pth',
-        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OSU_BLSTM_e382c88_a04641/drums/drums-24f72c1e.pth',
-        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OSU_BLSTM_e382c88_a04641/other/other-7923e599.pth',
-        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OSU_BLSTM_e382c88_a04641/vocals/vocals-dabe7a3d.pth'
+        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OpenUnmix-1.0/bass-e3e1c4be.pth',
+        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OpenUnmix-1.0/drums-a849ec7d.pth',
+        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OpenUnmix-1.0/other-732546c5.pth',
+        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/OpenUnmix-1.0/vocals-f3d5fab0.pth'
     }
 
     # determine the maximum bin count for a 16khz bandwidth model
