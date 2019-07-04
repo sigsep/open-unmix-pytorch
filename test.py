@@ -60,7 +60,7 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(audio, models, niter=0, softmask=False, alpha=1,
-             final_smoothing=0, residual_model=False, device='cpu'):
+             residual_model=False, device='cpu'):
     # for now only check the first model, as they are assumed to be the same
     st_model = models[list(models.keys())[0]]
 
@@ -85,13 +85,12 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
     if residual_model or len(models) == 1:
-        V = norbert.residual(V, X, alpha if softmask else 1)
+        V = norbert.residual_model(V, X, alpha if softmask else 1)
         source_names += (['residual'] if len(models) > 1
                          else ['accompaniment'])
 
     Y = norbert.wiener(V, X.astype(np.complex128), niter,
-                       use_softmask=softmask,
-                       final_smoothing=final_smoothing)
+                       use_softmask=softmask)
 
     estimates = {}
     for j, name in enumerate(source_names):
@@ -140,14 +139,6 @@ def inference_args(parser, remaining_args):
         type=int,
         default=44100,
         help='model samplerate'
-    )
-
-    inf_parser.add_argument(
-        '--final-smoothing',
-        type=int,
-        default=0,
-        help=('final smoothing of estimates. Reduces distortion, adds '
-              'interference')
     )
 
     inf_parser.add_argument(
@@ -253,7 +244,6 @@ if __name__ == '__main__':
             niter=args.niter,
             alpha=args.alpha,
             softmask=args.softmask,
-            final_smoothing=args.final_smoothing,
             residual_model=args.residual_model,
             device=device
         )
