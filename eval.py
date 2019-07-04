@@ -5,6 +5,7 @@ import test
 import multiprocessing
 import functools
 from pathlib import Path
+import torch
 
 
 def separate_and_evaluate(
