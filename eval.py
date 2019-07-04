@@ -14,7 +14,8 @@ def separate_and_evaluate(
     alpha,
     softmask,
     final_smoothing,
-    output_dir
+    output_dir,
+    device='cpu'
 ):
     print(track.name, track.duration)
     estimates = test.separate(
@@ -23,7 +24,8 @@ def separate_and_evaluate(
         niter=niter,
         alpha=alpha,
         softmask=softmask,
-        final_smoothing=final_smoothing
+        final_smoothing=final_smoothing,
+        device=device
     )
     if args.outdir:
         mus.save_estimates(estimates, track, args.outdir)
@@ -100,14 +102,17 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args = test.inference_args(parser, args)
 
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
     if args.modeldir:
-        models = test.load_models(args.modeldir, args.targets)
+        models = load_models(args.modeldir, args.targets, device=device)
         model_name = Path(args.modeldir).stem
     else:
         import hubconf
         pretrained_model = getattr(hubconf, args.modelname)
         models = {
-            target: pretrained_model(target=target, device=test.device)
+            target: pretrained_model(target=target, device=device)
             for target in args.targets
         }
         model_name = args.modelname
@@ -124,7 +129,8 @@ if __name__ == '__main__':
                     alpha=args.alpha,
                     softmask=args.softmask,
                     final_smoothing=args.final_smoothing,
-                    output_dir=args.evaldir
+                    output_dir=args.evaldir,
+                    device=device
                 ),
                 iterable=mus.tracks,
                 chunksize=1
@@ -142,5 +148,6 @@ if __name__ == '__main__':
                 alpha=args.alpha,
                 softmask=args.softmask,
                 final_smoothing=args.final_smoothing,
-                output_dir=args.evaldir
+                output_dir=args.evaldir,
+                device=device
             )
