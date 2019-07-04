@@ -99,6 +99,13 @@ if __name__ == '__main__':
         default=1
     )
 
+    parser.add_argument(
+        '--no-cuda',
+        action='store_true',
+        default=False,
+        help='disables CUDA inference'
+    )
+
     args, _ = parser.parse_known_args()
     args = test.inference_args(parser, args)
 
