@@ -14,7 +14,6 @@ def separate_and_evaluate(
     niter,
     alpha,
     softmask,
-    final_smoothing,
     output_dir,
     device='cpu'
 ):
@@ -25,7 +24,6 @@ def separate_and_evaluate(
         niter=niter,
         alpha=alpha,
         softmask=softmask,
-        final_smoothing=final_smoothing,
         device=device
     )
     if args.outdir:
@@ -114,7 +112,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     if args.modeldir:
-        models = load_models(args.modeldir, args.targets, device=device)
+        models = test.load_models(args.modeldir, args.targets, device=device)
         model_name = Path(args.modeldir).stem
     else:
         import hubconf
@@ -136,7 +134,6 @@ if __name__ == '__main__':
                     niter=args.niter,
                     alpha=args.alpha,
                     softmask=args.softmask,
-                    final_smoothing=args.final_smoothing,
                     output_dir=args.evaldir,
                     device=device
                 ),
@@ -155,7 +152,6 @@ if __name__ == '__main__':
                 niter=args.niter,
                 alpha=args.alpha,
                 softmask=args.softmask,
-                final_smoothing=args.final_smoothing,
                 output_dir=args.evaldir,
                 device=device
             )
