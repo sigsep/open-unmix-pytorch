@@ -9,6 +9,7 @@ import scipy.signal
 import resampy
 import model
 import utils
+import warnings
 
 
 def load_models(directory, targets, device='cpu'):
@@ -227,7 +228,8 @@ if __name__ == '__main__':
         audio, rate = sf.read(input_file, always_2d=True)
 
         if audio.shape[1] > 2:
-            # we only support mono
+            warnings.warn('Channel count > 2! '
+            'Only the first two channels will be processed!')
             audio = audio[:, :2]
 
         if rate != args.samplerate:
@@ -247,7 +249,6 @@ if __name__ == '__main__':
             residual_model=args.residual_model,
             device=device
         )
-        estimated_mix = 0
         outdir.mkdir(exist_ok=True, parents=True)
         for target in estimates:
             sf.write(
@@ -256,7 +257,3 @@ if __name__ == '__main__':
                 args.samplerate
             )
             estimated_mix += estimates[target]
-        nsamples = min(estimated_mix.shape[0], audio.shape[0])
-        print('%f mean squared error on %s on mix reconstruction'
-              % (np.mean(np.abs(estimated_mix[:nsamples]-audio[:nsamples])**2),
-                 input_file))
