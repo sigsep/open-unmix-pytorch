@@ -34,8 +34,6 @@ parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
 
 # Trainig Parameters
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA training')
 parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                     help='number of epochs to train (default: 1000)')
 parser.add_argument('--patience', type=int, default=140,
@@ -69,13 +67,20 @@ parser.add_argument('--bandwidth', type=int, default=15000,
                     help='maximum model bandwidth in herz')
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
+parser.add_argument('--nb-workers', type=int, default=0,
+                    help='Number of workers for dataloader.'
+                    'Can be >0 e.g. when loading wav files')
+
+# Misc Parameters
 parser.add_argument('--quiet', action='store_true', default=False,
                     help='less verbose during training')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
 
 args, _ = parser.parse_known_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
-dataloader_kwargs = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
+dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
 
 
 # use jpg or npy
