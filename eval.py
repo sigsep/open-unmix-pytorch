@@ -29,12 +29,11 @@ def separate_and_evaluate(
     if args.outdir:
         mus.save_estimates(estimates, track, args.outdir)
 
-    if args.evaldir is not None:
-        scores = museval.eval_mus_track(
-            track, estimates, output_dir=args.evaldir
-        )
-        print(scores)
-        return scores
+    scores = museval.eval_mus_track(
+        track, estimates, output_dir=args.evaldir
+    )
+    print(scores)
+    return scores
 
 
 if __name__ == '__main__':
@@ -105,6 +104,12 @@ if __name__ == '__main__':
         help='disables CUDA inference'
     )
 
+    parser.add_argument(
+        '--is-wav', 
+        action='store_true', default=False,
+        help='flags wav version of the dataset'
+    )
+
     args, _ = parser.parse_known_args()
     args = test.inference_args(parser, args)
 
@@ -123,7 +128,12 @@ if __name__ == '__main__':
         }
         model_name = args.modelname
 
-    mus = musdb.DB(root=args.root, download=False, subsets=args.subset)
+    mus = musdb.DB(
+        root=args.root, 
+        download=args.root is None,
+        subsets=args.subset,
+        is_wav=args.is_wav
+    )
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = list(
