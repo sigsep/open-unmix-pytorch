@@ -15,4 +15,4 @@ dependencies:
   - resampy
   - pip:
     - musdb==0.3.0
-    - git+https://github.com/sigsep/norbert#egg=norbert
+    - norbert==0.2.0
