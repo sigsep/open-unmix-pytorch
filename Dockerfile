@@ -18,7 +18,7 @@ COPY eval.py /workspace
 COPY test.py /workspace
 COPY hubconf.py /workspace
 
-RUN conda install tqdm ffmpeg resampy -c conda-forge
+RUN conda install tqdm=4.28 ffmpeg resampy -c conda-forge
 
-RUN pip install musdb==0.3.0
-RUN pip install git+https://github.com/sigsep/norbert#egg=norbert
+RUN pip install musdb==0.3.0.post1
+RUN pip install norbert==0.2.0
