@@ -14,5 +14,5 @@ dependencies:
   - ffmpeg
   - resampy
   - pip:
-    - musdb==0.3.0
+    - musdb==0.3.0.post1
     - norbert==0.2.0
