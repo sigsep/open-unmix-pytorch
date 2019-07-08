@@ -15,5 +15,5 @@ dependencies:
   - resampy
   - pip
   - pip:
-    - musdb==0.3.0.post1
+    - musdb==0.3.1
     - norbert==0.2.0
