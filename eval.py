@@ -10,7 +10,8 @@ import torch
 
 def separate_and_evaluate(
     track,
-    models,
+    targets,
+    model_name,
     niter,
     alpha,
     softmask,
@@ -20,7 +21,8 @@ def separate_and_evaluate(
     print(track.name, track.duration)
     estimates = test.separate(
         audio=track.audio,
-        models=models,
+        targets=targets,
+        model_name=model_name,
         niter=niter,
         alpha=alpha,
         softmask=softmask,
@@ -53,17 +55,10 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--modeldir',
-        type=str,
-        help='path to mode base directory of pretrained models'
-    )
-
-    parser.add_argument(
-        '--modelname',
-        choices=['OpenUnmixStereo'],
+        '--model',
         default='OpenUnmixStereo',
         type=str,
-        help='use pretrained model'
+        help='path to mode base directory of pretrained models'
     )
 
     parser.add_argument(
@@ -116,18 +111,6 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    if args.modeldir:
-        models = test.load_models(args.modeldir, args.targets, device=device)
-        model_name = Path(args.modeldir).stem
-    else:
-        import hubconf
-        pretrained_model = getattr(hubconf, args.modelname)
-        models = {
-            target: pretrained_model(target=target, device=device)
-            for target in args.targets
-        }
-        model_name = args.modelname
-
     mus = musdb.DB(
         root=args.root, 
         download=args.root is None,
@@ -140,7 +123,7 @@ if __name__ == '__main__':
             pool.imap_unordered(
                 func=functools.partial(
                     separate_and_evaluate,
-                    models=models,
+                    model_name=args.model,
                     niter=args.niter,
                     alpha=args.alpha,
                     softmask=args.softmask,
@@ -158,7 +141,8 @@ if __name__ == '__main__':
         for track in mus.tracks:
             separate_and_evaluate(
                 track,
-                models=models,
+                targets=args.targets,
+                model_name=args.model,
                 niter=args.niter,
                 alpha=args.alpha,
                 softmask=args.softmask,

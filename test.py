@@ -10,43 +10,49 @@ import resampy
 import model
 import utils
 import warnings
+import hubconf
+import tqdm
 
 
-def load_models(directory, targets, device='cpu'):
-    models = {}
-    for target_dir in Path(directory).iterdir():
-        if target_dir.is_dir():
-            if targets is None or target_dir.stem in targets:
-                with open(Path(target_dir, 'output.json'), 'r') as stream:
-                    results = json.load(stream)
+def load_model(target, model_name='OpenUnmixStereo', device='cpu'):
+    model_path = Path(model_name, target)
+    if not model_path.exists():
+        # model path does not exist, use hubconf model
+        try:
+            pretrained_model = getattr(hubconf, model_name)
+            return pretrained_model(target=target, device=device)
+        except AttributeError:
+            raise NameError('Model does not exist on hubconf')
+            # assume model is a path to a local model_name direcotry
+    else:
+        # load model from disk
+        with open(Path(model_path, 'output.json'), 'r') as stream:
+            results = json.load(stream)
 
-                state = torch.load(
-                    Path(target_dir, target_dir.stem + '.pth.tar'),
-                    map_location=device
-                )['state_dict']
+        state = torch.load(
+            Path(model_path, model_path.stem + '.pth.tar'),
+            map_location=device
+        )['state_dict']
 
-                max_bin = utils.bandwidth_to_max_bin(
-                    state['sample_rate'],
-                    results['args']['nfft'],
-                    results['args']['bandwidth']
-                )
+        max_bin = utils.bandwidth_to_max_bin(
+            state['sample_rate'],
+            results['args']['nfft'],
+            results['args']['bandwidth']
+        )
 
-                unmix = model.OpenUnmix(
-                    n_fft=results['args']['nfft'],
-                    n_hop=results['args']['nhop'],
-                    nb_channels=results['args']['nb_channels'],
-                    hidden_size=results['args']['hidden_size'],
-                    max_bin=max_bin
-                )
+        unmix = model.OpenUnmix(
+            n_fft=results['args']['nfft'],
+            n_hop=results['args']['nhop'],
+            nb_channels=results['args']['nb_channels'],
+            hidden_size=results['args']['hidden_size'],
+            max_bin=max_bin
+        )
 
-                unmix.load_state_dict(state)
-                unmix.stft.center = True
-                # set model into evaluation mode
-                unmix.eval()
-                unmix.to(device)
-                models[target_dir.stem] = unmix
-                print("%s model loaded." % target_dir.stem)
-    return models
+        unmix.load_state_dict(state)
+        unmix.stft.center = True
+        unmix.eval()
+        unmix.to(device)
+        return unmix
 
 
 def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
@@ -60,22 +66,23 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     return audio
 
 
-def separate(audio, models, niter=0, softmask=False, alpha=1,
-             residual_model=False, device='cpu'):
-    # for now only check the first model, as they are assumed to be the same
-    st_model = models[list(models.keys())[0]]
+def separate(
+    audio, 
+    targets, 
+    model_name='OpenUnmixStereo', 
+    niter=0, softmask=False, alpha=1,
+    residual_model=False, device='cpu'
+):
 
+    # convert numpy audio to torch
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
-    # get complex STFT from torch
-    X = st_model.stft(audio_torch).detach().cpu().numpy()
-    # convert to complex numpy type
-    X = X[..., 0] + X[..., 1]*1j
-    X = X[0].transpose(2, 1, 0)
-    nb_frames_X, nb_bins_X, nb_channels_X = X.shape
+
     source_names = []
     V = []
-    for j, (target, unmix) in enumerate(models.items()):
-        Vj = unmix(audio_torch).cpu().detach().numpy()
+
+    for j, target in enumerate(tqdm.tqdm(targets)):
+        unmix_target = load_model(target=target, model_name=model_name)
+        Vj = unmix_target(audio_torch).cpu().detach().numpy()
         if softmask:
             # only exponentiate the model if we use softmask
             Vj = Vj**alpha
@@ -85,7 +92,12 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if residual_model or len(models) == 1:
+    X = unmix_target.stft(audio_torch).detach().cpu().numpy()
+    # convert to complex numpy type
+    X = X[..., 0] + X[..., 1]*1j
+    X = X[0].transpose(2, 1, 0)
+
+    if residual_model or len(targets) == 1:
         V = norbert.residual_model(V, X, alpha if softmask else 1)
         source_names += (['residual'] if len(models) > 1
                          else ['accompaniment'])
@@ -97,8 +109,8 @@ def separate(audio, models, niter=0, softmask=False, alpha=1,
     for j, name in enumerate(source_names):
         audio_hat = istft(
             Y[..., j].T,
-            n_fft=st_model.stft.n_fft,
-            n_hopsize=st_model.stft.n_hop
+            n_fft=unmix_target.stft.n_fft,
+            n_hopsize=unmix_target.stft.n_hop
         )
         estimates[name] = audio_hat.T
 
@@ -180,17 +192,10 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--modeldir',
-        type=str,
-        help='path to mode base directory of pretrained models'
-    )
-
-    parser.add_argument(
-        '--modelname',
-        choices=['OpenUnmixStereo'],
+        '--model',
         default='OpenUnmixStereo',
         type=str,
-        help='use pretrained model'
+        help='path to mode base directory of pretrained models'
     )
 
     parser.add_argument(
@@ -205,18 +210,6 @@ if __name__ == '__main__':
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
-    if args.modeldir:
-        models = load_models(args.modeldir, args.targets, device=device)
-        model_name = Path(args.modeldir).stem
-    else:
-        import hubconf
-        pretrained_model = getattr(hubconf, args.modelname)
-        models = {
-            target: pretrained_model(target=target, device=device)
-            for target in args.targets
-        }
-        model_name = args.modelname
 
     for input_file in args.input:
         if not args.outdir:
@@ -242,7 +235,8 @@ if __name__ == '__main__':
 
         estimates = separate(
             audio,
-            models,
+            targets=args.targets,
+            model_name=args.model,
             niter=args.niter,
             alpha=args.alpha,
             softmask=args.softmask,
