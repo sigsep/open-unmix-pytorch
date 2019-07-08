@@ -15,15 +15,17 @@ import tqdm
 
 
 def load_model(target, model_name='OpenUnmixStereo', device='cpu'):
-    try:
-        pretrained_model = getattr(hubconf, model_name)
-        return pretrained_model(target=target, device=device)
-    except AttributeError:
-        # assume model is a path to a local model_name direcotry
-        model_path = Path(model_name, target)
-        if not model_path.exists():
-            raise NameError('Model path does not exist')
-
+    model_path = Path(model_name, target)
+    if not model_path.exists():
+        # model path does not exist, use hubconf model
+        try:
+            pretrained_model = getattr(hubconf, model_name)
+            return pretrained_model(target=target, device=device)
+        except AttributeError:
+            raise NameError('Model does not exist on hubconf')
+            # assume model is a path to a local model_name direcotry
+    else:
+        # load model from disk
         with open(Path(model_path, 'output.json'), 'r') as stream:
             results = json.load(stream)
 
