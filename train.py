@@ -92,7 +92,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 train_dataset, valid_dataset, args = data.load_datasets(parser, args)
 
 # create output dir if not exist
-target_path = Path(args.output, args.target)
+target_path = Path(args.output)
 target_path.mkdir(parents=True, exist_ok=True)
 
 train_sampler = torch.utils.data.DataLoader(
@@ -232,7 +232,7 @@ for epoch in t:
         'train_time_history': train_times,
     }
 
-    with open(Path(target_path,  "output.json"), 'w') as outfile:
+    with open(Path(target_path,  args.target + '.json"), 'w') as outfile:
         outfile.write(json.dumps(params, indent=4, sort_keys=True))
 
     train_times.append(time.time() - end)

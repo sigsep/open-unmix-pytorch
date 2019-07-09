@@ -19,12 +19,12 @@ def save_checkpoint(
 
     torch.save(
         state,
-        os.path.join(path, target + '_chkpnt.pth.tar')
+        os.path.join(path, target + '_chkpnt.pth')
     )
     if is_best:
         shutil.copyfile(
-            os.path.join(path, target + '_chkpnt.pth.tar'),
-            os.path.join(path, target + '.pth.tar')
+            os.path.join(path, target + '_chkpnt.pth'),
+            os.path.join(path, target + '.pth')
         )
 
 
