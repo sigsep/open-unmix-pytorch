@@ -232,7 +232,7 @@ for epoch in t:
         'train_time_history': train_times,
     }
 
-    with open(Path(target_path,  args.target + '.json"), 'w') as outfile:
+    with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
         outfile.write(json.dumps(params, indent=4, sort_keys=True))
 
     train_times.append(time.time() - end)
