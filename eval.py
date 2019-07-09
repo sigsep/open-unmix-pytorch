@@ -6,6 +6,7 @@ import multiprocessing
 import functools
 from pathlib import Path
 import torch
+import tqdm
 
 
 def separate_and_evaluate(
@@ -18,7 +19,6 @@ def separate_and_evaluate(
     output_dir,
     device='cpu'
 ):
-    print(track.name, track.duration)
     estimates = test.separate(
         audio=track.audio,
         targets=targets,
@@ -34,7 +34,6 @@ def separate_and_evaluate(
     scores = museval.eval_mus_track(
         track, estimates, output_dir=args.evaldir
     )
-    print(scores)
     return scores
 
 
@@ -83,6 +82,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--subset',
         type=str,
+        default='test',
         help='MUSDB subset (`train`/`test`)'
     )
 
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         pool.close()
         pool.join()
     else:
-        for track in mus.tracks:
+        for track in tqdm.tqdm(mus.tracks):
             separate_and_evaluate(
                 track,
                 targets=args.targets,
