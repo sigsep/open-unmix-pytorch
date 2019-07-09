@@ -23,28 +23,28 @@ class Compose(object):
         return audio
 
 
-def augment_source_gain(audio):
-    g = random.uniform(0.25, 1.25)
+def augment_source_gain(audio, low=0.25, high=1.25):
+    g = low + torch.rand(1) * (high - low)
     return audio * g
 
 
 def augment_source_channelswap(audio):
     if audio.shape[0] == 2 and random.random() < 0.5:
-        return np.flip(audio, 0)
+        return torch.flip(audio, [0])
     else:
         return audio
 
 
 def load_datasets(parser, args):
     if args.dataset == 'unaligned':
-        parser.add_argument('--interferences', type=str, nargs="+")
+        parser.add_argument('--interfer_files', type=str, nargs="+")
         args = parser.parse_args()
 
         dataset_kwargs = {
             'root': Path(args.root),
             'seq_duration': args.seq_dur,
             'target': args.target,
-            'interferences': args.interferences
+            'interfer_files': args.interfer_files
         }
 
         train_dataset = UnalignedSources(split='train', **dataset_kwargs)
@@ -65,24 +65,38 @@ def load_datasets(parser, args):
             'output_file': args.output_file
         }
 
-        train_dataset = AlignedSources(split='train', **dataset_kwargs)
-        valid_dataset = AlignedSources(split='valid', **dataset_kwargs)
+        train_dataset = AlignedDataset(split='train', **dataset_kwargs)
+        valid_dataset = AlignedDataset(split='valid', **dataset_kwargs)
 
-    elif args.dataset == 'mixedsources':
-        parser.add_argument('--interferers', type=str, nargs='+')
+    elif args.dataset == 'sources':
+        parser.add_argument('--interfer-files', type=str, nargs='+')
         parser.add_argument('--target-file', type=str)
 
         args = parser.parse_args()
 
         dataset_kwargs = {
             'root': Path(args.root),
-            'seq_duration': args.seq_dur,
-            'interferers': args.interferers,
+            'interfer_files': args.interfer_files,
             'target_file': args.target_file
         }
 
-        train_dataset = MixedSources(split='train', **dataset_kwargs)
-        valid_dataset = MixedSources(split='valid', **dataset_kwargs)
+        source_augmentations = Compose(
+            [augment_source_channelswap, augment_source_gain]
+        )
+
+        train_dataset = SourcesDataset(
+            split='train',
+            source_augmentations=source_augmentations,
+            random_track_mix=True,
+            random_chunk=True,
+            seq_duration=args.seq_dur,
+            **dataset_kwargs
+        )
+        valid_dataset = SourcesDataset(
+            split='valid', 
+            seq_duration=-1,
+            **dataset_kwargs
+        )
 
     elif args.dataset == 'musdb':
         parser.add_argument('--is-wav', action='store_true', default=False,
@@ -125,14 +139,14 @@ def random_product(*args, repeat=1):
     return tuple(random.choice(pool) for pool in pools)
 
 
-class UnalignedSources(torch.utils.data.Dataset):
+class UnalignedDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
         split='train',
         seq_duration=None,
-        target='drums',
-        interferences=['noise'],
+        target_dir='drums',
+        interferences_dirs=['noise'],
         glob="*.wav",
         sample_rate=44100,
         nb_samples=1000,
@@ -183,7 +197,7 @@ class UnalignedSources(torch.utils.data.Dataset):
         return sources_paths
 
 
-class AlignedSources(torch.utils.data.Dataset):
+class AlignedDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
@@ -191,6 +205,7 @@ class AlignedSources(torch.utils.data.Dataset):
         input_file='mixture.wav',
         output_file='vocals.wav',
         seq_duration=None,
+        random_chunk=False,
         sample_rate=44100,
     ):
         """A dataset of that assumes folders with sources
@@ -213,7 +228,7 @@ class AlignedSources(torch.utils.data.Dataset):
             self.seq_duration = None
         else:
             self.seq_duration = seq_duration
-        self.random_excerpt = (split == 'train')
+        self.random_chunk = random_chunk
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
@@ -223,7 +238,7 @@ class AlignedSources(torch.utils.data.Dataset):
         input_path, output_path = self.tuple_paths[index]
         input_info = load_info(input_path)
         output_info = load_info(output_path)
-        if self.random_excerpt:
+        if self.random_chunk:
             # use the minimum of x and y in case they differ
             duration = min(input_info['duration'], output_info['duration'])
             if duration < self.seq_duration:
@@ -265,16 +280,18 @@ class AlignedSources(torch.utils.data.Dataset):
                     yield input_path[0], output_path[0]
 
 
-class MixedSources(torch.utils.data.Dataset):
+class SourcesDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
         split='train',
         target_file='vocals.wav',
-        interferers=['bass.wav', 'drums.wav'],
+        interfer_files=['bass.wav', 'drums.wav'],
         seq_duration=None,
+        random_chunk=False,
+        random_track_mix=False,
         sample_rate=44100,
-        augmentations=None,
+        source_augmentations=lambda audio: audio,
     ):
         """A dataset of that assumes folders with sources
 
@@ -300,19 +317,20 @@ class MixedSources(torch.utils.data.Dataset):
             self.seq_duration = None
         else:
             self.seq_duration = seq_duration
-        self.random_excerpt = (split == 'train')
-        self.augmentations = (split == 'train')
+        self.random_track_mix = random_track_mix
+        self.random_chunk = random_chunk
+        self.source_augmentations = source_augmentations
         # set the input and output files (accept glob)
         self.target_file = target_file
-        self.interferers = interferers
-        self.tracks = list(self._get_paths())
+        self.interfer_files = interfer_files
+        self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
-
         audio_sources = []
-        sources = self.interferers + [self.target_file]
+        sources = self.interfer_files + [self.target_file]
         for source in sources:
-            if self.augmentations:
+            # select a random track for each source
+            if self.random_track_mix:
                 track_dir = random.choice(self.tracks)
             else:
                 track_dir = self.tracks[index]
@@ -320,33 +338,29 @@ class MixedSources(torch.utils.data.Dataset):
             if source_path.exists():
                 input_info = load_info(source_path)
                 duration = input_info['duration']
-                if duration < self.seq_duration:
-                    index = index - 1 if index > 0 else index + 1
-                    return self.__getitem__(index)
+
+            if self.random_chunk:
+                start = random.uniform(0, duration - self.seq_duration)
             else:
-                return self.__getitem__(index)
-            # random start in seconds
-            start = random.uniform(0, duration - self.seq_duration)
-            try:
-                X_audio = audioloader(
-                    source_path, start=start, dur=self.seq_duration
-                )
-                audio_sources.append(X_audio)
-            except RuntimeError:
-                print("error in ", source_path)
-                index = index - 1 if index > 0 else index + 1
-                return self.__getitem__(index)
+                start = 0
+
+            audio = load_audio(
+                source_path, start=start, dur=self.seq_duration
+            )
+            audio = self.source_augmentations(audio)
+            audio_sources.append(audio)
 
         stems = torch.stack(audio_sources)
         # # apply linear mix over source index=0
-        x_audio = stems.sum(0)
-        y_audio = stems[-1]
-        return x_audio, y_audio
+        x = stems.sum(0)
+        # target is always the last element in the list
+        y = stems[-1]
+        return x, y
 
     def __len__(self):
         return len(self.tracks)
 
-    def _get_paths(self):
+    def get_tracks(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
         for track_folder in p.iterdir():
@@ -457,9 +471,10 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 )
                 # load source audio and apply time domain source_augmentations
                 audio = torch.tensor(
-                    self.source_augmentations(track.sources[source].audio.T),
+                    track.sources[source].audio.T,
                     dtype=self.dtype
                 )
+                audio = self.source_augmentations(audio)
                 audio_sources.append(audio)
 
             # create stem tensor of shape (source, channel, samples)
@@ -498,7 +513,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Open Unmix Trainer')
     parser.add_argument(
         '--dataset', type=str, default="musdb",
-        choices=['musdb', 'aligned', 'unaligned', 'mixedsources'],
+        choices=['musdb', 'aligned', 'unaligned', 'sources'],
         help='Name of the dataset.'
     )
 
