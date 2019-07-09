@@ -14,7 +14,7 @@ import hubconf
 import tqdm
 
 
-def load_model(target, model_name='OpenUnmixStereo', device='cpu'):
+def load_model(target, model_name='umxhq', device='cpu'):
     model_path = Path(model_name, target)
     if not model_path.exists():
         # model path does not exist, use hubconf model
@@ -69,8 +69,8 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 def separate(
     audio, 
     targets, 
-    model_name='OpenUnmixStereo', 
-    niter=0, softmask=False, alpha=1,
+    model_name='umxhq', 
+    niter=1, softmask=False, alpha=1,
     residual_model=False, device='cpu'
 ):
 
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--model',
-        default='OpenUnmixStereo',
+        default='umxhq',
         type=str,
         help='path to mode base directory of pretrained models'
     )
@@ -212,11 +212,6 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     for input_file in args.input:
-        if not args.outdir:
-            outdir = Path(Path(input_file).stem + '_' + model_name)
-        else:
-            outdir = Path(args.outdir)
-
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
 
@@ -243,10 +238,20 @@ if __name__ == '__main__':
             residual_model=args.residual_model,
             device=device
         )
+        if not args.outdir:
+            model_path = Path(args.model)
+            if not model_path.exists():
+                outdir = Path(Path(input_file).stem + '_' + args.model)
+            else:
+                outdir = Path(Path(input_file).stem + '_' + model_path.stem)
+        else:
+            outdir = Path(args.outdir)
         outdir.mkdir(exist_ok=True, parents=True)
-        for target in estimates:
+
+        # write out estimates
+        for target, estimate in estimates.items():
             sf.write(
                 outdir / Path(target).with_suffix('.wav'),
-                estimates[target],
+                estimate,
                 args.samplerate
             )
