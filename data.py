@@ -174,9 +174,6 @@ def load_datasets(parser, args):
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='flags wav version of the dataset')
         parser.add_argument('--samples-per-track', type=int, default=64)
-        parser.add_argument(
-            '--augments', nargs="+", type=str, default=["gain"]
-        )
 
         args = parser.parse_args()
         dataset_kwargs = {

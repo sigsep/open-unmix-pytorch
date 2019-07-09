@@ -15,7 +15,10 @@ import tqdm
 
 
 def load_model(target, model_name='umxhq', device='cpu'):
-    model_path = Path(model_name, target)
+    """
+    target model path can be either <target>.pth, or <target>-sha256.pth (as used on torchub)
+    """
+    model_path = Path(model_name)
     if not model_path.exists():
         # model path does not exist, use hubconf model
         try:
@@ -26,11 +29,12 @@ def load_model(target, model_name='umxhq', device='cpu'):
             # assume model is a path to a local model_name direcotry
     else:
         # load model from disk
-        with open(Path(model_path, 'output.json'), 'r') as stream:
+        with open(Path(model_path, target + '.json'), 'r') as stream:
             results = json.load(stream)
-
+    
+        target_model_path = next(Path(model_path).glob("%s*.pth" % target))
         state = torch.load(
-            Path(model_path, model_path.stem + '.pth.tar'),
+            target_model_path,
             map_location=device
         )['state_dict']
 
@@ -226,6 +230,7 @@ if __name__ == '__main__':
 
         if audio.shape[1] == 1:
             # if we have mono, let's duplicate it
+            # as the input of OpenUnmix is always stereo
             audio = np.repeat(audio, 2, axis=1)
 
         estimates = separate(
