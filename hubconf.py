@@ -52,7 +52,6 @@ def umxhq(
         unmix.load_state_dict(state_dict)
         unmix.stft.center = True
         unmix.eval()
-        unmix.model_name = 'UMX-HQ'
 
     return unmix.to(device)
 
@@ -102,6 +101,5 @@ def umx(
         unmix.load_state_dict(state_dict)
         unmix.stft.center = True
         unmix.eval()
-        unmix.model_name = 'UMX'
 
     return unmix.to(device)
