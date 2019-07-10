@@ -145,13 +145,14 @@ class UnalignedDataset(torch.utils.data.Dataset):
         root,
         split='train',
         seq_duration=None,
-        target_dir='drums',
+        target_dir='vocals',
         interferences_dirs=['noise'],
+        source_augmentations=lambda audio: audio,
         glob="*.wav",
         sample_rate=44100,
         nb_samples=1000,
     ):
-        """A dataset of that assumes sources to be unaligned,
+        """A dataset that assumes sources to be unaligned,
         organized in subfolders with the name of sources
 
         Example:
@@ -162,8 +163,6 @@ class UnalignedDataset(torch.utils.data.Dataset):
             train/vocals/1.wav -----+
             train/vocals/1.wav --------> output target
 
-        Scales to a large amount of audio data.
-        Uses pytorch' index based sample access
         """
         self.root = Path(root).expanduser()
         self.sample_rate = sample_rate
@@ -174,17 +173,21 @@ class UnalignedDataset(torch.utils.data.Dataset):
         self.nb_samples = nb_samples
         self.glob = glob
         self.source_folders = interferences + [target]
+        self.source_augmentations = source_augmentations
         self.sources = self._get_paths()
 
     def __getitem__(self, index):
-        input_tuple = random_product(*self.sources)
-        sample_sources = list(map(load_audio, input_tuple))
+        sources_tuples = random_product(*self.sources)
+        sample_sources = list(map(load_and_apply_augmentations, sources_tuples))
         mix = torch.stack(sample_sources, dim=0).sum(dim=0)
-        target = load_audio(input_tuple[-1], start=0, dur=self.seq_duration)
+        target = load_audio(sources_tuples[-1], start=0, dur=self.seq_duration)
         return mix, target
 
     def __len__(self):
         return self.nb_samples
+
+    def load_and_apply_augmentations(self, path):
+        return self.source_augmentations(load_audio(path))
 
     def _get_paths(self):
         """Loads input and output tracks"""
