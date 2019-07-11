@@ -29,7 +29,7 @@ def augment_source_gain(audio, low=0.25, high=1.25):
 
 
 def augment_source_channelswap(audio):
-    if audio.shape[0] == 2 and random.random() < 0.5:
+    if audio.shape[0] == 2 and torch.FloatTensor(1).uniform_() < 0.5:
         return torch.flip(audio, [0])
     else:
         return audio
@@ -65,8 +65,15 @@ def load_datasets(parser, args):
             'output_file': args.output_file
         }
 
-        train_dataset = AlignedDataset(split='train', **dataset_kwargs)
-        valid_dataset = AlignedDataset(split='valid', **dataset_kwargs)
+        train_dataset = AlignedDataset(
+            split='train',
+            random_chunks=True,
+            **dataset_kwargs
+        )
+        valid_dataset = AlignedDataset(
+            split='valid', 
+            **dataset_kwargs
+        )
 
     elif args.dataset == 'sources':
         parser.add_argument('--interfer-files', type=str, nargs='+')
@@ -88,7 +95,7 @@ def load_datasets(parser, args):
             split='train',
             source_augmentations=source_augmentations,
             random_track_mix=True,
-            random_chunk=True,
+            random_chunks=True,
             seq_duration=args.seq_dur,
             **dataset_kwargs
         )
@@ -208,21 +215,27 @@ class AlignedDataset(torch.utils.data.Dataset):
         input_file='mixture.wav',
         output_file='vocals.wav',
         seq_duration=None,
-        random_chunk=False,
+        random_chunks=False,
         sample_rate=44100,
     ):
-        """A dataset of that assumes folders with sources
+        """A dataset of that assumes multiple track folders 
+        where each track includes and input and an output file
+        which directly corresponds to the the input and the
+        output of the model. This dataset is the most basic of
+        all datasets provided here, due to the least amount of 
+        preprocessing, it is also the fastest option, however, 
+        it lacks any kind of source augmentations or custum mixing.
 
         Example:
-            -- Sample 1 ----------------------
-            train/01/mixture.wav --> input target
-            train/01/vocals.wav ---> output target
-            -- Sample 2 -----------------------
-            train/02/mixture.wav --> input target
-            train/02/vocals.wav ---> output target
 
-        Scales to a large amount of audio data.
-        Uses pytorch' index based sample access
+            -- Sample 1 ----------------------
+            data/train/01/mixture.wav --> input_file
+            data/train/01/vocals.wav ---> output_file
+
+            -- Generic Example ----------------
+            <root>/<split>/<index>/<input_file>
+            <root>/<split>/<index>/<output_file>
+
         """
         self.root = Path(root).expanduser()
         self.split = split
@@ -231,41 +244,28 @@ class AlignedDataset(torch.utils.data.Dataset):
             self.seq_duration = None
         else:
             self.seq_duration = seq_duration
-        self.random_chunk = random_chunk
+        self.random_chunks = random_chunks
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
         self.tuple_paths = list(self._get_paths())
+        if not self.tuple_paths:
+            raise RuntimeError("Dataset is empty, please check your parameters")
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
-        input_info = load_info(input_path)
-        output_info = load_info(output_path)
-        if self.random_chunk:
-            # use the minimum of x and y in case they differ
+
+        if self.random_chunks:
+            input_info = load_info(input_path)
+            output_info = load_info(output_path)
             duration = min(input_info['duration'], output_info['duration'])
-            if duration < self.seq_duration:
-                index = index - 1 if index > 0 else index + 1
-                return self.__getitem__(index)
-            # random start in seconds
             start = random.uniform(0, duration - self.seq_duration)
         else:
             start = 0
-        try:
-            X_audio = load_audio(
-                input_path, start=start, dur=self.seq_duration
-            )
-            Y_audio = load_audio(
-                output_path, start=start, dur=self.seq_duration
-            )
-        except RuntimeError:
-            print("error in ", input_path, output_path)
-            index = index - 1 if index > 0 else index + 1
-            return self.__getitem__(index)
-
-        if X_audio.shape[1] < int(self.seq_duration * input_info['samplerate']) or Y_audio.shape[1] < int(self.seq_duration * output_info['samplerate']):
-            index = index - 1 if index > 0 else index + 1
-            return self.__getitem__(index)
+        
+        X_audio = load_audio(input_path, start=start, dur=self.seq_duration)
+        Y_audio = load_audio(output_path, start=start, dur=self.seq_duration)
+        # return torch tensors
         return X_audio, Y_audio
 
     def __len__(self):
@@ -278,9 +278,13 @@ class AlignedDataset(torch.utils.data.Dataset):
             if track_folder.is_dir():
                 input_path = list(track_folder.glob(self.input_file))
                 output_path = list(track_folder.glob(self.output_file))
-                # if both targets are available in the subfolder add them
                 if input_path and output_path:
-                    yield input_path[0], output_path[0]
+                    input_info = load_info(input_path[0])
+                    output_info = load_info(output_path[0])
+                    duration = min(input_info['duration'], output_info['duration'])
+                    # if both targets are available in the subfolder add them
+                    if duration > self.seq_duration:
+                        yield input_path[0], output_path[0]
 
 
 class SourcesDataset(torch.utils.data.Dataset):
@@ -291,7 +295,7 @@ class SourcesDataset(torch.utils.data.Dataset):
         target_file='vocals.wav',
         interfer_files=['bass.wav', 'drums.wav'],
         seq_duration=None,
-        random_chunk=False,
+        random_chunks=False,
         random_track_mix=False,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
@@ -321,7 +325,7 @@ class SourcesDataset(torch.utils.data.Dataset):
         else:
             self.seq_duration = seq_duration
         self.random_track_mix = random_track_mix
-        self.random_chunk = random_chunk
+        self.random_chunks = random_chunks
         self.source_augmentations = source_augmentations
         # set the input and output files (accept glob)
         self.target_file = target_file
@@ -342,7 +346,7 @@ class SourcesDataset(torch.utils.data.Dataset):
                 input_info = load_info(source_path)
                 duration = input_info['duration']
 
-            if self.random_chunk:
+            if self.random_chunks:
                 start = random.uniform(0, duration - self.seq_duration)
             else:
                 start = 0
@@ -549,6 +553,7 @@ if __name__ == "__main__":
 
     if args.save:
         for k, (x, y) in enumerate(train_dataset):
+            import torchaudio
             torchaudio.save(
                 "test/" + str(k) + 'x.wav',
                 x,
