@@ -16,9 +16,10 @@ import tqdm
 
 def load_model(target, model_name='umxhq', device='cpu'):
     """
-    target model path can be either <target>.pth, or <target>-sha256.pth (as used on torchub)
+    target model path can be either <target>.pth, or <target>-sha256.pth
+    (as used on torchub)
     """
-    model_path = Path(model_name)
+    model_path = Path(model_name).expanduser()
     if not model_path.exists():
         # model path does not exist, use hubconf model
         try:
@@ -31,7 +32,7 @@ def load_model(target, model_name='umxhq', device='cpu'):
         # load model from disk
         with open(Path(model_path, target + '.json'), 'r') as stream:
             results = json.load(stream)
-    
+
         target_model_path = next(Path(model_path).glob("%s*.pth" % target))
         state = torch.load(
             target_model_path,
@@ -71,9 +72,9 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(
-    audio, 
-    targets, 
-    model_name='umxhq', 
+    audio,
+    targets,
+    model_name='umxhq',
     niter=1, softmask=False, alpha=1,
     residual_model=False, device='cpu'
 ):
@@ -85,7 +86,8 @@ def separate(
     V = []
 
     for j, target in enumerate(tqdm.tqdm(targets)):
-        unmix_target = load_model(target=target, model_name=model_name)
+        unmix_target = (load_model(target=target, model_name=model_name)
+                        ).to(device)
         Vj = unmix_target(audio_torch).cpu().detach().numpy()
         if softmask:
             # only exponentiate the model if we use softmask
@@ -103,7 +105,7 @@ def separate(
 
     if residual_model or len(targets) == 1:
         V = norbert.residual_model(V, X, alpha if softmask else 1)
-        source_names += (['residual'] if len(models) > 1
+        source_names += (['residual'] if len(targets) > 1
                          else ['accompaniment'])
 
     Y = norbert.wiener(V, X.astype(np.complex128), niter,
@@ -220,8 +222,9 @@ if __name__ == '__main__':
         audio, rate = sf.read(input_file, always_2d=True)
 
         if audio.shape[1] > 2:
-            warnings.warn('Channel count > 2! '
-            'Only the first two channels will be processed!')
+            warnings.warn(
+                'Channel count > 2! '
+                'Only the first two channels will be processed!')
             audio = audio[:, :2]
 
         if rate != args.samplerate:
