@@ -86,8 +86,11 @@ def separate(
     V = []
 
     for j, target in enumerate(tqdm.tqdm(targets)):
-        unmix_target = (load_model(target=target, model_name=model_name)
-                        ).to(device)
+        unmix_target = load_model(
+            target=target,
+            model_name=model_name,
+            device=device
+        )
         Vj = unmix_target(audio_torch).cpu().detach().numpy()
         if softmask:
             # only exponentiate the model if we use softmask
