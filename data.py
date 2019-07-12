@@ -99,8 +99,8 @@ def load_datasets(parser, args):
         )
 
     elif args.dataset == 'trackfolder_fix':
-        parser.add_argument('--interfer-files', type=str, nargs="+")
         parser.add_argument('--target-file', type=str)
+        parser.add_argument('--interfer-files', type=str, nargs="+")
         parser.add_argument(
             '--random-track-mix',
             action='store_true', default=False,
@@ -222,15 +222,10 @@ class AlignedDataset(torch.utils.data.Dataset):
         * Denoising (Noisy -> Clean)
         * Bandwidth Extension (Low Bandwidth -> High Bandwidth)
 
-        Example:
-
-            -- Sample 1 ----------------------
-            data/train/01/mixture.wav --> input
-            data/train/01/vocals.wav ---> output
-
-            -- Generic Example ----------------
-            <root>/<split>/<index>/<input_file>
-            <root>/<split>/<index>/<output_file>
+        Example
+        =======
+        data/train/01/mixture.wav --> input
+        data/train/01/vocals.wav ---> output
 
         """
         self.root = Path(root).expanduser()
@@ -306,8 +301,8 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         tracks/sounds is available, therefore the dataset
         is unaligned by design.
 
-        Example:
-        -- Sample 1 ----------------------------
+        Example
+        =======
         train/vocals/track11.wav -----------------\
         train/drums/track202.wav  (interferer1) ---+--> input
         train/bass/track007a.wav  (interferer2) --/
@@ -402,15 +397,15 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         the inferers up.
 
         Due to the fixed permutation, it allows to perform
-        augmentation techniques like random track mixing.
+        augmentation techniques like random track mixing. Setting this
+        `random_track_mix=True` then results in an unaligned dataset.
 
         This dataset is recommended to be used for small/medium size
         for example like the MUSDB18 or other custom source separation
         datasets.
 
-        Example:
-
-        -- Sample 1 ----------------------
+        Example
+        =======
         train/1/vocals.wav ---------------\
         train/1/drums.wav (interferer1) ---+--> input
         train/1/bass.wav -(interferer2) --/
@@ -432,22 +427,26 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
-        audio_sources = []
-        for source in self.source_files:
-            # select a random track for each source
-            if self.random_track_mix:
-                track_dir = random.choice(self.tracks)
-            else:
-                track_dir = self.tracks[index]
-
-            source_path = track_dir / source
-
+        if not self.random_track_mix:
+            track_dir = self.tracks[index]
             if self.random_chunks:
-                duration = load_info(source_path)['duration']
+                # determine start by target
+                duration = load_info(track_dir / self.target_file)['duration']
                 start = random.uniform(0, duration - self.seq_duration)
             else:
                 start = 0
 
+        # assemble the mixture of sources
+        audio_sources = []
+        for source in self.source_files:
+            # optionally select a random track for each source
+            if self.random_track_mix:
+                track_dir = random.choice(self.tracks)
+                if self.random_chunks:
+                    duration = load_info(track_dir / source)['duration']
+                    start = random.uniform(0, duration - self.seq_duration)
+
+            source_path = track_dir / source
             audio = load_audio(
                 source_path, start=start, dur=self.seq_duration
             )
@@ -510,15 +509,15 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         Also make sure, that you do not provide the mixture
         file amonng the sources!
 
-        Example:
-            -- Sample 1 ----------------------
-            train/1/vocals.wav --> input target   \
-            train/1/drums.wav --> input target     |
-            train/1/bass.wav --> input target    --+--> input
-            train/1/accordion.wav --> input target |
-            train/1/marimba.wav --> input target  /
+        Example
+        =======
+        train/1/vocals.wav --> input target   \
+        train/1/drums.wav --> input target     |
+        train/1/bass.wav --> input target    --+--> input
+        train/1/accordion.wav --> input target |
+        train/1/marimba.wav --> input target  /
 
-            train/1/vocals.wav -----------------------> output
+        train/1/vocals.wav -----------------------> output
 
         """
         self.root = Path(root).expanduser()
@@ -570,7 +569,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         p = Path(self.root, self.split)
         for track_folder in p.iterdir():
             if track_folder.is_dir():
-                sources = track_folder.glob(self.sources_glob)
+                sources = track_folder.glob('*' + self.ext)
                 if self.seq_duration is not None:
                     infos = list(map(load_info, sources))
                     # get minimum duration of track
