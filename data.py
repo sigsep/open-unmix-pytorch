@@ -262,7 +262,7 @@ class AlignedDataset(torch.utils.data.Dataset):
     def _get_paths(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
-        for track_folder in p.iterdir():
+        for track_folder in tqdm.tqdm(p.iterdir()):
             if track_folder.is_dir():
                 input_path = list(track_folder.glob(self.input_file))
                 output_path = list(track_folder.glob(self.output_file))
@@ -361,7 +361,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
         source_tracks = {}
-        for source_folder in self.source_folders:
+        for source_folder in tqdm.tqdm(self.source_folders):
             tracks = []
             source_path = (p / source_folder)
             for source_track_path in source_path.glob('*' + self.ext):
@@ -466,7 +466,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
     def get_tracks(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
-        for track_folder in p.iterdir():
+        for track_folder in tqdm.tqdm(p.iterdir()):
             if track_folder.is_dir():
                 source_paths = [track_folder / s for s in self.source_files]
                 if not all(sp.exists() for sp in source_paths):
@@ -567,7 +567,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
     def get_tracks(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
-        for track_folder in p.iterdir():
+        for track_folder in tqdm.tqdm(p.iterdir()):
             if track_folder.is_dir():
                 sources = track_folder.glob('*' + self.ext)
                 if self.seq_duration is not None:
