@@ -1,12 +1,12 @@
 from utils import load_audio, load_info
 from pathlib import Path
 import torch.utils.data
-import numpy as np
 import argparse
 import random
 import musdb
 import torch
 import tqdm
+
 
 class Compose(object):
     """Composes several augmentation transforms.
@@ -36,21 +36,7 @@ def augment_source_channelswap(audio):
 
 
 def load_datasets(parser, args):
-    if args.dataset == 'unaligned':
-        parser.add_argument('--interfer_files', type=str, nargs="+")
-        args = parser.parse_args()
-
-        dataset_kwargs = {
-            'root': Path(args.root),
-            'seq_duration': args.seq_dur,
-            'target': args.target,
-            'interfer_files': args.interfer_files
-        }
-
-        train_dataset = UnalignedSources(split='train', **dataset_kwargs)
-        valid_dataset = UnalignedSources(split='valid', **dataset_kwargs)
-
-    elif args.dataset == 'aligned':
+    if args.dataset == 'aligned':
         parser.add_argument('--input-file', type=str)
         parser.add_argument('--output-file', type=str)
 
@@ -71,19 +57,57 @@ def load_datasets(parser, args):
             **dataset_kwargs
         )
         valid_dataset = AlignedDataset(
-            split='valid', 
+            split='valid',
             **dataset_kwargs
         )
 
-    elif args.dataset == 'sources':
-        parser.add_argument('--sources-glob', type=str, default="*.wav")
-        parser.add_argument('--target-file', type=str)
+    elif args.dataset == 'sourcefolder':
+        parser.add_argument('--interfer-folders', type=str, nargs="+")
+        parser.add_argument('--target-folder', type=str)
+        parser.add_argument('--ext', type=str, default='.wav')
 
         args = parser.parse_args()
 
         dataset_kwargs = {
             'root': Path(args.root),
-            'sources_glob': args.sources_glob,
+            'interfer_folders': args.interfer_folders,
+            'target_folder': args.target_folder,
+            'ext': args.ext
+        }
+
+        source_augmentations = Compose(
+            [augment_source_channelswap, augment_source_gain]
+        )
+
+        train_dataset = SourceFolderDataset(
+            split='train',
+            source_augmentations=source_augmentations,
+            random_chunks=True,
+            seq_duration=args.seq_dur,
+            **dataset_kwargs
+        )
+
+        valid_dataset = SourceFolderDataset(
+            split='valid',
+            random_chunks=False,
+            seq_duration=None,
+            **dataset_kwargs
+        )
+
+    elif args.dataset == 'trackfolder_fix':
+        parser.add_argument('--interfer-files', type=str, nargs="+")
+        parser.add_argument('--target-file', type=str)
+        parser.add_argument(
+            '--random-track-mix',
+            action='store_true', default=False,
+            help='Apply random track mixing augmentation'
+        )
+
+        args = parser.parse_args()
+
+        dataset_kwargs = {
+            'root': Path(args.root),
+            'interfer_files': args.interfer_files,
             'target_file': args.target_file
         }
 
@@ -91,15 +115,45 @@ def load_datasets(parser, args):
             [augment_source_channelswap, augment_source_gain]
         )
 
-        train_dataset = SourcesDataset(
+        train_dataset = FixedSourcesTrackFolderDataset(
+            split='train',
+            source_augmentations=source_augmentations,
+            random_track_mix=args.random_track_mix,
+            random_chunks=True,
+            seq_duration=args.seq_dur,
+            **dataset_kwargs
+        )
+        valid_dataset = FixedSourcesTrackFolderDataset(
+            split='valid',
+            seq_duration=None,
+            **dataset_kwargs
+        )
+
+    elif args.dataset == 'trackfolder_var':
+        parser.add_argument('--ext', type=str, default=".wav")
+        parser.add_argument('--target-file', type=str)
+
+        args = parser.parse_args()
+
+        dataset_kwargs = {
+            'root': Path(args.root),
+            'target_file': args.target_file,
+            'ext': args.ext
+        }
+
+        source_augmentations = Compose(
+            [augment_source_channelswap, augment_source_gain]
+        )
+
+        train_dataset = VariableSourcesTrackFolderDataset(
             split='train',
             source_augmentations=source_augmentations,
             random_chunks=True,
             seq_duration=args.seq_dur,
             **dataset_kwargs
         )
-        valid_dataset = SourcesDataset(
-            split='valid', 
+        valid_dataset = VariableSourcesTrackFolderDataset(
+            split='valid',
             seq_duration=None,
             **dataset_kwargs
         )
@@ -139,73 +193,6 @@ def load_datasets(parser, args):
     return train_dataset, valid_dataset, args
 
 
-def random_product(*args, repeat=1):
-    "Random selection from itertools.product(*args, **kwds)"
-    pools = [tuple(pool) for pool in args] * repeat
-    return tuple(random.choice(pool) for pool in pools)
-
-
-class UnalignedDataset(torch.utils.data.Dataset):
-    def __init__(
-        self,
-        root,
-        split='train',
-        seq_duration=None,
-        target_dir='vocals',
-        interferences_dirs=['noise'],
-        source_augmentations=lambda audio: audio,
-        glob="*.wav",
-        sample_rate=44100,
-        nb_samples=1000,
-    ):
-        """A dataset that assumes sources to be unaligned,
-        organized in subfolders with the name of sources
-
-        Example:
-            -- Sample 1 ----------------------
-
-            train/noise/10923.wav --+
-                                    +--> mixed input
-            train/vocals/1.wav -----+
-            train/vocals/1.wav --------> output target
-
-        """
-        self.root = Path(root).expanduser()
-        self.sample_rate = sample_rate
-        if seq_duration <= 0:
-            self.seq_duration = None
-        else:
-            self.seq_duration = seq_duration
-        self.nb_samples = nb_samples
-        self.glob = glob
-        self.source_folders = interferences + [target]
-        self.source_augmentations = source_augmentations
-        self.sources = self._get_paths()
-
-    def __getitem__(self, index):
-        sources_tuples = random_product(*self.sources)
-        sample_sources = list(map(load_and_apply_augmentations, sources_tuples))
-        mix = torch.stack(sample_sources, dim=0).sum(dim=0)
-        target = load_audio(sources_tuples[-1], start=0, dur=self.seq_duration)
-        return mix, target
-
-    def __len__(self):
-        return self.nb_samples
-
-    def load_and_apply_augmentations(self, path):
-        return self.source_augmentations(load_audio(path))
-
-    def _get_paths(self):
-        """Loads input and output tracks"""
-
-        sources_paths = []
-        for source_folder in self.source_folders:
-            p = Path(self.root, self.split, source_folder)
-            sources_paths.append(list(p.glob(self.glob)))
-
-        return sources_paths
-
-
 class AlignedDataset(torch.utils.data.Dataset):
     def __init__(
         self,
@@ -217,25 +204,25 @@ class AlignedDataset(torch.utils.data.Dataset):
         random_chunks=False,
         sample_rate=44100,
     ):
-        """A dataset of that assumes multiple track folders 
+        """A dataset of that assumes multiple track folders
         where each track includes and input and an output file
         which directly corresponds to the the input and the
         output of the model. This dataset is the most basic of
-        all datasets provided here, due to the least amount of 
-        preprocessing, it is also the fastest option, however, 
+        all datasets provided here, due to the least amount of
+        preprocessing, it is also the fastest option, however,
         it lacks any kind of source augmentations or custum mixing.
 
-        Typical use cases: 
-          
+        Typical use cases:
+
         * Source Separation (Mixture -> Target)
         * Denoising (Noisy -> Clean)
         * Bandwidth Extension (Low Bandwidth -> High Bandwidth)
-        
+
         Example:
 
             -- Sample 1 ----------------------
-            data/train/01/mixture.wav --> input_file
-            data/train/01/vocals.wav ---> output_file
+            data/train/01/mixture.wav --> input
+            data/train/01/vocals.wav ---> output
 
             -- Generic Example ----------------
             <root>/<split>/<index>/<input_file>
@@ -245,17 +232,14 @@ class AlignedDataset(torch.utils.data.Dataset):
         self.root = Path(root).expanduser()
         self.split = split
         self.sample_rate = sample_rate
-        if seq_duration <= 0:
-            self.seq_duration = None
-        else:
-            self.seq_duration = seq_duration
+        self.seq_duration = seq_duration
         self.random_chunks = random_chunks
         # set the input and output files (accept glob)
         self.input_file = input_file
         self.output_file = output_file
         self.tuple_paths = list(self._get_paths())
         if not self.tuple_paths:
-            raise RuntimeError("Dataset is empty, please check your parameters")
+            raise RuntimeError("Dataset is empty, please check parameters")
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
@@ -267,7 +251,7 @@ class AlignedDataset(torch.utils.data.Dataset):
             start = random.uniform(0, duration - self.seq_duration)
         else:
             start = 0
-        
+
         X_audio = load_audio(input_path, start=start, dur=self.seq_duration)
         Y_audio = load_audio(output_path, start=start, dur=self.seq_duration)
         # return torch tensors
@@ -287,15 +271,116 @@ class AlignedDataset(torch.utils.data.Dataset):
                     if self.seq_duration is not None:
                         input_info = load_info(input_path[0])
                         output_info = load_info(output_path[0])
-                        min_duration = min(input_info['duration'], output_info['duration'])
-                        # if both targets are available in the subfolder add them
+                        min_duration = min(
+                            input_info['duration'], output_info['duration']
+                        )
+                        # check if both targets are available in the subfolder
                         if min_duration > self.seq_duration:
                             yield input_path[0], output_path[0]
                     else:
                         yield input_path[0], output_path[0]
 
 
-class UnalignedSourcesDataset(torch.utils.data.Dataset):
+class SourceFolderDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        root,
+        split='train',
+        target_folder='vocals',
+        interfer_folders=['bass', 'drums'],
+        ext='.flac',
+        seq_duration=None,
+        random_chunks=False,
+        sample_rate=44100,
+        nb_samples=1000,
+        source_augmentations=lambda audio: audio,
+    ):
+        """A dataset of that assumes folders with Sources,
+        instead of track folders. This is a common
+        format for speech and environmental sound datasets
+        such das DCASE. For each source a variable number of
+        tracks/sounds is available, therefore the dataset
+        is unaligned by design.
+
+        Example:
+        -- Sample 1 ----------------------------
+        train/vocals/track11.wav -----------------\
+        train/drums/track202.wav  (interferer1) ---+--> input
+        train/bass/track007a.wav  (interferer2) --/
+
+        train/vocals/track11.wav ---------------------> output
+
+        """
+        self.root = Path(root).expanduser()
+        self.split = split
+        self.sample_rate = sample_rate
+        self.seq_duration = seq_duration
+        self.ext = ext
+        self.random_chunks = random_chunks
+        self.source_augmentations = source_augmentations
+        # set the input and output files (accept glob)
+        self.target_folder = target_folder
+        self.interfer_folders = interfer_folders
+        self.source_folders = self.interfer_folders + [self.target_folder]
+        self.source_tracks = self.get_tracks()
+        self.nb_samples = nb_samples
+
+    def __getitem__(self, index):
+        # for validation, get deterministic behavior
+        # by using the index as seed
+        if self.split == 'valid':
+            random.seed(index)
+
+        # For each source draw a random sound and mix them together
+        audio_sources = []
+        for source in self.source_folders:
+            # select a random track for each source
+            track_dir = random.choice(self.source_tracks[source])
+            source_path = track_dir / source
+
+            if self.random_chunks:
+                duration = load_info(source_path)['duration']
+                start = random.uniform(0, duration - self.seq_duration)
+            else:
+                start = 0
+
+            audio = load_audio(
+                source_path, start=start, dur=self.seq_duration
+            )
+            audio = self.source_augmentations(audio)
+            audio_sources.append(audio)
+
+        stems = torch.stack(audio_sources)
+        # # apply linear mix over source index=0
+        x = stems.sum(0)
+        # target is always the last element in the list
+        y = stems[-1]
+        return x, y
+
+    def __len__(self):
+        return self.nb_samples
+
+    def get_tracks(self):
+        """Loads input and output tracks"""
+        p = Path(self.root, self.split)
+        source_tracks = {}
+        for source_folder in self.source_folders:
+            tracks = []
+            source_path = (p / source_folder)
+            for source_track_path in source_path.glob('*' + self.ext):
+                print(source_track_path)
+                if self.seq_duration is not None:
+                    info = load_info(source_track_path)
+                    # get minimum duration of track
+                    if info['duration'] > self.seq_duration:
+                        tracks.append(source_track_path)
+                else:
+                    tracks.append(source_track_path)
+            source_tracks[source_folder] = tracks
+        return source_tracks
+
+
+class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
@@ -305,56 +390,59 @@ class UnalignedSourcesDataset(torch.utils.data.Dataset):
         seq_duration=None,
         random_chunks=False,
         random_track_mix=False,
-        sample_rate=44100,
         source_augmentations=lambda audio: audio,
+        sample_rate=44100,
     ):
-        """A dataset of that assumes folders with sources
+        """A dataset of that assumes audio sources to be stored
+        in track folder where each track has a fixed number of sources.
+        For each track the users specifies the target file-name (`target_file`)
+        and a list of interferences files (`interfer_files`).
+        A linear mix is performed on the fly by summing the target and
+        the inferers up.
+
+        Due to the fixed permutation, it allows to perform
+        augmentation techniques like random track mixing.
+
+        This dataset is recommended to be used for small/medium size
+        for example like the MUSDB18 or other custom source separation
+        datasets.
 
         Example:
-            -- Sample 1 ----------------------
-            train/01/vocals.wav --> input target   \
-            train/01/drums.wav --> input target  --+--> will be mixed
-            train/01/bass.wav --> input target    /
-            train/01/vocals.wav ---> output target
-            -- Sample 2 -----------------------
-            train/02/vocals.wav --> input target   \
-            train/02/drums.wav --> input target  --+--> will be mixed
-            train/02/bass.wav --> input target    /
-            train/02/vocals.wav ---> output target
 
-        Scales to a large amount of audio data.
-        Uses pytorch' index based sampling
+        -- Sample 1 ----------------------
+        train/1/vocals.wav ---------------\
+        train/1/drums.wav (interferer1) ---+--> input
+        train/1/bass.wav -(interferer2) --/
+
+        train/1/vocals.wav -------------------> output
+
         """
         self.root = Path(root).expanduser()
         self.split = split
         self.sample_rate = sample_rate
-        if seq_duration <= 0:
-            self.seq_duration = None
-        else:
-            self.seq_duration = seq_duration
+        self.seq_duration = seq_duration
         self.random_track_mix = random_track_mix
         self.random_chunks = random_chunks
         self.source_augmentations = source_augmentations
         # set the input and output files (accept glob)
         self.target_file = target_file
         self.interfer_files = interfer_files
+        self.source_files = self.interfer_files + [self.target_file]
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
         audio_sources = []
-        sources = self.interfer_files + [self.target_file]
-        for source in sources:
+        for source in self.source_files:
             # select a random track for each source
             if self.random_track_mix:
                 track_dir = random.choice(self.tracks)
             else:
                 track_dir = self.tracks[index]
+
             source_path = track_dir / source
-            if source_path.exists():
-                input_info = load_info(source_path)
-                duration = input_info['duration']
 
             if self.random_chunks:
+                duration = load_info(source_path)['duration']
                 start = random.uniform(0, duration - self.seq_duration)
             else:
                 start = 0
@@ -380,37 +468,57 @@ class UnalignedSourcesDataset(torch.utils.data.Dataset):
         p = Path(self.root, self.split)
         for track_folder in p.iterdir():
             if track_folder.is_dir():
-                yield track_folder
+                source_paths = [track_folder / s for s in self.source_files]
+                if not all(sp.exists() for sp in source_paths):
+                    print("exclude track ", track_folder)
+                    continue
+
+                if self.seq_duration is not None:
+                    infos = list(map(load_info, source_paths))
+                    # get minimum duration of track
+                    min_duration = min(i['duration'] for i in infos)
+                    if min_duration > self.seq_duration:
+                        yield(track_folder)
+                else:
+                    yield(track_folder)
 
 
-class SourcesDataset(torch.utils.data.Dataset):
+class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root,
         split='train',
         target_file='vocals.wav',
-        sources_glob='*.wav',
+        ext='.wav',
         seq_duration=None,
         random_chunks=False,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
     ):
-        """A dataset of that assumes folders with sources
+        """A dataset of that assumes audio sources to be stored
+        in track folder where each track has a _variable_ number of sources.
+        The users specifies the target file-name (`target_file`)
+        and the extension of sources to used for mixing.
+        A linear mix is performed on the fly by summing all sources in a
+        track folder.
+
+        Since the number of sources differ per track,
+        while target is fixed, a random track mix
+        augmentation cannot be used.
+
+        Also make sure, that you do not provide the mixture
+        file amonng the sources!
 
         Example:
             -- Sample 1 ----------------------
-            train/01/vocals.wav --> input target   \
-            train/01/drums.wav --> input target  --+--> will be mixed
-            train/01/bass.wav --> input target    /
-            -- Sample 2 -----------------------
-            train/02/vocals.wav --> input target   \
-            train/02/accordion.wav --> input target  --+--> will be mixed
-            train/02/marimba.wav --> input target    /
+            train/1/vocals.wav --> input target   \
+            train/1/drums.wav --> input target     |
+            train/1/bass.wav --> input target    --+--> input
+            train/1/accordion.wav --> input target |
+            train/1/marimba.wav --> input target  /
 
-        Ideally, if the number of sources differ per track (while target is fixed)
-        Therefore random track augmentation cannot be used
+            train/1/vocals.wav -----------------------> output
 
-        Make sure, that you do not provide the mixture file in the folder!
         """
         self.root = Path(root).expanduser()
         self.split = split
@@ -420,18 +528,19 @@ class SourcesDataset(torch.utils.data.Dataset):
         self.source_augmentations = source_augmentations
         # set the input and output files (accept glob)
         self.target_file = target_file
-        self.sources_glob = sources_glob
+        self.ext = ext
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
         track_folder = self.tracks[index]
-        sources = list(track_folder.glob(self.sources_glob))
+        sources = list(track_folder.glob('*' + self.ext))
         target_index = sources.index(track_folder / self.target_file)
-        infos = list(map(load_info, sources))
-        # get minimum duration of all sources
-        min_duration = min(i['duration'] for i in infos)
 
         if self.random_chunks:
+            # get minimum duration of all sources needed to not
+            # load out of bounds
+            infos = list(map(load_info, sources))
+            min_duration = min(i['duration'] for i in infos)
             start = random.uniform(0, min_duration - self.seq_duration)
         else:
             start = 0
@@ -469,7 +578,6 @@ class SourcesDataset(torch.utils.data.Dataset):
                         yield(track_folder)
                 else:
                     yield(track_folder)
-                
 
 
 class MUSDBDataset(torch.utils.data.Dataset):
@@ -617,7 +725,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Open Unmix Trainer')
     parser.add_argument(
         '--dataset', type=str, default="musdb",
-        choices=['musdb', 'aligned', 'unaligned', 'sources'],
+        # choices=['musdb', 'aligned', 'unaligned', 'sources'],
         help='Name of the dataset.'
     )
 
