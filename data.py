@@ -725,7 +725,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Open Unmix Trainer')
     parser.add_argument(
         '--dataset', type=str, default="musdb",
-        # choices=['musdb', 'aligned', 'unaligned', 'sources'],
+        choices=[
+            'musdb', 'aligned', 'sourcefolder',
+            'trackfolder_var', 'trackfolder_fix'
+        ],
         help='Name of the dataset.'
     )
 

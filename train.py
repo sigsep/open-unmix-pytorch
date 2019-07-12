@@ -27,7 +27,10 @@ parser.add_argument('--target', type=str, default='vocals',
 
 # Dataset paramaters
 parser.add_argument('--dataset', type=str, default="musdb",
-                    choices=['musdb', 'aligned', 'unaligned', 'sources'],
+                    choices=[
+                        'musdb', 'aligned', 'sourcefolder',
+                        'trackfolder_var', 'trackfolder_fix'
+                    ],
                     help='Name of the dataset.')
 parser.add_argument('--root', type=str, help='root path of dataset')
 parser.add_argument('--output', type=str, default="OSU",
