@@ -65,6 +65,8 @@ def load_datasets(parser, args):
         parser.add_argument('--interfer-folders', type=str, nargs="+")
         parser.add_argument('--target-folder', type=str)
         parser.add_argument('--ext', type=str, default='.wav')
+        parser.add_argument('--nb-train-samples', type=int, default=1000)
+        parser.add_argument('--nb-valid-samples', type=int, default=100)
 
         args = parser.parse_args()
 
@@ -83,6 +85,7 @@ def load_datasets(parser, args):
             split='train',
             source_augmentations=source_augmentations,
             random_chunks=True,
+            nb_samples=args.nb_train_samples,
             seq_duration=args.seq_dur,
             **dataset_kwargs
         )
@@ -91,6 +94,7 @@ def load_datasets(parser, args):
             split='valid',
             random_chunks=False,
             seq_duration=None,
+            nb_samples=args.nb_valid_samples,
             **dataset_kwargs
         )
 
@@ -289,10 +293,10 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         target_folder='vocals',
         interfer_folders=['bass', 'drums'],
         ext='.flac',
+        nb_samples=1000,
         seq_duration=None,
         random_chunks=False,
         sample_rate=44100,
-        nb_samples=1000,
         source_augmentations=lambda audio: audio,
     ):
         """A dataset of that assumes folders with Sources,
@@ -318,7 +322,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self.ext = ext
         self.random_chunks = random_chunks
         self.source_augmentations = source_augmentations
-        # set the input and output files (accept glob)
         self.target_folder = target_folder
         self.interfer_folders = interfer_folders
         self.source_folders = self.interfer_folders + [self.target_folder]
@@ -335,8 +338,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         audio_sources = []
         for source in self.source_folders:
             # select a random track for each source
-            track_dir = random.choice(self.source_tracks[source])
-            source_path = track_dir / source
+            source_path = random.choice(self.source_tracks[source])
 
             if self.random_chunks:
                 duration = load_info(source_path)['duration']
@@ -368,7 +370,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             tracks = []
             source_path = (p / source_folder)
             for source_track_path in source_path.glob('*' + self.ext):
-                print(source_track_path)
                 if self.seq_duration is not None:
                     info = load_info(source_track_path)
                     # get minimum duration of track
@@ -760,7 +761,8 @@ if __name__ == "__main__":
     )
 
     if args.save:
-        for k, (x, y) in enumerate(train_dataset):
+        for k in range(len(train_dataset)):
+            x, y = train_dataset[k]
             import torchaudio
             torchaudio.save(
                 "test/" + str(k) + 'x.wav',
