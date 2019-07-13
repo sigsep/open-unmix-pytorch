@@ -249,9 +249,10 @@ class OpenUnmixJoint(nn.Module):
         targets,
         *args, **kwargs
     ):
-        self.models = []
-        for target in targets:
-            self.models.append(OpenUnmix(*args, **kwargs))
+        super(OpenUnmixJoint, self).__init__()
+        self.models = nn.ModuleList(
+            [OpenUnmix(*args, **kwargs) for target in targets]
+        )
 
     def forward(self, x):
         return [model(x) for model in self.models]

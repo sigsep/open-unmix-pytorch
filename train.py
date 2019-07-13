@@ -137,6 +137,7 @@ max_bin = utils.bandwidth_to_max_bin(
 )
 
 unmix = model.OpenUnmixJoint(
+    targets=args.targets,
     power=1,
     input_mean=input_scaler.mean_,
     input_scale=safe_input_scale,
@@ -146,14 +147,16 @@ unmix = model.OpenUnmixJoint(
     n_fft=args.nfft,
     n_hop=args.nhop,
     max_bin=max_bin
-).to(device)
+)
 
 optimizer = optim.Adam(
     unmix.parameters(),
     lr=args.lr,
     weight_decay=args.weight_decay
 )
-criterion = torch.nn.MSELoss()
+
+criteria = [torch.nn.MSELoss() for t in args.targets]
+
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     factor=args.lr_decay_gamma,
@@ -167,11 +170,13 @@ def train():
     unmix.train()
 
     for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
-        x, y = x.to(device), y.to(device)
+        x = x.to(device)
+        y = [i.to(device) for i in y]
         optimizer.zero_grad()
-        Y_hat = unmix(x)
-        Y = unmix.transform(y)
-        loss = criterion(Y_hat, Y)
+        Y_hats = unmix(x)
+        loss = 0
+        for Y_hat, target, criterion in zip(Y_hats, y, criteria):
+            loss = loss + criterion(Y_hat, unmix.models[0].transform(target))
         loss.backward()
         optimizer.step()
         losses.update(loss.item())
