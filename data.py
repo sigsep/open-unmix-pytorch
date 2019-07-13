@@ -100,7 +100,7 @@ def load_datasets(parser, args):
 
     elif args.dataset == 'trackfolder_fix':
         parser.add_argument('--target-file', type=str)
-        parser.add_argument('--interfer-files', type=str, nargs="+")
+        parser.add_argument('--interferer-files', type=str, nargs="+")
         parser.add_argument(
             '--random-track-mix',
             action='store_true', default=False,
