@@ -22,7 +22,9 @@ tqdm.monitor_interval = 0
 parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
-parser.add_argument('--target', type=str, default='vocals',
+parser.add_argument('--target',
+                    type=str, nargs='+',
+                    default=['vocals', 'drums', 'bass', 'other'],
                     help='source target for musdb')
 
 # Dataset paramaters
@@ -134,7 +136,7 @@ max_bin = utils.bandwidth_to_max_bin(
     train_dataset.sample_rate, args.nfft, args.bandwidth
 )
 
-unmix = model.OpenUnmix(
+unmix = model.OpenUnmixJoint(
     power=1,
     input_mean=input_scaler.mean_,
     input_scale=safe_input_scale,

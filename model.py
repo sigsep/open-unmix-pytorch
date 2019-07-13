@@ -243,14 +243,15 @@ class OpenUnmix(nn.Module):
         return x
 
 
-class Unmix(nn.Module):
+class OpenUnmixJoint(nn.Module):
     def __init__(
+        self,
         targets,
         *args, **kwargs
     ):
         self.models = []
         for target in targets:
-            self.models.append(OSU(*args, **kwargs))
-   
+            self.models.append(OpenUnmix(*args, **kwargs))
+
     def forward(self, x):
         return [model(x) for model in self.models]
