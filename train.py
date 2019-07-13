@@ -3,6 +3,7 @@ import torch.optim as optim
 import torch.nn
 import argparse
 import model
+import data
 import torch
 import time
 from pathlib import Path
@@ -12,204 +13,233 @@ import torch.utils.data
 import utils
 import sklearn.preprocessing
 import numpy as np
+import random
+import copy
 
 
 tqdm.monitor_interval = 0
 
-# Training settings
-parser = argparse.ArgumentParser(description='PyTorch MUSMAG')
+parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
 parser.add_argument('--target', type=str, default='vocals',
                     help='source target for musdb')
 
-
+# Dataset paramaters
+parser.add_argument('--dataset', type=str, default="musdb",
+                    choices=[
+                        'musdb', 'aligned', 'sourcefolder',
+                        'trackfolder_var', 'trackfolder_fix'
+                    ],
+                    help='Name of the dataset.')
 parser.add_argument('--root', type=str, help='root path of dataset')
-parser.add_argument('--is-wav', action='store_true', default=False,
-                    help='flags wav version of the dataset')
-
-parser.add_argument('--db', type=str, default="musdb",
-                    help='provide output path base folder name')
-
-parser.add_argument('--sourcefiles', type=str, nargs="+", default=[None, None])
-
-# I/O Parameters
-parser.add_argument('--seq-dur', type=float, default=1.0)
-
 parser.add_argument('--output', type=str, default="OSU",
                     help='provide output path base folder name')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA training')
 
+# Trainig Parameters
 parser.add_argument('--epochs', type=int, default=1000, metavar='N',
                     help='number of epochs to train (default: 1000)')
-parser.add_argument('--patience', type=int, default=20,
+parser.add_argument('--patience', type=int, default=140,
                     help='early stopping patience (default: 20)')
-parser.add_argument('--batch_size', type=int, default=16,
+parser.add_argument('--batch-size', type=int, default=16,
                     help='batch size')
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
+parser.add_argument('--lr-decay-patience', type=int, default=70,
+                    help='lr decay patience for plateaeu scheduler')
+parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
+                    help='gamma of learning rate scheduler decay')
+parser.add_argument('--weight-decay', type=float, default=0.00001,
+                    help='gamma of learning rate scheduler decay')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 
-parser.add_argument('--nfft', type=int, default=2048,
-                    help='fft size')
+# Model Parameters
+parser.add_argument('--seq-dur', type=float, default=5.0,
+                    help='Sequence duration in seconds'
+                    'value of <=0.0 will use full/variable length')
+parser.add_argument('--unidirectional', action='store_true', default=False,
+                    help='Use unidirectional LSTM instead of bidirectional')
+parser.add_argument('--nfft', type=int, default=4096,
+                    help='STFT fft size and window size')
 parser.add_argument('--nhop', type=int, default=1024,
-                    help='fft size')
-
+                    help='STFT hop size')
+parser.add_argument('--hidden-size', type=int, default=512,
+                    help='hidden size parameter of FC bottleneck layers')
+parser.add_argument('--bandwidth', type=int, default=15000,
+                    help='maximum model bandwidth in herz')
 parser.add_argument('--nb-channels', type=int, default=1,
                     help='set number of channels for model (1, 2)')
+parser.add_argument('--nb-workers', type=int, default=0,
+                    help='Number of workers for dataloader.'
+                    'Can be >0 e.g. when loading wav files')
 
-args = parser.parse_args()
+# Misc Parameters
+parser.add_argument('--quiet', action='store_true', default=False,
+                    help='less verbose during training')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
+
+args, _ = parser.parse_known_args()
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
-dataloader_kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
 
-# create output dir if not exist
-target_path = Path(args.output, args.target)
-target_path.mkdir(parents=True, exist_ok=True)
 
 # use jpg or npy
 torch.manual_seed(args.seed)
+random.seed(args.seed)
 
 device = torch.device("cuda" if use_cuda else "cpu")
 
-if args.db == 'sourcefolder':
-    from data import SourceFolderDataset
-    sources_dataset = SourceFolderDataset(
-        root=Path(args.root),
-        seq_duration=args.seq_dur,
-        input_file=args.sourcefiles[0],
-        output_file=args.sourcefiles[1]
-    )
+train_dataset, valid_dataset, args = data.load_datasets(parser, args)
 
-    split = 0.1
-    lengths = [
-        len(sources_dataset) - int(len(sources_dataset)*split),
-        int(len(sources_dataset)*split)
-    ]
-    train_dataset, valid_dataset = torch.utils.data.random_split(
-        sources_dataset, lengths
-    )
-elif args.db == 'musdb':
-    from data import MUSDBDataset
-    dataset_kwargs = {
-        'root': args.root,
-        'is_wav': args.is_wav,
-        'seq_duration': args.seq_dur,
-        'subsets': 'train',
-        'target': args.target,
-        'download': True
-    }
-
-    train_dataset = MUSDBDataset(validation_split='train', **dataset_kwargs)
-    valid_dataset = MUSDBDataset(validation_split='valid', **dataset_kwargs)
+# create output dir if not exist
+target_path = Path(args.output)
+target_path.mkdir(parents=True, exist_ok=True)
 
 train_sampler = torch.utils.data.DataLoader(
     train_dataset, batch_size=args.batch_size, shuffle=True,
     **dataloader_kwargs
 )
 valid_sampler = torch.utils.data.DataLoader(
-    valid_dataset, batch_size=args.batch_size,
+    valid_dataset, batch_size=1,
     **dataloader_kwargs
 )
 
-print("Compute global average spectrogram")
+input_scaler = sklearn.preprocessing.StandardScaler()
 output_scaler = sklearn.preprocessing.StandardScaler()
 spec = torch.nn.Sequential(
     model.STFT(n_fft=args.nfft, n_hop=args.nhop),
     model.Spectrogram(mono=True)
 )
-for _, y in tqdm.tqdm(train_dataset):
-    Y = spec(y[None, ...])
-    output_scaler.partial_fit(np.squeeze(Y))
 
-model = model.OSU(
+train_dataset_scaler = copy.deepcopy(train_dataset)
+train_dataset_scaler.samples_per_track = 1
+train_dataset_scaler.augmentations = None
+for x, y in tqdm.tqdm(train_dataset_scaler, disable=args.quiet):
+    X = spec(x[None, ...])
+    input_scaler.partial_fit(np.squeeze(X))
+
+if not args.quiet:
+    print("Computed global average spectrogram")
+
+# set inital input scaler values
+safe_input_scale = np.maximum(
+    input_scaler.scale_,
+    1e-4*np.max(input_scaler.scale_)
+)
+
+max_bin = utils.bandwidth_to_max_bin(
+    train_dataset.sample_rate, args.nfft, args.bandwidth
+)
+
+unmix = model.OpenUnmix(
     power=1,
-    output_mean=output_scaler.mean_,
+    input_mean=input_scaler.mean_,
+    input_scale=safe_input_scale,
+    output_mean=None,
     nb_channels=args.nb_channels,
+    hidden_size=args.hidden_size,
     n_fft=args.nfft,
-    n_hop=args.nhop
+    n_hop=args.nhop,
+    max_bin=max_bin
 ).to(device)
 
-optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
+optimizer = optim.Adam(
+    unmix.parameters(),
+    lr=args.lr,
+    weight_decay=args.weight_decay
+)
 criterion = torch.nn.MSELoss()
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer,
+    factor=args.lr_decay_gamma,
+    patience=args.lr_decay_patience,
+    cooldown=10
+)
 
 
-def train(epoch):
-    data_time = utils.AverageMeter()
+def train():
     losses = utils.AverageMeter()
-    model.train()
-    end = time.time()
+    unmix.train()
 
-    for x, y in tqdm.tqdm(train_sampler):
+    for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        Y_hat = model(x)
-        Y = model.transform(y)
+        Y_hat = unmix(x)
+        Y = unmix.transform(y)
         loss = criterion(Y_hat, Y)
         loss.backward()
         optimizer.step()
-        losses.update(loss.item(), Y.size(1))
-        data_time.update(time.time() - end)
+        losses.update(loss.item())
     return losses.avg
 
 
 def valid():
     losses = utils.AverageMeter()
-
-    model.eval()
+    unmix.eval()
     with torch.no_grad():
         for x, y in valid_sampler:
             x, y = x.to(device), y.to(device)
-            Y_hat = model(x)
-            Y = model.transform(y)
+            Y_hat = unmix(x)
+            Y = unmix.transform(y)
             loss = F.mse_loss(Y_hat, Y)
-            losses.update(loss.item(), x.size(1))
+            losses.update(loss.item(), Y.size(1))
         return losses.avg
 
 
 es = utils.EarlyStopping(patience=args.patience)
-best_loss = 1000
-t = tqdm.trange(1, args.epochs + 1)
+t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
 train_losses = []
 valid_losses = []
+train_times = []
+best_epoch = 0
+
 for epoch in t:
-    train_loss = train(epoch)
+    end = time.time()
+    train_loss = train()
     valid_loss = valid()
+    scheduler.step(valid_loss)
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
 
-    t.set_postfix(train_loss=train_loss, val_loss=valid_loss)
+    t.set_postfix(
+        train_loss=train_loss, val_loss=valid_loss
+    )
 
-    is_best = valid_loss < best_loss
-    best_loss = min(valid_loss, best_loss)
+    stop = es.step(valid_loss)
+
+    if valid_loss == es.best:
+        best_epoch = epoch
 
     utils.save_checkpoint({
             'epoch': epoch + 1,
-            'state_dict': model.state_dict(),
-            'best_loss': best_loss,
+            'state_dict': unmix.state_dict(),
+            'best_loss': es.best,
             'optimizer': optimizer.state_dict(),
         },
-        is_best,
-        target_path,
-        args.target,
-        model
+        is_best=valid_loss == es.best,
+        path=target_path,
+        target=args.target
     )
-
-    if es.step(valid_loss):
-        print("Apply Early Stopping")
-        break
 
     # save params
     params = {
         'epochs_trained': epoch,
         'args': vars(args),
-        'best_loss': str(best_loss),
+        'best_loss': es.best,
+        'best_epoch': best_epoch,
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
-        'rate': 44100
+        'train_time_history': train_times,
     }
 
-    with open(Path(target_path,  "output.json"), 'w') as outfile:
+    with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
         outfile.write(json.dumps(params, indent=4, sort_keys=True))
+
+    train_times.append(time.time() - end)
+
+    if stop:
+        print("Apply Early Stopping")
+        break

@@ -1,39 +1,65 @@
 import torch
 import numpy as np
 import argparse
-import os.path
 import soundfile as sf
-import os
 import norbert
 import json
 from pathlib import Path
 import scipy.signal
-
-eps = np.finfo(np.float32).eps
-
-
-def load_models(directory, targets):
-    models = {}
-    params = {}
-    for target_dir in Path(directory).iterdir():
-        if target_dir.is_dir():
-            if targets is None or target_dir.stem in targets:
-                with open(Path(target_dir, 'output.json'), 'r') as stream:
-                    results = json.load(stream)
-
-                model = torch.load(
-                    Path(target_dir, target_dir.stem + '_model.pth.tar'),
-                    map_location='cpu'
-                )
-                model.to(torch.device("cpu"))
-                # set model into evaluation mode
-                model.eval()
-                models[target_dir.stem] = model
-                params[target_dir.stem] = results
-    return models, params
+import resampy
+import model
+import utils
+import warnings
+import hubconf
+import tqdm
 
 
-def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
+def load_model(target, model_name='umxhq', device='cpu'):
+    """
+    target model path can be either <target>.pth, or <target>-sha256.pth (as used on torchub)
+    """
+    model_path = Path(model_name)
+    if not model_path.exists():
+        # model path does not exist, use hubconf model
+        try:
+            pretrained_model = getattr(hubconf, model_name)
+            return pretrained_model(target=target, device=device)
+        except AttributeError:
+            raise NameError('Model does not exist on hubconf')
+            # assume model is a path to a local model_name direcotry
+    else:
+        # load model from disk
+        with open(Path(model_path, target + '.json'), 'r') as stream:
+            results = json.load(stream)
+    
+        target_model_path = next(Path(model_path).glob("%s*.pth" % target))
+        state = torch.load(
+            target_model_path,
+            map_location=device
+        )['state_dict']
+
+        max_bin = utils.bandwidth_to_max_bin(
+            state['sample_rate'],
+            results['args']['nfft'],
+            results['args']['bandwidth']
+        )
+
+        unmix = model.OpenUnmix(
+            n_fft=results['args']['nfft'],
+            n_hop=results['args']['nhop'],
+            nb_channels=results['args']['nb_channels'],
+            hidden_size=results['args']['hidden_size'],
+            max_bin=max_bin
+        )
+
+        unmix.load_state_dict(state)
+        unmix.stft.center = True
+        unmix.eval()
+        unmix.to(device)
+        return unmix
+
+
+def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
     t, audio = scipy.signal.istft(
         X / (n_fft / 2),
         rate,
@@ -44,75 +70,120 @@ def istft(X, rate=44100, n_fft=2048, n_hopsize=1024):
     return audio
 
 
-def separate(audio, models, params, niter=0, alpha=2, logit=0):
-    # for now only check the first model, as they are assumed to be the same
-    nb_sources = len(models)
+def separate(
+    audio, 
+    targets, 
+    model_name='umxhq', 
+    niter=1, softmask=False, alpha=1,
+    residual_model=False, device='cpu'
+):
 
-    # rate = params[list(params.keys())[0]]['rate']
-    # seq_dur = params[list(params.keys())[0]]['args']['seq_dur']
-    # seq_len = int(seq_dur * rate)
+    # convert numpy audio to torch
+    audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
 
-    # split without overlap
-    # audio_split = torch.tensor(audio).float().unfold(0, seq_len, seq_len)
-    # now its (batch, channels, seq_len/samples)
-
-    # compute STFT of mixture
-    # get the first model
-    st_model = models[list(models.keys())[0]]
-
-    audio_torch = torch.tensor(audio.T[None, ...]).float()
-    # get complex STFT from torch
-    X = st_model.stft(audio_torch).detach().numpy()
-    # convert to complex numpy type
-    X = X[..., 0] + X[..., 1]*1j
-    X = X[0].transpose(2, 1, 0)
-    nb_frames_X, nb_bins_X, nb_channels_X = X.shape
     source_names = []
     V = []
-    for j, (target, model) in enumerate(models.items()):
-        Vj = model(
-            torch.tensor(audio.T[None, ...]).float()
-        ).cpu().detach().numpy()**alpha
+
+    for j, target in enumerate(tqdm.tqdm(targets)):
+        unmix_target = load_model(target=target, model_name=model_name)
+        Vj = unmix_target(audio_torch).cpu().detach().numpy()
+        if softmask:
+            # only exponentiate the model if we use softmask
+            Vj = Vj**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj[:, 0, ...])  # remove sample dim
         source_names += [target]
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
-    if nb_sources == 1:
-        V = norbert.residual(V, X, alpha)
-        source_names += ['accompaniment']
+    X = unmix_target.stft(audio_torch).detach().cpu().numpy()
+    # convert to complex numpy type
+    X = X[..., 0] + X[..., 1]*1j
+    X = X[0].transpose(2, 1, 0)
 
-    if not logit:
-        logit = None
-        Y = norbert.wiener(V, X, niter, logit=logit)
+    if residual_model or len(targets) == 1:
+        V = norbert.residual_model(V, X, alpha if softmask else 1)
+        source_names += (['residual'] if len(models) > 1
+                         else ['accompaniment'])
+
+    Y = norbert.wiener(V, X.astype(np.complex128), niter,
+                       use_softmask=softmask)
 
     estimates = {}
     for j, name in enumerate(source_names):
         audio_hat = istft(
             Y[..., j].T,
-            n_fft=st_model.stft.n_fft,
-            n_hopsize=st_model.stft.n_hop
+            n_fft=unmix_target.stft.n_fft,
+            n_hopsize=unmix_target.stft.n_hop
         )
         estimates[name] = audio_hat.T
 
     return estimates
 
 
+def inference_args(parser, remaining_args):
+    inf_parser = argparse.ArgumentParser(
+        description=__doc__,
+        parents=[parser],
+        add_help=True,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    inf_parser.add_argument(
+        '--softmask',
+        dest='softmask',
+        action='store_true',
+        help=('if enabled, will initialize separation with softmask.'
+              'otherwise, will use mixture phase with spectrogram')
+    )
+
+    inf_parser.add_argument(
+        '--niter',
+        type=int,
+        default=1,
+        help='number of iterations for refining results.'
+    )
+
+    inf_parser.add_argument(
+        '--alpha',
+        type=int,
+        default=1,
+        help='exponent in case of softmask separation'
+    )
+
+    inf_parser.add_argument(
+        '--samplerate',
+        type=int,
+        default=44100,
+        help='model samplerate'
+    )
+
+    inf_parser.add_argument(
+        '--residual-model',
+        action='store_true',
+        help='create a model for the residual'
+    )
+    return inf_parser.parse_args()
+
+
 if __name__ == '__main__':
     # Training settings
-    parser = argparse.ArgumentParser(description='OSU Inference')
+    parser = argparse.ArgumentParser(
+        description='OSU Inference',
+        add_help=False
+    )
 
     parser.add_argument(
-        'model_dir',
+        'input',
         type=str,
-        default=".",
-        help='path to models'
+        nargs='+',
+        help='List of paths to wav/flac files.'
     )
 
     parser.add_argument(
         '--targets',
         nargs='+',
+        default=['vocals', 'drums', 'bass', 'other'],
         type=str,
         help='provide targets to be processed. \
               If none, all available targets will be computed'
@@ -121,57 +192,71 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
-        default="OSU_RESULTS",
         help='Results path where audio evaluation results are stored'
     )
 
     parser.add_argument(
-        '--evaldir',
+        '--model',
+        default='umxhq',
         type=str,
-        help='Results path for museval estimates'
+        help='path to mode base directory of pretrained models'
     )
 
     parser.add_argument(
-        '--input',
-        type=str,
-        help='Path to wav file. If not provided, will process the MUSDB18'
+        '--no-cuda',
+        action='store_true',
+        default=False,
+        help='disables CUDA inference'
     )
 
-    parser.add_argument(
-        '--niter',
-        type=int,
-        default=0,
-        help='number of iterations. 0 is softmask'
-    )
+    args, _ = parser.parse_known_args()
+    args = inference_args(parser, args)
 
-    parser.add_argument(
-        '--alpha',
-        type=int,
-        default=1,
-        help='exponent for softmasks'
-    )
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
 
-    parser.add_argument(
-        '--logit',
-        type=float,
-        help='apply logit compression. 0 means no compression'
-    )
+    for input_file in args.input:
+        # handling an input audio path
+        audio, rate = sf.read(input_file, always_2d=True)
 
-    args = parser.parse_args()
+        if audio.shape[1] > 2:
+            warnings.warn('Channel count > 2! '
+            'Only the first two channels will be processed!')
+            audio = audio[:, :2]
 
-    models, params = load_models(args.model_dir, args.targets)
+        if rate != args.samplerate:
+            # resample to model samplerate if needed
+            audio = resampy.resample(audio, rate, args.samplerate, axis=0)
 
-    # handling an input audio path
-    audio, samplerate = sf.read(args.input)
-    estimates = separate(
-        audio,
-        models,
-        params,
-        niter=args.niter,
-        alpha=args.alpha,
-        logit=args.logit
-    )
-    base = os.path.basename(args.input)
+        if audio.shape[1] == 1:
+            # if we have mono, let's duplicate it
+            # as the input of OpenUnmix is always stereo
+            audio = np.repeat(audio, 2, axis=1)
 
-    for key in estimates:
-        sf.write(key+'_' + base, estimates[key], samplerate)
+        estimates = separate(
+            audio,
+            targets=args.targets,
+            model_name=args.model,
+            niter=args.niter,
+            alpha=args.alpha,
+            softmask=args.softmask,
+            residual_model=args.residual_model,
+            device=device
+        )
+        if not args.outdir:
+            model_path = Path(args.model)
+            if not model_path.exists():
+                outdir = Path(Path(input_file).stem + '_' + args.model)
+            else:
+                outdir = Path(Path(input_file).stem + '_' + model_path.stem)
+        else:
+            outdir = Path(args.outdir)
+        outdir.mkdir(exist_ok=True, parents=True)
+
+        # write out estimates
+        for target, estimate in estimates.items():
+            sf.write(
+                outdir / Path(target).with_suffix('.wav'),
+                estimate,
+                args.samplerate
+            )

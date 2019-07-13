@@ -7,6 +7,9 @@ OSU/
 *.json
 *.wav
 *.mp3
+*.pth.tar
+env*/
+
 #####=== Python ===#####
 
 # Byte-compiled / optimized / DLL files

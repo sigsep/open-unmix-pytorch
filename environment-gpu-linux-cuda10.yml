@@ -5,14 +5,15 @@ channels:
   - pytorch
 
 dependencies:
-  - python==3.7.1
-  - numpy==1.15.4
-  - pytorch>=1.0.1
-  - torchvision==0.2.2
+  - python=3.7
+  - numpy=1.15
+  - pytorch=1.1.0
   - cudatoolkit=10.0
-  - pescador==2.0.0
-  - tqdm==4.28.1
+  - scikit-learn=0.21
+  - tqdm=4.28
   - ffmpeg
+  - resampy
+  - pip
   - pip:
-    - git+https://github.com/sigsep/sigsep-mus-db.git@v3#egg=musdb
-    - git+https://github.com/sigsep/norbert#egg=norbert
+    - musdb==0.3.1
+    - norbert==0.2.0
