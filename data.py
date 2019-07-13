@@ -62,8 +62,8 @@ def load_datasets(parser, args):
         )
 
     elif args.dataset == 'sourcefolder':
-        parser.add_argument('--interfer-folders', type=str, nargs="+")
-        parser.add_argument('--target-folder', type=str)
+        parser.add_argument('--interferer-dirs', type=str, nargs="+")
+        parser.add_argument('--target-dir', type=str)
         parser.add_argument('--ext', type=str, default='.wav')
         parser.add_argument('--nb-train-samples', type=int, default=1000)
         parser.add_argument('--nb-valid-samples', type=int, default=100)
@@ -72,8 +72,8 @@ def load_datasets(parser, args):
 
         dataset_kwargs = {
             'root': Path(args.root),
-            'interfer_folders': args.interfer_folders,
-            'target_folder': args.target_folder,
+            'interferer_dirs': args.interferer_dirs,
+            'target_dir': args.target_dir,
             'ext': args.ext
         }
 
@@ -100,7 +100,7 @@ def load_datasets(parser, args):
 
     elif args.dataset == 'trackfolder_fix':
         parser.add_argument('--target-file', type=str)
-        parser.add_argument('--interfer-files', type=str, nargs="+")
+        parser.add_argument('--interferer-files', type=str, nargs="+")
         parser.add_argument(
             '--random-track-mix',
             action='store_true', default=False,
@@ -111,7 +111,7 @@ def load_datasets(parser, args):
 
         dataset_kwargs = {
             'root': Path(args.root),
-            'interfer_files': args.interfer_files,
+            'interferer_files': args.interferer_files,
             'target_file': args.target_file
         }
 
@@ -262,10 +262,10 @@ class AlignedDataset(torch.utils.data.Dataset):
     def _get_paths(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
-        for track_folder in tqdm.tqdm(p.iterdir()):
-            if track_folder.is_dir():
-                input_path = list(track_folder.glob(self.input_file))
-                output_path = list(track_folder.glob(self.output_file))
+        for track_path in tqdm.tqdm(p.iterdir()):
+            if track_path.is_dir():
+                input_path = list(track_path.glob(self.input_file))
+                output_path = list(track_path.glob(self.output_file))
                 if input_path and output_path:
                     if self.seq_duration is not None:
                         input_info = load_info(input_path[0])
@@ -285,8 +285,8 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self,
         root,
         split='train',
-        target_folder='vocals',
-        interfer_folders=['bass', 'drums'],
+        target_dir='vocals',
+        interferer_dirs=['bass', 'drums'],
         ext='.flac',
         nb_samples=1000,
         seq_duration=None,
@@ -317,9 +317,9 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self.ext = ext
         self.random_chunks = random_chunks
         self.source_augmentations = source_augmentations
-        self.target_folder = target_folder
-        self.interfer_folders = interfer_folders
-        self.source_folders = self.interfer_folders + [self.target_folder]
+        self.target_dir = target_dir
+        self.interferer_dirs = interferer_dirs
+        self.source_folders = self.interferer_dirs + [self.target_dir]
         self.source_tracks = self.get_tracks()
         self.nb_samples = nb_samples
 
@@ -382,7 +382,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         root,
         split='train',
         target_file='vocals.wav',
-        interfer_files=['bass.wav', 'drums.wav'],
+        interferer_files=['bass.wav', 'drums.wav'],
         seq_duration=None,
         random_chunks=False,
         random_track_mix=False,
@@ -392,7 +392,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         """A dataset of that assumes audio sources to be stored
         in track folder where each track has a fixed number of sources.
         For each track the users specifies the target file-name (`target_file`)
-        and a list of interferences files (`interfer_files`).
+        and a list of interferences files (`interferer_files`).
         A linear mix is performed on the fly by summing the target and
         the inferers up.
 
@@ -427,8 +427,8 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.source_augmentations = source_augmentations
         # set the input and output files (accept glob)
         self.target_file = target_file
-        self.interfer_files = interfer_files
-        self.source_files = self.interfer_files + [self.target_file]
+        self.interferer_files = interferer_files
+        self.source_files = self.interferer_files + [self.target_file]
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
@@ -451,7 +451,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         target_audio = self.source_augmentations(target_audio)
         audio_sources.append(target_audio)
         # load interferers
-        for source in self.interfer_files:
+        for source in self.interferer_files:
             # optionally select a random track for each source
             if self.random_track_mix:
                 track_dir = random.choice(self.tracks)
@@ -478,9 +478,9 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
     def get_tracks(self):
         """Loads input and output tracks"""
         p = Path(self.root, self.split)
-        for track_folder in tqdm.tqdm(p.iterdir()):
-            if track_folder.is_dir():
-                source_paths = [track_folder / s for s in self.source_files]
+        for track_path in tqdm.tqdm(p.iterdir()):
+            if track_path.is_dir():
+                source_paths = [track_path / s for s in self.source_files]
                 if not all(sp.exists() for sp in source_paths):
                     continue
 
@@ -489,9 +489,9 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
                     # get minimum duration of track
                     min_duration = min(i['duration'] for i in infos)
                     if min_duration > self.seq_duration:
-                        yield(track_folder)
+                        yield(track_path)
                 else:
-                    yield(track_folder)
+                    yield(track_path)
 
 
 class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
@@ -543,9 +543,9 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
-        track_folder = self.tracks[index]
-        sources = list(track_folder.glob('*' + self.ext))
-        target_index = sources.index(track_folder / self.target_file)
+        track_path = self.tracks[index]
+        sources = list(track_path.glob('*' + self.ext))
+        target_index = sources.index(track_path / self.target_file)
 
         if self.random_chunks:
             # get minimum duration of all sources needed to not
@@ -577,21 +577,21 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
 
     def get_tracks(self):
         p = Path(self.root, self.split)
-        for track_folder in tqdm.tqdm(p.iterdir()):
-            if track_folder.is_dir():
+        for track_path in tqdm.tqdm(p.iterdir()):
+            if track_path.is_dir():
                 # check if target exists
-                if Path(track_folder, self.target_file).exists():
+                if Path(track_path, self.target_file).exists():
                     # get all sources
-                    sources = track_folder.glob('*' + self.ext)
+                    sources = track_path.glob('*' + self.ext)
                     if self.seq_duration is not None:
                         # check all sources
                         infos = list(map(load_info, sources))
                         # get minimum duration of source
                         min_duration = min(i['duration'] for i in infos)
                         if min_duration > self.seq_duration:
-                            yield(track_folder)
+                            yield(track_path)
                     else:
-                        yield(track_folder)
+                        yield(track_path)
 
 
 class MUSDBDataset(torch.utils.data.Dataset):
@@ -769,13 +769,14 @@ if __name__ == "__main__":
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)
 
-    train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
-    )
-
-    if args.save:
-        for k in range(len(train_dataset)):
-            x, y = train_dataset[k]
+    # Iterate over training dataset
+    total_training_duration = 0
+    for k in tqdm.tqdm(range(len(train_dataset))):
+        train_dataset.seq_duration = None
+        train_dataset.random_chunks = False
+        x, y = train_dataset[k]
+        total_training_duration += x.shape[1] / train_dataset.sample_rate
+        if args.save:
             import torchaudio
             torchaudio.save(
                 "test/" + str(k) + 'x.wav',
@@ -792,8 +793,17 @@ if __name__ == "__main__":
                 channels_first=True
             )
 
+    print("Total training duration (h): ", total_training_duration / 3600)
     print("Number of train samples: ", len(train_dataset))
     print("Number of validation samples: ", len(valid_dataset))
-    # check datasampler
+
+    # iterate over dataloader
+    train_dataset.seq_duration = args.seq_dur
+    train_dataset.random_chunks = True
+
+    train_sampler = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
+    )
+
     for x, y in tqdm.tqdm(train_sampler):
         pass
