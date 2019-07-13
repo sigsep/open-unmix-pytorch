@@ -769,13 +769,14 @@ if __name__ == "__main__":
     args, _ = parser.parse_known_args()
     train_dataset, valid_dataset, args = load_datasets(parser, args)
 
-    train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
-    )
-
-    if args.save:
-        for k in range(len(train_dataset)):
-            x, y = train_dataset[k]
+    # Iterate over training dataset
+    total_training_duration = 0
+    for k in tqdm.tqdm(range(len(train_dataset))):
+        train_dataset.seq_duration = None
+        train_dataset.random_chunks = False
+        x, y = train_dataset[k]
+        total_training_duration += x.shape[1] / train_dataset.sample_rate
+        if args.save:
             import torchaudio
             torchaudio.save(
                 "test/" + str(k) + 'x.wav',
@@ -792,8 +793,17 @@ if __name__ == "__main__":
                 channels_first=True
             )
 
+    print("Total training duration (h): ", total_training_duration / 3600)
     print("Number of train samples: ", len(train_dataset))
     print("Number of validation samples: ", len(valid_dataset))
-    # check datasampler
+
+    # iterate over dataloader
+    train_dataset.seq_duration = args.seq_dur
+    train_dataset.random_chunks = True
+
+    train_sampler = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
+    )
+
     for x, y in tqdm.tqdm(train_sampler):
         pass
