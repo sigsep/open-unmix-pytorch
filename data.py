@@ -401,6 +401,9 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         can be used, where sources from different tracks are mixed
         together. Setting `random_track_mix=True` results in an
         unaligned dataset.
+        When random track mixing is enabled, we define an epoch as
+        when the the target source from all tracks has been seen and only once
+        with whatever interfering sources has randomly been drawn.
 
         This dataset is recommended to be used for small/medium size
         for example like the MUSDB18 or other custom source separation
