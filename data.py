@@ -482,7 +482,6 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
             if track_folder.is_dir():
                 source_paths = [track_folder / s for s in self.source_files]
                 if not all(sp.exists() for sp in source_paths):
-                    print("exclude track ", track_folder)
                     continue
 
                 if self.seq_duration is not None:
@@ -793,6 +792,8 @@ if __name__ == "__main__":
                 channels_first=True
             )
 
+    print("Number of train samples: ", len(train_dataset))
+    print("Number of validation samples: ", len(valid_dataset))
     # check datasampler
     for x, y in tqdm.tqdm(train_sampler):
         pass
