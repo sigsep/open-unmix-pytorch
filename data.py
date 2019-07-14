@@ -316,7 +316,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
     ):
-        """A dataset of that assumes folders with Sources,
+        """A dataset of that assumes folders of sources,
         instead of track folders. This is a common
         format for speech and environmental sound datasets
         such das DCASE. For each source a variable number of
@@ -539,7 +539,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         augmentation cannot be used.
 
         Also make sure, that you do not provide the mixture
-        file amonng the sources!
+        file among the sources!
 
         Example
         =======

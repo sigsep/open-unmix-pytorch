@@ -16,7 +16,8 @@ import tqdm
 
 def load_model(target, model_name='umxhq', device='cpu'):
     """
-    target model path can be either <target>.pth, or <target>-sha256.pth (as used on torchub)
+    target model path can be either <target>.pth, or <target>-sha256.pth
+    (as used on torchub)
     """
     model_path = Path(model_name)
     if not model_path.exists():
@@ -31,7 +32,7 @@ def load_model(target, model_name='umxhq', device='cpu'):
         # load model from disk
         with open(Path(model_path, target + '.json'), 'r') as stream:
             results = json.load(stream)
-    
+
         target_model_path = next(Path(model_path).glob("%s*.pth" % target))
         state = torch.load(
             target_model_path,
@@ -71,9 +72,9 @@ def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
 
 
 def separate(
-    audio, 
-    targets, 
-    model_name='umxhq', 
+    audio,
+    targets,
+    model_name='umxhq',
     niter=1, softmask=False, alpha=1,
     residual_model=False, device='cpu'
 ):
