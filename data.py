@@ -23,12 +23,14 @@ class Compose(object):
         return audio
 
 
-def augment_source_gain(audio, low=0.25, high=1.25):
+def _augment_gain(audio, low=0.25, high=1.25):
+    """Applies a random gain between `low` and `high`"""
     g = low + torch.rand(1) * (high - low)
     return audio * g
 
 
-def augment_source_channelswap(audio):
+def _augment_channelswap(audio):
+    """Swap channels of stereo signals with a probability of p=0.5"""
     if audio.shape[0] == 2 and torch.FloatTensor(1).uniform_() < 0.5:
         return torch.flip(audio, [0])
     else:
@@ -36,6 +38,11 @@ def augment_source_channelswap(audio):
 
 
 def load_datasets(parser, args):
+    """Loads the specified dataset from commandline arguments
+
+    Returns:
+        train_dataset, validation_dataset
+    """
     if args.dataset == 'aligned':
         parser.add_argument('--input-file', type=str)
         parser.add_argument('--output-file', type=str)
@@ -67,7 +74,10 @@ def load_datasets(parser, args):
         parser.add_argument('--ext', type=str, default='.wav')
         parser.add_argument('--nb-train-samples', type=int, default=1000)
         parser.add_argument('--nb-valid-samples', type=int, default=100)
-
+        parser.add_argument(
+            '--source-augmentations', type=str, nargs='+',
+            default=['gain', 'channelswap']
+        )
         args = parser.parse_args()
 
         dataset_kwargs = {
@@ -78,7 +88,7 @@ def load_datasets(parser, args):
         }
 
         source_augmentations = Compose(
-            [augment_source_channelswap, augment_source_gain]
+            [globals()['_augment_' + aug] for aug in args.source_augmentations]
         )
 
         train_dataset = SourceFolderDataset(
@@ -106,6 +116,10 @@ def load_datasets(parser, args):
             action='store_true', default=False,
             help='Apply random track mixing augmentation'
         )
+        parser.add_argument(
+            '--source-augmentations', type=str, nargs='+',
+            default=['gain', 'channelswap']
+        )
 
         args = parser.parse_args()
 
@@ -116,7 +130,7 @@ def load_datasets(parser, args):
         }
 
         source_augmentations = Compose(
-            [augment_source_channelswap, augment_source_gain]
+            [globals()['_augment_' + aug] for aug in args.source_augmentations]
         )
 
         train_dataset = FixedSourcesTrackFolderDataset(
@@ -136,6 +150,10 @@ def load_datasets(parser, args):
     elif args.dataset == 'trackfolder_var':
         parser.add_argument('--ext', type=str, default=".wav")
         parser.add_argument('--target-file', type=str)
+        parser.add_argument(
+            '--source-augmentations', type=str, nargs='+',
+            default=['gain', 'channelswap']
+        )
 
         args = parser.parse_args()
 
@@ -146,7 +164,7 @@ def load_datasets(parser, args):
         }
 
         source_augmentations = Compose(
-            [augment_source_channelswap, augment_source_gain]
+            [globals()['_augment_' + aug] for aug in args.source_augmentations]
         )
 
         train_dataset = VariableSourcesTrackFolderDataset(
@@ -166,6 +184,10 @@ def load_datasets(parser, args):
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='flags wav version of the dataset')
         parser.add_argument('--samples-per-track', type=int, default=64)
+        parser.add_argument(
+            '--source-augmentations', type=str, nargs='+',
+            default=['gain', 'channelswap']
+        )
 
         args = parser.parse_args()
         dataset_kwargs = {
@@ -177,7 +199,7 @@ def load_datasets(parser, args):
         }
 
         source_augmentations = Compose(
-            [augment_source_channelswap, augment_source_gain]
+            [globals()['_augment_' + aug] for aug in args.source_augmentations]
         )
 
         train_dataset = MUSDBDataset(
@@ -346,7 +368,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             )
             audio = self.source_augmentations(audio)
             audio_sources.append(audio)
-
         stems = torch.stack(audio_sources)
         # # apply linear mix over source index=0
         x = stems.sum(0)
