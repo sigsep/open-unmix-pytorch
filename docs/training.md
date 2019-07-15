@@ -2,7 +2,7 @@
 
 ## Datasets
 
-_open-unmix_ uses standard PyTorch [Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. This repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. The dataset can be selected through a command line argument:
+_open-unmix_ uses standard PyTorch [`torch.utils.data.Dataset`](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. The repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. Furthermore we also provide a template Dataset if you want to start using your own dataset. The dataset can be selected through a command line argument:
 
 | Argument      | Description                                                            | Default      |
 |----------------------------|------------------------------------------------------------------------|--------------|
@@ -11,9 +11,15 @@ _open-unmix_ uses standard PyTorch [Dataset](https://pytorch.org/docs/stable/dat
 
 ### `MUSDBDataset` (`musdb`) (default)
 
-The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available dataset for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems.
+The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available datasets for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems. _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
 
-_MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
+Training `MUSDB18` using _open-unmix_ comes with several design decisions to improve efficiency and performance.
+
+* __chunking__: we don not feed full audio tracks into _open-unmix_ but instead chunk the audio into 6s excerpts (`--seq-dur 6.0`).
+* __balanced track sampling__: to not create a bias for longer audio tracks we randomly yield one track from MUSDB18 and select a random chunk subsequently. In one epoch we select (on average) 64 samples from each track.
+* __source augmentation__: we apply random gains between `0.25` and `1.25` to all sources before mixing. Furthermore, we randomly swap the channels the input mixture.
+* __random track mixing__: for a given target we select a _random track_ with replacement. To yield a mixture we draw the interfering sources from different tracks (again with replacement) to increase generalization of the model.
+* __fixed validation split__: we provide a fixed validation split of [16 tracks](https://github.com/sigsep/sigsep-mus-db/blob/b283da5b8f24e84172a60a06bb8f3dacd57aa6cd/musdb/configs/mus.yaml#L41). We evaluate on these tracks in full length instead of using chunking to have evaluation as close as possible to the actual test data.
 
 #### Dataset arguments
 
@@ -23,9 +29,11 @@ _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", comp
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
 | `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
 
+Note that, if `--root` is not specified, we automatically download a 7 second preview version of the MUSDB18 dataset. While this is comfortable for testing purposes, we wouldn't recommend to actually train your model on this.
+
 #### Example
 
-To train the vocal model with _open-unmix_ using the MUSDB18 dataset use use the following arguments:
+To train the vocal model with _open-unmix_ using the MUSDB18 dataset use the following arguments:
 
 ```bash
 python train.py --dataset musdb --root /data/musdb --target vocals
@@ -33,13 +41,10 @@ python train.py --dataset musdb --root /data/musdb --target vocals
 
 ### `AlignedDataset` (`aligned`)
 
-A dataset of that assumes multiple track folders where each track includes and input and an output file which directly corresponds to the the input and the output of the model.
-
-The dataset does not perform any mixing but directly uses the target files that are within the folder. The filenames would have to be identical for each track. E.g, for the first sample of the training, input could be `1/mixture.wav` and output could be `1/vocals.wav`.
+This dataset assumes multiple track folders where each track includes one single input and one output file, directly corresponding to the input and the output of the model.
 
 This dataset is the most basic of all datasets provided here, due to the least amount of
-preprocessing, it is also the fastest option, however,
-it lacks any kind of source augmentations or custom mixing.
+preprocessing, it is also the fastest option, however, it lacks any kind of source augmentations or custom mixing. Instead, it directly uses the target files that are within the folder. The filenames would have to be identical for each track. E.g, for the first sample of the training, input could be `1/mixture.wav` and output could be `1/vocals.wav`.
 
 Typical use cases:
 
@@ -144,6 +149,10 @@ train/1/vocals.wav -----------------------> output
 python train.py --root /data --dataset trackfolder_var --target-file vocals.flac --ext .wav
 ```
 
+### Template Dataset
+
+
+
 ## Training and Model Parameters
 
 Additional training parameters and their default values are listed below:
@@ -167,8 +176,16 @@ Additional training parameters and their default values are listed below:
 
 ## Output Files
 
+* `args`: All command line parameters that were used to train the model
+* `
 
+### Training details of `umxhq` and `umx`
 
-### Loss curves
+* parameters for both models are identical
+* around 80 seconds per epoch on an Nvidia RTX2080.
+* we ran 4 different seeds and for each target collected the model with the lowest validation loss.
+
+![umx-hq](https://user-images.githubusercontent.com/72940/61230598-9e6e3b00-a72a-11e9-8a89-aca1862341eb.png)
+
 
 ### Arguments

@@ -100,7 +100,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--is-wav', 
+        '--is-wav',
         action='store_true', default=False,
         help='flags wav version of the dataset'
     )
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     mus = musdb.DB(
-        root=args.root, 
+        root=args.root,
         download=args.root is None,
         subsets=args.subset,
         is_wav=args.is_wav

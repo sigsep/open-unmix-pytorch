@@ -51,11 +51,11 @@ parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
                     help='gamma of learning rate scheduler decay')
 parser.add_argument('--weight-decay', type=float, default=0.00001,
                     help='gamma of learning rate scheduler decay')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
+parser.add_argument('--seed', type=int, default=42, metavar='S',
+                    help='random seed (default: 42)')
 
 # Model Parameters
-parser.add_argument('--seq-dur', type=float, default=5.0,
+parser.add_argument('--seq-dur', type=float, default=6.0,
                     help='Sequence duration in seconds'
                     'value of <=0.0 will use full/variable length')
 parser.add_argument('--unidirectional', action='store_true', default=False,
@@ -66,9 +66,9 @@ parser.add_argument('--nhop', type=int, default=1024,
                     help='STFT hop size')
 parser.add_argument('--hidden-size', type=int, default=512,
                     help='hidden size parameter of FC bottleneck layers')
-parser.add_argument('--bandwidth', type=int, default=15000,
+parser.add_argument('--bandwidth', type=int, default=16000,
                     help='maximum model bandwidth in herz')
-parser.add_argument('--nb-channels', type=int, default=1,
+parser.add_argument('--nb-channels', type=int, default=2,
                     help='set number of channels for model (1, 2)')
 parser.add_argument('--nb-workers', type=int, default=0,
                     help='Number of workers for dataloader.'

@@ -195,7 +195,8 @@ def load_datasets(parser, args):
             'is_wav': args.is_wav,
             'subsets': 'train',
             'target': args.target,
-            'download': args.root is None
+            'download': args.root is None,
+            'seed': args.seed
         }
 
         source_augmentations = Compose(
@@ -654,8 +655,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
             training is performed in chunks of ``seq_duration`` (in seconds,
             defaults to ``None`` which loads the full audio track
         samples_per_track : int
-            sets the number of samples that are yielded from each musdb track
-            in one epoch. Defaults to 64
+            sets the number of samples that are yielded from each musdb track in one epoch. Defaults to 64
         source_augmentations : list[callables]
             provide list of augmentation function that take a multi-channel
             audio file of shape (src, samples) as input and output. Defaults to
