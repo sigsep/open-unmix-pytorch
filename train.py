@@ -233,7 +233,7 @@ for epoch in t:
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
         'train_time_history': train_times,
-        'commit_hash': commit
+        'commit': commit
     }
 
     with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
