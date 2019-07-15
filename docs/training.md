@@ -9,7 +9,7 @@ _open-unmix_ uses standard PyTorch [`torch.utils.data.Dataset`](https://pytorch.
 | `--dataset <str>`          | Name of the dataset (select from `musdb`, `aligned`, `sourcefolder`, `trackfolder_var`, `trackfolder_fix`) | `musdb`      |
 | `--root <str>`           | path to root of dataset on disk.                                                  | `None`       |
 
-### `MUSDBDataset` (`musdb`) (default)
+### `MUSDBDataset` (musdb)
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available datasets for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems. _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
 
@@ -39,7 +39,7 @@ To train the vocal model with _open-unmix_ using the MUSDB18 dataset use the fol
 python train.py --dataset musdb --root /data/musdb --target vocals
 ```
 
-### `AlignedDataset` (`aligned`)
+### `AlignedDataset` (aligned)
 
 This dataset assumes multiple track folders where each track includes one single input and one output file, directly corresponding to the input and the output of the model.
 
@@ -65,7 +65,7 @@ data/train/01/vocals.wav ---> output
 python train.py --dataset aligned --root /data/data --input_file mixture.wav --output_file vocals.wav
 ```
 
-### `SourceFolderDataset`
+### `SourceFolderDataset` (sourcefolder)
 
 A dataset of that assumes folders of sources,
 instead of track folders. This is a common
@@ -95,7 +95,7 @@ train/vocals/track11.wav ---------------------> output
 python train.py --dataset sourcefolder --root /data --target-dir vocals --interferer-dirs carnoise windnoise --ext .ogg --nb-train-samples 1000
 ```
 
-### `FixedSourcesTrackFolderDataset`
+### `FixedSourcesTrackFolderDataset` (trackfolder_fix)
 
 A dataset of that assumes audio sources to be stored
 in track folder where each track has a fixed number of sources. For each track the users specifies the target file-name (`target_file`) and a list of interferences files (`interferer_files`).
@@ -122,7 +122,7 @@ train/1/vocals.wav -------------------> output
 python train.py  --root /data --dataset trackfolder_fix --target-file vocals.flac --interferer-files bass.flac drums.flac other.flac
 ```
 
-### `VariableSourcesTrackFolderDataset`
+### `VariableSourcesTrackFolderDataset` (trackfolder_var)
 
 A dataset of that assumes audio sources to be stored in track folder where each track has a _variable_ number of sources. The users specifies the target file-name (`target_file`) and the extension of sources to used for mixing. A linear mix is performed on the fly by summing all sources in a track folder.
 
@@ -144,14 +144,77 @@ train/1/vocals.wav -----------------------> output
 
 #### Example
 
-
 ```
 python train.py --root /data --dataset trackfolder_var --target-file vocals.flac --ext .wav
 ```
 
 ### Template Dataset
 
+```python
+from utils import load_audio, load_info
+class TemplateDataset(torch.utils.data.Dataset):
+    """A template dataset class for you to implement custom datasets."""
 
+    def __init__(self, root, split='train', target='vocals'):
+        """Initialize the dataset
+        """
+        self.root = root
+        self.tracks = get_tracks(root, split)
+
+    def __getitem__(self, index):
+        """Return a single training example
+        """
+        path = self.tracks[index]
+        x = load_audio(path)
+        y = load_audio(path)
+        return x, y
+
+    def __len__(self):
+        """Return the number of audio samples"""
+        return len(self.tracks)
+```
+
+### Template Model
+
+```python
+from model import Spectrogram, STFT, NoOp
+class Model(nn.Module):
+    def __init__(
+        self,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        input_is_spectrogram=False,
+        sample_rate=44100,
+    ):
+        """
+        Input:  (batch, channel, sample)
+            or  (frame, batch, channels, frequency)
+        Output: (frame, batch, channels, frequency)
+        """
+
+        super(OpenUnmix, self).__init__()
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
+        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
+        # register sample_rate to check at inference time
+        self.register_buffer('sample_rate', torch.tensor(sample_rate))
+
+        if input_is_spectrogram:
+            self.transform = NoOp()
+        else:
+            self.transform = nn.Sequential(self.stft, self.spec)
+
+
+    def forward(self, mix):
+        # transform to spectrogram on the fly
+        X = self.transform(mix)
+        nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+
+        # transform X to estimate
+        # ....
+
+        return X
+```
 
 ## Training and Model Parameters
 

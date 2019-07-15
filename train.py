@@ -135,15 +135,13 @@ max_bin = utils.bandwidth_to_max_bin(
 )
 
 unmix = model.OpenUnmix(
-    power=1,
     input_mean=input_scaler.mean_,
     input_scale=safe_input_scale,
-    output_mean=None,
     nb_channels=args.nb_channels,
     hidden_size=args.hidden_size,
     n_fft=args.nfft,
     n_hop=args.nhop,
-    max_bin=max_bin
+    max_bin=max_bin,
 ).to(device)
 
 optimizer = optim.Adam(

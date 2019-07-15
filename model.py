@@ -90,17 +90,16 @@ class OpenUnmix(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        hidden_size=512,
-        nb_channels=1,
         input_is_spectrogram=False,
+        hidden_size=512,
+        nb_channels=2,
         sample_rate=44100,
-        power=1,
         nb_layers=3,
         input_mean=None,
         input_scale=None,
-        output_mean=None,
         max_bin=None,
-        unidirectional=False
+        unidirectional=False,
+        power=1,
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)
