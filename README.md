@@ -4,7 +4,7 @@
 
 This repository contains the PyTorch (1.0+) implementation of __open-unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists.
 
-__open-unmix__ provides a ready-to-use pre-trained models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments.
+__open-unmix__ provides ready-to-use pre-trained models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments.
 
 We provide models that were pre-trained  on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#inference).
 
@@ -12,12 +12,20 @@ We also provide implementations for [tensorflow]() and [nnabla]().
 
 ## The Model
 
-_Open-Unmix_ is based on a three-layer bidirectional deep LSTM. The model learns to predict the separated (target) magnitude from a mixture spectrogram (STFT), such as the _vocals_, by applying a mask on the spectrogram mixture. The model is optimized in the magnitude domain using mean squared error and the actual separation is done in a post-processing step involving a multichannel wiener filter implemented using [norbert](https://github.com/sigsep/norbert). To perform separation into multiple sources, multiple models are trained for each particular target. While this makes the training less comfortable, it allows great flexibility to customize the training data for each target source. 
+_Open-Unmix_ is based on a three-layer bidirectional deep LSTM. The model learns to predict the magnitude spectrogram of a target, like _vocals_, from the magnitude spectrogram of a mixture input. Internally, the prediction is obtained by applying a mask on the input. The model is optimized in the magnitude domain using mean squared error and the actual separation is done in a post-processing step involving a multichannel wiener filter implemented using [norbert](https://github.com/sigsep/norbert). To perform separation into multiple sources, multiple models are trained for each particular target. While this makes the training less comfortable, it allows great flexibility to customize the training data for each target source.
 
 ### Input Stage
 
-The input of the model is a single or multichannel time domain signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch and `nb_timesteps` is the number of audio samples. The model processes spectrograms based on `torch.STFT` on the fly. Alternatively _open-unmix_ also takes magnitude spectrograms directly (if pre-computed) using `(nb_frames, nb_samples, nb_channels, nb_bins)`, where `nb_frames` and `nb_bins` are the time and frequency-dimensions of a Short-Time-Fourier-Transform.
-The input spectrogram is _standardized_ using the global mean and standard deviation for every frequency bin across all frames. Furthermore, we apply batch normalization in multiple stages of the model to make the training more robust to gain variation.
+_open-unmix_ operates in the time-frequency domain to perform its prediction. The input of the model is either:
+* **A time domain** signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch, `nb_channels` is 1 or 2 for mono or stereo audio, respectively, and `nb_timesteps` is the number of audio samples in the recording.
+
+ In that case, the model computes spectrograms with `torch.STFT` on the fly.
+
+* Alternatively _open-unmix_ also takes **magnitude spectrograms** directly.
+
+ In that case, the input is of shape `(nb_frames, nb_samples, nb_channels, nb_bins)`, where `nb_frames` and `nb_bins` are the time and frequency-dimensions of a Short-Time-Fourier-Transform.
+
+The input spectrogram is _standardized_ using the global mean and standard deviation for every frequency bin across all frames. Furthermore, we apply batch normalization in multiple stages of the model to make the training more robust against gain variation.
 
 ### Dimensionality reduction
 
@@ -42,7 +50,7 @@ Since PyTorch currently lacks an invertible STFT, the synthesis is performed in 
 
 For installation we recommend to use the [Anaconda](https://anaconda.org/) python distribution. To create a conda environment for _open-unmix_, simply run:
 
-`conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-cuda10`, `cpu-osx`], depending on your system. For now, we do have tested windows support.
+`conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
 
 ### Applying the pre-trained model on audio files
 
@@ -65,9 +73,9 @@ The separation can be controlled with additional parameters that influence the p
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
 | `--targets list(str)`           | Targets to be used for separation. For each target a model file with with same name is required.                                                  | `['vocals', 'drums', 'bass', 'other']`          |
-| `--niter <int>`           | umber of EM steps for the post-processing.`--niter 0` is equivalent to a ratio mask. More iterations, can get better interference reduction at the price of more artifacts.                                                  | `0`          |
-| `--alpha <float>`         |this value changes the exponent for the softmask $X^\alpha$. A smaller value allows for more X, whereas a larger value results in Y.                                                          | `1.0`            |
-| `--softmask`       | this option...  | not set            |
+| `--softmask`       | if activated, then the initial estimates for the sources will be obtained through a ratio mask of the mixture STFT, and not by using the default behavior of reconstructing waveforms by using the mixture phase.  | not set            |
+| `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether. More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
+| `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
 
 ### Colab Notebook
 
@@ -79,7 +87,7 @@ We provide a jupyter notebook online to separate files.
 python test.py --model /path/to/model/root/directory input_file.wav
 ```
 
-Note that `modeldir` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated.
+Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated.
 
 ### Evaluation using `museval`
 
@@ -99,13 +107,13 @@ See separate document [here](README_train.md).
 
 ## Design Choices / Contributions
 
-* we favored simplicity over performance to promote clearness of the code. The rationale is to have __open-unmix__ serve as a __baseline__ for future research while performance still meets current state-of-the-art (See [Evaluation](#Evaluation)). The results are comparable to those of `UHL1`/`UHL2` which obtained the best performance over all systems trained on MUSDB18 in the [SiSEC 2018 Evaluation campaign](https://sisec18.unmix.app).
+* we favored simplicity over performance to promote clearness of the code. The rationale is to have __open-unmix__ serve as a __baseline__ for future research while performance still meets current state-of-the-art (See [Evaluation](#Evaluation)). The results are comparable/better to those of `UHL1`/`UHL2` which obtained the best performance over all systems trained on MUSDB18 in the [SiSEC 2018 Evaluation campaign](https://sisec18.unmix.app).
 * We designed the code to allow researchers to reproduce existing results, quickly develop new architectures and add own user data for training and testing. We favored framework specifics implementations instead of having a monolithic repository.
 * _open-unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and comments and improve the computational performance. However, we are not looking for changes that only focused on improving the performance.
 
 ### Authors
 
-[Fabian-Robert Stöter](https://www.faroit.com/), Antoine Liutkus, INRIA and LIRMM, Montpellier, France
+[Fabian-Robert Stöter](https://www.faroit.com/), [Antoine Liutkus](https://github.com/aliutkus), Inria and LIRMM, Montpellier, France
 
 ### License
 
