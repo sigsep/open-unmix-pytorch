@@ -54,9 +54,9 @@ python test.py input_file.wav
 
 Additionally `--model umx` can be used to load a different pre-trained models, we currently support the following:
 
-* __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and should be used for comparison with other (older) methods
-
 * __`umxhq` (default)__ is trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#MUSDB18HQ) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
+
+* __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html) which is bandlimited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
 ### Separation Parameters
 

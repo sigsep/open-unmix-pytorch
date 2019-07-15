@@ -182,7 +182,7 @@ def load_datasets(parser, args):
 
     elif args.dataset == 'musdb':
         parser.add_argument('--is-wav', action='store_true', default=False,
-                            help='flags wav version of the dataset')
+                            help='loads wav instead of STEMS')
         parser.add_argument('--samples-per-track', type=int, default=64)
         parser.add_argument(
             '--source-augmentations', type=str, nargs='+',

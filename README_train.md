@@ -2,31 +2,36 @@
 
 ## Datasets
 
-_open-unmix_ uses standard PyTorch [Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. This repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. The dataset can be selected through a command line parameter.
+_open-unmix_ uses standard PyTorch [Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. This repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. The dataset can be selected through a command line argument:
 
-| Command line Argument      | Description                                                            | Default      |
+| Argument      | Description                                                            | Default      |
 |----------------------------|------------------------------------------------------------------------|--------------|
-| `--dataset <str>`          | Name of the dataset `{musdb,aligned,'sourcefolder', 'trackfolder_var', 'trackfolder_fix'}`                        | `musdb`      |
+| `--dataset <str>`          | Name of the dataset (select from `musdb`, `aligned`, `sourcefolder`, `trackfolder_var`, `trackfolder_fix`) | `musdb`      |
 | `--root <str>`           | path to root of dataset on disk.                                                  | `None`       |
-| `--output <str>`           | path where to save the trained output model as well as checkpoints.                         | `./umx`      |
-| `--no_cuda`           | disable cuda even if available                                              | not set      |
 
-### `MUSDBDataset` (default)
+### `MUSDBDataset` (`musdb`) (default)
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available dataset for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems.
 
 _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
-To train the vocal model with _open-unmix_ using the MUSDB18 dataset, you just need to set the following command:
+
+#### Dataset arguments
+
+| Argument      | Description                                                            | Default      |
+|---------------------|-----------------------------------------------|--------------|
+| `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `musdb`      |
+| `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
+| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
+
+#### Example
+
+To train the vocal model with _open-unmix_ using the MUSDB18 dataset use use the following arguments:
 
 ```bash
 python train.py --dataset musdb --root /data/musdb --target vocals
 ```
 
-#### Parameters
-
-
-
-### `AlignedDataset`
+### `AlignedDataset` (`aligned`)
 
 A dataset of that assumes multiple track folders where each track includes and input and an output file which directly corresponds to the the input and the output of the model.
 
@@ -34,7 +39,7 @@ The dataset does not perform any mixing but directly uses the target files that 
 
 This dataset is the most basic of all datasets provided here, due to the least amount of
 preprocessing, it is also the fastest option, however,
-it lacks any kind of source augmentations or custum mixing.
+it lacks any kind of source augmentations or custom mixing.
 
 Typical use cases:
 
@@ -143,8 +148,10 @@ python train.py --root /data --dataset trackfolder_var --target-file vocals.flac
 
 Additional training parameters and their default values are listed below:
 
-| Command line Argument      | Description                                                                     | Default         |
+| Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
+| `--output <str>`           | path where to save the trained output model as well as checkpoints.                         | `./umx`      |
+| `--no_cuda`           | disable cuda even if available                                              | not set      |
 | `--epochs <int>`           | number of epochs to train                                                       | `1000`          |
 | `--patience <int>`         | early stopping patience                                                         | `250`            |
 | `--batch-size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
@@ -154,11 +161,13 @@ Additional training parameters and their default values are listed below:
 | `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
 | `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
 | `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
-| `--bandwidth <int>`        | maximum model bandwidth in Hertz                                                | `16000`         |
-| `--nb-channels <int>`      | set number of channels for model (1 for mono, 2 for stereo)                     | `1`             |
+| `--bandwidth <int>`        | maximum bandwidth in Hertz processed by the LSTM. Output is always full bandwidth!                                                | `16000`         |
+| `--nb-channels <int>`      | set number of channels for model (1 for mono, 2 for stereo)                     | `2`             |
 | `--quiet`                  | disable print and progress bar during training                                   | not set         |
 
 ## Output Files
+
+
 
 ### Loss curves
 
