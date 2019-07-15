@@ -1,6 +1,3 @@
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.nn
 import argparse
 import model
 import data
@@ -9,11 +6,12 @@ import time
 from pathlib import Path
 import tqdm
 import json
-import torch.utils.data
 import utils
 import sklearn.preprocessing
 import numpy as np
 import random
+from git import Repo
+import os
 import copy
 
 
@@ -86,6 +84,10 @@ use_cuda = not args.no_cuda and torch.cuda.is_available()
 dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
 
 
+repo_dir = os.path.abspath(os.path.dirname(__file__))
+repo = Repo(repo_dir)
+commit = repo.head.commit.hexsha[:7]
+
 # use jpg or npy
 torch.manual_seed(args.seed)
 random.seed(args.seed)
@@ -144,7 +146,7 @@ unmix = model.OpenUnmix(
     max_bin=max_bin,
 ).to(device)
 
-optimizer = optim.Adam(
+optimizer = torch.optim.Adam(
     unmix.parameters(),
     lr=args.lr,
     weight_decay=args.weight_decay
@@ -182,7 +184,7 @@ def valid():
             x, y = x.to(device), y.to(device)
             Y_hat = unmix(x)
             Y = unmix.transform(y)
-            loss = F.mse_loss(Y_hat, Y)
+            loss = torch.nn.functional.mse_loss(Y_hat, Y)
             losses.update(loss.item(), Y.size(1))
         return losses.avg
 
@@ -231,6 +233,7 @@ for epoch in t:
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
         'train_time_history': train_times,
+        'commit_hash': commit
     }
 
     with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
