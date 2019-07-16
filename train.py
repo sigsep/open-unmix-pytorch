@@ -1,6 +1,3 @@
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.nn
 import argparse
 import model
 import data
@@ -9,11 +6,12 @@ import time
 from pathlib import Path
 import tqdm
 import json
-import torch.utils.data
 import utils
 import sklearn.preprocessing
 import numpy as np
 import random
+from git import Repo
+import os
 import copy
 
 
@@ -23,36 +21,37 @@ parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
 parser.add_argument('--target', type=str, default='vocals',
-                    help='source target for musdb')
+                    help='target source (will be passed to the dataset)')
 
 # Dataset paramaters
 parser.add_argument('--dataset', type=str, default="musdb",
-                    choices=['musdb', 'aligned', 'unaligned', 'mixedsources'],
+                    choices=[
+                        'musdb', 'aligned', 'sourcefolder',
+                        'trackfolder_var', 'trackfolder_fix'
+                    ],
                     help='Name of the dataset.')
 parser.add_argument('--root', type=str, help='root path of dataset')
-parser.add_argument('--output', type=str, default="OSU",
+parser.add_argument('--output', type=str, default="open-unmix",
                     help='provide output path base folder name')
 
 # Trainig Parameters
-parser.add_argument('--epochs', type=int, default=1000, metavar='N',
-                    help='number of epochs to train (default: 1000)')
-parser.add_argument('--patience', type=int, default=140,
-                    help='early stopping patience (default: 20)')
-parser.add_argument('--batch-size', type=int, default=16,
-                    help='batch size')
+parser.add_argument('--epochs', type=int, default=1000)
+parser.add_argument('--batch-size', type=int, default=16)
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
-parser.add_argument('--lr-decay-patience', type=int, default=70,
-                    help='lr decay patience for plateaeu scheduler')
-parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
+parser.add_argument('--patience', type=int, default=140,
+                    help='maximum number of epochs to train (default: 140)')
+parser.add_argument('--lr-decay-patience', type=int, default=80,
+                    help='lr decay patience for plateau scheduler')
+parser.add_argument('--lr-decay-gamma', type=float, default=0.3,
                     help='gamma of learning rate scheduler decay')
 parser.add_argument('--weight-decay', type=float, default=0.00001,
-                    help='gamma of learning rate scheduler decay')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
+                    help='weight decay')
+parser.add_argument('--seed', type=int, default=42, metavar='S',
+                    help='random seed (default: 42)')
 
 # Model Parameters
-parser.add_argument('--seq-dur', type=float, default=5.0,
+parser.add_argument('--seq-dur', type=float, default=6.0,
                     help='Sequence duration in seconds'
                     'value of <=0.0 will use full/variable length')
 parser.add_argument('--unidirectional', action='store_true', default=False,
@@ -62,14 +61,13 @@ parser.add_argument('--nfft', type=int, default=4096,
 parser.add_argument('--nhop', type=int, default=1024,
                     help='STFT hop size')
 parser.add_argument('--hidden-size', type=int, default=512,
-                    help='hidden size parameter of FC bottleneck layers')
-parser.add_argument('--bandwidth', type=int, default=15000,
+                    help='hidden size parameter of dense bottleneck layers')
+parser.add_argument('--bandwidth', type=int, default=16000,
                     help='maximum model bandwidth in herz')
-parser.add_argument('--nb-channels', type=int, default=1,
+parser.add_argument('--nb-channels', type=int, default=2,
                     help='set number of channels for model (1, 2)')
 parser.add_argument('--nb-workers', type=int, default=0,
-                    help='Number of workers for dataloader.'
-                    'Can be >0 e.g. when loading wav files')
+                    help='Number of workers for dataloader.')
 
 # Misc Parameters
 parser.add_argument('--quiet', action='store_true', default=False,
@@ -82,6 +80,10 @@ args, _ = parser.parse_known_args()
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
 
+
+repo_dir = os.path.abspath(os.path.dirname(__file__))
+repo = Repo(repo_dir)
+commit = repo.head.commit.hexsha[:7]
 
 # use jpg or npy
 torch.manual_seed(args.seed)
@@ -132,18 +134,16 @@ max_bin = utils.bandwidth_to_max_bin(
 )
 
 unmix = model.OpenUnmix(
-    power=1,
     input_mean=input_scaler.mean_,
     input_scale=safe_input_scale,
-    output_mean=None,
     nb_channels=args.nb_channels,
     hidden_size=args.hidden_size,
     n_fft=args.nfft,
     n_hop=args.nhop,
-    max_bin=max_bin
+    max_bin=max_bin,
 ).to(device)
 
-optimizer = optim.Adam(
+optimizer = torch.optim.Adam(
     unmix.parameters(),
     lr=args.lr,
     weight_decay=args.weight_decay
@@ -181,7 +181,7 @@ def valid():
             x, y = x.to(device), y.to(device)
             Y_hat = unmix(x)
             Y = unmix.transform(y)
-            loss = F.mse_loss(Y_hat, Y)
+            loss = torch.nn.functional.mse_loss(Y_hat, Y)
             losses.update(loss.item(), Y.size(1))
         return losses.avg
 
@@ -230,6 +230,7 @@ for epoch in t:
         'train_loss_history': train_losses,
         'valid_loss_history': valid_losses,
         'train_time_history': train_times,
+        'commit': commit
     }
 
     with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
