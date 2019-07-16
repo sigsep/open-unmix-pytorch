@@ -17,11 +17,12 @@ _Open-Unmix_ is based on a three-layer bidirectional deep LSTM. The model learns
 ### Input Stage
 
 _open-unmix_ operates in the time-frequency domain to perform its prediction. The input of the model is either:
-* **A time domain** signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch, `nb_channels` is 1 or 2 for mono or stereo audio, respectively, and `nb_timesteps` is the number of audio samples in the recording.
+
+* __A time domain__ signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch, `nb_channels` is 1 or 2 for mono or stereo audio, respectively, and `nb_timesteps` is the number of audio samples in the recording.
 
  In that case, the model computes spectrograms with `torch.STFT` on the fly.
 
-* Alternatively _open-unmix_ also takes **magnitude spectrograms** directly.
+* Alternatively _open-unmix_ also takes **magnitude spectrograms** directly (e.g. when pre-computed and loaded from disk).
 
  In that case, the input is of shape `(nb_frames, nb_samples, nb_channels, nb_bins)`, where `nb_frames` and `nb_bins` are the time and frequency-dimensions of a Short-Time-Fourier-Transform.
 
@@ -34,7 +35,7 @@ The LSTM is not operating on the original input spectrogram resolution. Instead,
 ### Bidirectional-LSTM
 
 The core of __open-unmix__ is a three layer bidirectional [LSTM network](https://dl.acm.org/citation.cfm?id=1246450). Due to its recurrent nature, the model can be trained and evaluated on arbitrary length of audio signals. Since the model takes information from past and future simultaneously, the model cannot be used in an online/real-time manner.
-An uni-directional model can easily be trained as described [here].
+An uni-directional model can easily be trained as described [here](docs/training.md).
 
 ### Output Stage
 
@@ -42,7 +43,7 @@ After applying the LSTM, the signal is decoded back to its original input dimens
 
 ## Separation
 
-Since PyTorch currently lacks an invertible STFT, the synthesis is performed in numpy. For inference, we rely on an implementation of a multichannel Wiener filter, that is a very popular way of filtering multichannel audio for several applications, notably speech enhancement and source separation. The `norbert` module assumes to have some way of estimating power-spectrograms for all the audio sources (non-negative) composing a mixture.
+Since PyTorch currently lacks an invertible STFT, the synthesis is performed in numpy. For inference, we rely on [an implementation](https://github.com/sigsep/norbert) of a multichannel Wiener filter that is a very popular way of filtering multichannel audio for several applications, notably speech enhancement and source separation. The `norbert` module assumes to have some way of estimating power-spectrograms for all the audio sources (non-negative) composing a mixture.
 
 ## Getting started
 
@@ -77,11 +78,11 @@ The separation can be controlled with additional parameters that influence the p
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether. More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
 | `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
 
-### Colab Notebook
+### Jupyter Notebook
 
-We provide a jupyter notebook online to separate files.
+We provide a [notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
 
-### Load other saved models
+### Load user models
 
 ```bash
 python test.py --model /path/to/model/root/directory input_file.wav
