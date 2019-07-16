@@ -104,7 +104,7 @@ and then run the evaluation using
 
 ## Training
 
-See separate document [here](README_train.md).
+See separate document [here](docs/training.md).
 
 ## Design Choices / Contributions
 
