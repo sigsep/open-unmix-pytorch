@@ -40,13 +40,13 @@ parser.add_argument('--batch-size', type=int, default=16)
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
 parser.add_argument('--patience', type=int, default=140,
-                    help='maximum number of epochs to train (default: 1000)')
+                    help='maximum number of epochs to train (default: 140)')
 parser.add_argument('--lr-decay-patience', type=int, default=80,
-                    help='lr decay patience for plateaeu scheduler')
+                    help='lr decay patience for plateau scheduler')
 parser.add_argument('--lr-decay-gamma', type=float, default=0.3,
                     help='gamma of learning rate scheduler decay')
 parser.add_argument('--weight-decay', type=float, default=0.00001,
-                    help='gamma of learning rate scheduler decay')
+                    help='weight decay')
 parser.add_argument('--seed', type=int, default=42, metavar='S',
                     help='random seed (default: 42)')
 
@@ -67,8 +67,7 @@ parser.add_argument('--bandwidth', type=int, default=16000,
 parser.add_argument('--nb-channels', type=int, default=2,
                     help='set number of channels for model (1, 2)')
 parser.add_argument('--nb-workers', type=int, default=0,
-                    help='Number of workers for dataloader.'
-                    'Can be >0 e.g. when loading wav files')
+                    help='Number of workers for dataloader.')
 
 # Misc Parameters
 parser.add_argument('--quiet', action='store_true', default=False,

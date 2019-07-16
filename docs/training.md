@@ -1,27 +1,32 @@
 # Training Open-Unmix
 
-## Datasets
-
-_open-unmix_ uses standard PyTorch [`torch.utils.data.Dataset`](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. The repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. Furthermore we also provide a template Dataset if you want to start using your own dataset. The dataset can be selected through a command line argument:
-
-| Argument      | Description                                                            | Default      |
-|----------------------------|------------------------------------------------------------------------|--------------|
-| `--dataset <str>`          | Name of the dataset (select from `musdb`, `aligned`, `sourcefolder`, `trackfolder_var`, `trackfolder_fix`) | `musdb`      |
-| `--root <str>`           | path to root of dataset on disk.                                                  | `None`       |
-
-### `MUSDBDataset` (musdb)
+Both models, `umxhq` and `umx` that are provided with pre-trained weights, can be trained using the default parameters of the `train.py` function.
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available datasets for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems. _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
 
-Training `MUSDB18` using _open-unmix_ comes with several design decisions to improve efficiency and performance.
+To directly train a vocal model with _open-unmix_, we first would need to download one of the datasets and place in _unzipped_ in a directory of your choice (called `root`).
 
-* __chunking__: we don not feed full audio tracks into _open-unmix_ but instead chunk the audio into 6s excerpts (`--seq-dur 6.0`).
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--root <str>` | path to root of dataset on disk.                                                  | `None`       |
+
+Also note that, if `--root` is not specified, we automatically download a 7 second preview version of the MUSDB18 dataset. While this is comfortable for testing purposes, we wouldn't recommend to actually train your model on this.
+
+Training can be started using
+
+```bash
+python train.py --root path/to/musdb18 --target vocals
+```
+
+Training `MUSDB18` using _open-unmix_ comes with several design decisions that we made as part of our defaults to improve efficiency and performance:
+
+* __chunking__: we do not feed full audio tracks into _open-unmix_ but instead chunk the audio into 6s excerpts (`--seq-dur 6.0`).
 * __balanced track sampling__: to not create a bias for longer audio tracks we randomly yield one track from MUSDB18 and select a random chunk subsequently. In one epoch we select (on average) 64 samples from each track.
 * __source augmentation__: we apply random gains between `0.25` and `1.25` to all sources before mixing. Furthermore, we randomly swap the channels the input mixture.
 * __random track mixing__: for a given target we select a _random track_ with replacement. To yield a mixture we draw the interfering sources from different tracks (again with replacement) to increase generalization of the model.
 * __fixed validation split__: we provide a fixed validation split of [16 tracks](https://github.com/sigsep/sigsep-mus-db/blob/b283da5b8f24e84172a60a06bb8f3dacd57aa6cd/musdb/configs/mus.yaml#L41). We evaluate on these tracks in full length instead of using chunking to have evaluation as close as possible to the actual test data.
 
-#### Dataset arguments
+Some of the parameters for the MUSDB sampling can be controlled using the following arguments:
 
 | Argument      | Description                                                            | Default      |
 |---------------------|-----------------------------------------------|--------------|
@@ -29,15 +34,48 @@ Training `MUSDB18` using _open-unmix_ comes with several design decisions to imp
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
 | `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
 
-Note that, if `--root` is not specified, we automatically download a 7 second preview version of the MUSDB18 dataset. While this is comfortable for testing purposes, we wouldn't recommend to actually train your model on this.
+## Training and Model Parameters
 
-#### Example
+An extensive list of additional training parameters allows researchers to quickly try out different parameterizations such as a different FFT size. The table below, we list the additional training parameters and their default values (used for `umxhq` and `umx`L:
 
-To train the vocal model with _open-unmix_ using the MUSDB18 dataset use the following arguments:
+| Argument      | Description                                                                     | Default         |
+|----------------------------|---------------------------------------------------------------------------------|-----------------|
+| `--target <str>`           | name of target source (will be passed to the dataset)                         | `vocals`      |
+| `--output <str>`           | path where to save the trained output model as well as checkpoints.                         | `./open-unmix`      |
+| `--no_cuda`           | disable cuda even if available                                              | not set      |
+| `--epochs <int>`           | Number of epochs to train                                                       | `1000`          |
+| `--batch-size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
+| `--patience <int>`         | early stopping patience                                                         | `140`            |
+| `--seq-dur <int>`          | Sequence duration in seconds of chunks taken from the dataset. A value of `<=0.0` results in full/variable length               | `6.0`           |
+| `--unidirectional`           | changes the bidirectional LSTM to unidirectional (for real-time applications)  | not set      |
+| `--hidden-size <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
+| `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
+| `--lr <float>`             | learning rate                                                                   | `0.0001`        |
+| `--lr-decay-patience <int>`             | learning rate decay patience for plateau scheduler                                                                   | `80`        |
+| `--lr-decay-gamma <float>`             | gamma of learning rate plateau scheduler.  | `0.3`        |
+| `--weight-decay <float>`             | weight decay for regularization                                                                   | `0.00001`        |
+| `--bandwidth <int>`        | maximum bandwidth in Hertz processed by the LSTM. Input and Output is always full bandwidth! | `16000`         |
+| `--nb-channels <int>`      | set number of channels for model (1 for mono (spectral downmix is applied,) 2 for stereo)                     | `2`             |
+| `--nb-workers <int>`      | Number of (parallel) workers for data-loader, can be safely increased for wav files   | `0` |
+| `--quiet`                  | disable print and progress bar during training                                   | not set         |
+| `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
 
-```bash
-python train.py --dataset musdb --root /data/musdb --target vocals
-```
+### Training details of `umxhq`
+
+The training of `umxhq` took place on Nvidia RTX2080 cards. Equipped with fast SSDs and `--nb-workers 4`, we could utilize around 90% of the GPU, thus training time was around 80 seconds per epoch. We ran four different seeds for each target and selected the model with the lowest validation loss.
+
+The training and validation loss curves are plotted below:
+
+![umx-hq](https://user-images.githubusercontent.com/72940/61230598-9e6e3b00-a72a-11e9-8a89-aca1862341eb.png)
+
+## Other Datasets
+
+_open-unmix_ uses standard PyTorch [`torch.utils.data.Dataset`](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset) classes. The repository comes with __five__ different datasets which cover a wide range of tasks and applications around source separation. Furthermore we also provide a template Dataset if you want to start using your own dataset. The dataset can be selected through a command line argument:
+
+| Argument      | Description                                                            | Default      |
+|----------------------------|------------------------------------------------------------------------|--------------|
+| `--dataset <str>`          | Name of the dataset (select from `musdb`, `aligned`, `sourcefolder`, `trackfolder_var`, `trackfolder_fix`) | `musdb`      |
 
 ### `AlignedDataset` (aligned)
 
@@ -58,6 +96,13 @@ Typical use cases:
 data/train/01/mixture.wav --> input
 data/train/01/vocals.wav ---> output
 ```
+
+#### Parameters
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+|`--input-file <str>` | input file name | `None` |
+|`--output-file <str>` | output file name | `None` |
 
 #### Example
 
@@ -87,12 +132,20 @@ train/vocals/track11.wav ---------------------> output
 
 #### Parameters
 
-...
+| Argument | Description | Default |
+|----------|-------------|---------|
+|`--interferer-dirs list[<str>]` | list of directories used as interferers | `None` |
+|`--target-dir <str>` | directory that contains the target source | `None` |
+|`--ext <str>` | File extension | `.wav` |
+|`--ext <str>` | File extension | `.wav` |
+|`--nb-train-samples <str>` | Number of samples drawn for training | `1000` |
+|`--nb-valid-samples <str>` | Number of samples drawn for validation | `100` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
 
 #### Example
 
 ```bash
-python train.py --dataset sourcefolder --root /data --target-dir vocals --interferer-dirs carnoise windnoise --ext .ogg --nb-train-samples 1000
+python train.py --dataset sourcefolder --root /data --target-dir vocals --interferer-dirs car_noise wind_noise --ext .ogg --nb-train-samples 1000
 ```
 
 ### `FixedSourcesTrackFolderDataset` (trackfolder_fix)
@@ -115,6 +168,15 @@ train/1/bass.wav -(interferer2) --/
 
 train/1/vocals.wav -------------------> output
 ```
+
+#### Parameters
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+|`--target-file <str>` | Target file (includes extension) | `None` |
+|`--interferer-files list[<str>]` | list of interfering sources | `None` |
+|`--random-track-mix` | Applies random track mixing | `False` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
 
 #### Example
 
@@ -142,6 +204,14 @@ train/1/marimba.wav --> input target  /
 train/1/vocals.wav -----------------------> output
 ```
 
+#### Parameters
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+|`--target-file <str>` | file name of target file | `None` |
+|`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+
 #### Example
 
 ```
@@ -149,6 +219,8 @@ python train.py --root /data --dataset trackfolder_var --target-file vocals.flac
 ```
 
 ### Template Dataset
+
+In case you want to create your own dataset we provide a template for the open-unmix API here:
 
 ```python
 from utils import load_audio, load_info
@@ -215,40 +287,3 @@ class Model(nn.Module):
 
         return X
 ```
-
-## Training and Model Parameters
-
-Additional training parameters and their default values are listed below:
-
-| Argument      | Description                                                                     | Default         |
-|----------------------------|---------------------------------------------------------------------------------|-----------------|
-| `--output <str>`           | path where to save the trained output model as well as checkpoints.                         | `./umx`      |
-| `--no_cuda`           | disable cuda even if available                                              | not set      |
-| `--epochs <int>`           | number of epochs to train                                                       | `1000`          |
-| `--patience <int>`         | early stopping patience                                                         | `250`            |
-| `--batch-size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
-| `--seq-dur <int>`          | Sequence duration in seconds of excerpts taken from the dataset.                | `6.0`           |
-| `--lr <float>`             | learning rate                                                                   | `0.0001`        |
-| `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
-| `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
-| `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
-| `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
-| `--bandwidth <int>`        | maximum bandwidth in Hertz processed by the LSTM. Output is always full bandwidth!                                                | `16000`         |
-| `--nb-channels <int>`      | set number of channels for model (1 for mono, 2 for stereo)                     | `2`             |
-| `--quiet`                  | disable print and progress bar during training                                   | not set         |
-
-## Output Files
-
-* `args`: All command line parameters that were used to train the model
-* `
-
-### Training details of `umxhq` and `umx`
-
-* parameters for both models are identical
-* around 80 seconds per epoch on an Nvidia RTX2080.
-* we ran 4 different seeds and for each target collected the model with the lowest validation loss.
-
-![umx-hq](https://user-images.githubusercontent.com/72940/61230598-9e6e3b00-a72a-11e9-8a89-aca1862341eb.png)
-
-
-### Arguments
