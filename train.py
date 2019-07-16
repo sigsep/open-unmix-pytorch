@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(description='Open Unmix Trainer')
 
 # which target do we want to train?
 parser.add_argument('--target', type=str, default='vocals',
-                    help='source target for musdb')
+                    help='target source (will be passed to the dataset)')
 
 # Dataset paramaters
 parser.add_argument('--dataset', type=str, default="musdb",
@@ -31,21 +31,19 @@ parser.add_argument('--dataset', type=str, default="musdb",
                     ],
                     help='Name of the dataset.')
 parser.add_argument('--root', type=str, help='root path of dataset')
-parser.add_argument('--output', type=str, default="OSU",
+parser.add_argument('--output', type=str, default="open-unmix",
                     help='provide output path base folder name')
 
 # Trainig Parameters
-parser.add_argument('--epochs', type=int, default=1000, metavar='N',
-                    help='number of epochs to train (default: 1000)')
-parser.add_argument('--patience', type=int, default=140,
-                    help='early stopping patience (default: 20)')
-parser.add_argument('--batch-size', type=int, default=16,
-                    help='batch size')
+parser.add_argument('--epochs', type=int, default=1000)
+parser.add_argument('--batch-size', type=int, default=16)
 parser.add_argument('--lr', type=float, default=0.001,
                     help='learning rate, defaults to 1e-3')
-parser.add_argument('--lr-decay-patience', type=int, default=70,
+parser.add_argument('--patience', type=int, default=140,
+                    help='maximum number of epochs to train (default: 1000)')
+parser.add_argument('--lr-decay-patience', type=int, default=80,
                     help='lr decay patience for plateaeu scheduler')
-parser.add_argument('--lr-decay-gamma', type=float, default=0.1,
+parser.add_argument('--lr-decay-gamma', type=float, default=0.3,
                     help='gamma of learning rate scheduler decay')
 parser.add_argument('--weight-decay', type=float, default=0.00001,
                     help='gamma of learning rate scheduler decay')
@@ -63,7 +61,7 @@ parser.add_argument('--nfft', type=int, default=4096,
 parser.add_argument('--nhop', type=int, default=1024,
                     help='STFT hop size')
 parser.add_argument('--hidden-size', type=int, default=512,
-                    help='hidden size parameter of FC bottleneck layers')
+                    help='hidden size parameter of dense bottleneck layers')
 parser.add_argument('--bandwidth', type=int, default=16000,
                     help='maximum model bandwidth in herz')
 parser.add_argument('--nb-channels', type=int, default=2,
