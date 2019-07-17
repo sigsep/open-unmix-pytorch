@@ -106,12 +106,12 @@ and then run the evaluation using
 
 Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 2018](https://sisec18.unmix.app). The performance of `UMXHQ` and `UMX` is almost identical since it was evaluated on compressed STEMS.
 
-![boxplot](https://user-images.githubusercontent.com/72940/61359582-e309eb80-a87c-11e9-8253-282c65c3d562.png)
+![boxplot](https://user-images.githubusercontent.com/72940/61372474-7c45fb80-a897-11e9-8abb-0acd3f267542.png)
 
-Also note that
+Note that
 
 * [`STL1`, `STL2`, `TAK2`, `TAK3`, `TAU1`, `UHL3`] used additional training datasets which is why we didn't list them here.
-* [`HEL1`, `RPCA`, `TAK1`, `UHL1`, `UHL2`] do not provide any code.
+* [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
 
 ## Training
 
