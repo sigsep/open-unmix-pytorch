@@ -79,7 +79,7 @@ _open-unmix_ uses standard PyTorch [`torch.utils.data.Dataset`](https://pytorch.
 
 ### `AlignedDataset` (aligned)
 
-This dataset assumes multiple track folders where each track includes one single input and one output file, directly corresponding to the input and the output of the model.
+This dataset assumes multiple track folders, where each track includes an input and one output file, directly corresponding to the input and the output of the model.
 
 This dataset is the most basic of all datasets provided here, due to the least amount of
 preprocessing, it is also the fastest option, however, it lacks any kind of source augmentations or custom mixing. Instead, it directly uses the target files that are within the folder. The filenames would have to be identical for each track. E.g, for the first sample of the training, input could be `1/mixture.wav` and output could be `1/vocals.wav`.
