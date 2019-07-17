@@ -10,19 +10,6 @@ We provide models that were pre-trained  on the [MUSDB18](https://sigsep.github.
 
 We also provide implementations for [tensorflow]() and [nnabla]().
 
-## Reference
-
-1. If you use open-unmix for your research or found it helpful, please be so kind so as to cite the following paper:
-
-  > @article{stoter19,  
-  author={F.-R. St\\"oter and S. Uhlich and A. Liutkus and Y. Mitsufuji},  
-  title={Open-unmix: a reference implementation for source separation},  
-  journal={Journal of Open-Source Research},  
-  year=2019,  
-  note={submitted}}
-
-2. Please note that the official acronym for _open-unmix_ is **UMX**.
-
 ## The Model
 
 _Open-Unmix_ is based on a three-layer bidirectional deep LSTM. The model learns to predict the magnitude spectrogram of a target, like _vocals_, from the magnitude spectrogram of a mixture input. Internally, the prediction is obtained by applying a mask on the input. The model is optimized in the magnitude domain using mean squared error and the actual separation is done in a post-processing step involving a multichannel wiener filter implemented using [norbert](https://github.com/sigsep/norbert). To perform separation into multiple sources, multiple models are trained for each particular target. While this makes the training less comfortable, it allows great flexibility to customize the training data for each target source.
@@ -128,6 +115,65 @@ See separate document [here](docs/training.md).
 ### Authors
 
 [Fabian-Robert Stöter](https://www.faroit.com/), [Antoine Liutkus](https://github.com/aliutkus), Inria and LIRMM, Montpellier, France
+
+## References
+
+<details><summary>If you use open-unmix for your research – Cite Open-Unmix</summary>
+  
+```latex
+@article{stoter19,  
+  author={F.-R. St\\"oter and S. Uhlich and A. Liutkus and Y. Mitsufuji},  
+  title={Open-unmix: a reference implementation for source separation},  
+  journal={Journal of Open-Source Research},  
+  year=2019,  
+  note={submitted}}
+}
+```
+
+</p>
+</details>
+
+<details><summary>If you use the MUSDB dataset for your research - Cite the MUSDB18 Dataset</summary>
+<p>
+
+```latex
+@misc{MUSDB18,
+  author       = {Rafii, Zafar and
+                  Liutkus, Antoine and
+                  Fabian-Robert St{\"o}ter and
+                  Mimilakis, Stylianos Ioannis and
+                  Bittner, Rachel},
+  title        = {The {MUSDB18} corpus for music separation},
+  month        = dec,
+  year         = 2017,
+  doi          = {10.5281/zenodo.1117372},
+  url          = {https://doi.org/10.5281/zenodo.1117372}
+}
+```
+
+</p>
+</details>
+
+
+<details><summary>If compare your results with SiSEC 2018 Participants - Cite the SiSEC 2018 LVA/ICA Paper</summary>
+<p>
+
+```latex
+@inproceedings{SiSEC18,
+  author="St{\"o}ter, Fabian-Robert and Liutkus, Antoine and Ito, Nobutaka",
+  title="The 2018 Signal Separation Evaluation Campaign",
+  booktitle="Latent Variable Analysis and Signal Separation:
+  14th International Conference, LVA/ICA 2018, Surrey, UK",
+  year="2018",
+  pages="293--305"
+}
+```
+
+</p>
+</details>
+
+
+⚠️ Please note that the official acronym for _open-unmix_ is **UMX**.
 
 ### License
 
