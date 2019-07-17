@@ -102,9 +102,9 @@ and then run the evaluation using
 
 `python eval.py --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
 
-### Results compared to SiSEC 2018
+### Results compared to SiSEC 2018 (SDR/Vocals)
 
-Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 2018](https://sisec18.unmix.app). The performance of `UMXHQ` and `UMX` is almost identical since it was evaluated on compressed STEMS. e 
+Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 2018](https://sisec18.unmix.app). The performance of `UMXHQ` and `UMX` is almost identical since it was evaluated on compressed STEMS.
 
 ![boxplot](https://user-images.githubusercontent.com/72940/61359582-e309eb80-a87c-11e9-8253-282c65c3d562.png)
 
