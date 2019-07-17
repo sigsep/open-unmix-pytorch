@@ -113,6 +113,15 @@ Note that
 * [`STL1`, `STL2`, `TAK2`, `TAK3`, `TAU1`, `UHL3`] used additional training datasets which is why we didn't list them here.
 * [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
 
+#### Scores (Median of frames, Median of tracks)
+
+|target|SDR   |SIR      |SAR     |
+|------|------|---------|--------|
+|vocals|6.318537|13.329102|6.515390|
+|bass  |5.234395|10.927005|6.338377|
+|drums |5.730680|11.117455|6.022550|
+|other |4.020180|6.592935 |4.742183|
+
 ## Training
 
 See separate document [here](docs/training.md).
