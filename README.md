@@ -102,6 +102,17 @@ and then run the evaluation using
 
 `python eval.py --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
 
+### Results compared to SiSEC 2018
+
+Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 2018](https://sisec18.unmix.app). The performance of `UMXHQ` and `UMX` is almost identical since it was evaluated on compressed STEMS. e 
+
+![boxplot](https://user-images.githubusercontent.com/72940/61356654-16497c00-a877-11e9-967c-2d2ab5e0801c.png)
+
+Also note that
+
+* [`STL1`, `STL2`, `TAK2`, `TAK3`, `TAU1`, `UHL3`] used additional training datasets.
+* [`HEL1`, `RPCA`, `TAK1`, `TAK2`, `TAK3`, `TAU1`, `UHL1`, `UHL2`, `UHL3`] do not provide any cod
+
 ## Training
 
 See separate document [here](docs/training.md).
