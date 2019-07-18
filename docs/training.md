@@ -24,13 +24,13 @@ Training `MUSDB18` using _open-unmix_ comes with several design decisions that w
 * __balanced track sampling__: to not create a bias for longer audio tracks we randomly yield one track from MUSDB18 and select a random chunk subsequently. In one epoch we select (on average) 64 samples from each track.
 * __source augmentation__: we apply random gains between `0.25` and `1.25` to all sources before mixing. Furthermore, we randomly swap the channels the input mixture.
 * __random track mixing__: for a given target we select a _random track_ with replacement. To yield a mixture we draw the interfering sources from different tracks (again with replacement) to increase generalization of the model.
-* __fixed validation split__: we provide a fixed validation split of [16 tracks](https://github.com/sigsep/sigsep-mus-db/blob/b283da5b8f24e84172a60a06bb8f3dacd57aa6cd/musdb/configs/mus.yaml#L41). We evaluate on these tracks in full length instead of using chunking to have evaluation as close as possible to the actual test data.
+* __fixed validation split__: we provide a fixed validation split of [14 tracks](https://github.com/sigsep/sigsep-mus-db/blob/b283da5b8f24e84172a60a06bb8f3dacd57aa6cd/musdb/configs/mus.yaml#L41). We evaluate on these tracks in full length instead of using chunking to have evaluation as close as possible to the actual test data.
 
 Some of the parameters for the MUSDB sampling can be controlled using the following arguments:
 
 | Argument      | Description                                                            | Default      |
 |---------------------|-----------------------------------------------|--------------|
-| `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `musdb`      |
+| `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `True`      |
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
 | `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
 
@@ -93,8 +93,12 @@ Typical use cases:
 #### File Structure
 
 ```
-data/train/01/mixture.wav --> input
-data/train/01/vocals.wav ---> output
+data/train/1/mixture.wav --> input
+data/train/1/vocals.wav ---> output
+...
+data/valid/1/mixture.wav --> input
+data/valid/1/vocals.wav ---> output
+
 ```
 
 #### Parameters
@@ -107,7 +111,7 @@ data/train/01/vocals.wav ---> output
 #### Example
 
 ```bash
-python train.py --dataset aligned --root /data/data --input_file mixture.wav --output_file vocals.wav
+python train.py --dataset aligned --root /dataset --input_file mixture.wav --output_file vocals.wav
 ```
 
 ### `SourceFolderDataset` (sourcefolder)
@@ -216,74 +220,4 @@ train/1/vocals.wav -----------------------> output
 
 ```
 python train.py --root /data --dataset trackfolder_var --target-file vocals.flac --ext .wav
-```
-
-### Template Dataset
-
-In case you want to create your own dataset we provide a template for the open-unmix API here:
-
-```python
-from utils import load_audio, load_info
-class TemplateDataset(torch.utils.data.Dataset):
-    """A template dataset class for you to implement custom datasets."""
-
-    def __init__(self, root, split='train', target='vocals'):
-        """Initialize the dataset
-        """
-        self.root = root
-        self.tracks = get_tracks(root, split)
-
-    def __getitem__(self, index):
-        """Return a single training example
-        """
-        path = self.tracks[index]
-        x = load_audio(path)
-        y = load_audio(path)
-        return x, y
-
-    def __len__(self):
-        """Return the number of audio samples"""
-        return len(self.tracks)
-```
-
-### Template Model
-
-```python
-from model import Spectrogram, STFT, NoOp
-class Model(nn.Module):
-    def __init__(
-        self,
-        n_fft=4096,
-        n_hop=1024,
-        nb_channels=2,
-        input_is_spectrogram=False,
-        sample_rate=44100,
-    ):
-        """
-        Input:  (batch, channel, sample)
-            or  (frame, batch, channels, frequency)
-        Output: (frame, batch, channels, frequency)
-        """
-
-        super(OpenUnmix, self).__init__()
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
-        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        # register sample_rate to check at inference time
-        self.register_buffer('sample_rate', torch.tensor(sample_rate))
-
-        if input_is_spectrogram:
-            self.transform = NoOp()
-        else:
-            self.transform = nn.Sequential(self.stft, self.spec)
-
-
-    def forward(self, mix):
-        # transform to spectrogram on the fly
-        X = self.transform(mix)
-        nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
-
-        # transform X to estimate
-        # ....
-
-        return X
 ```
