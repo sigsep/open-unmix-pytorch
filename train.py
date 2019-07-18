@@ -21,8 +21,9 @@ tqdm.monitor_interval = 0
 def train(args, unmix, device, train_sampler, optimizer):
     losses = utils.AverageMeter()
     unmix.train()
-
-    for x, y in tqdm.tqdm(train_sampler, disable=args.quiet):
+    pbar = tqdm.tqdm(train_sampler, disable=args.quiet)
+    for x, y in pbar:
+        pbar.set_description("Training batch")
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         Y_hat = unmix(x)
@@ -58,12 +59,12 @@ def get_statistics(args, dataset):
     dataset_scaler = copy.deepcopy(dataset)
     dataset_scaler.samples_per_track = 1
     dataset_scaler.augmentations = None
-    for x, y in tqdm.tqdm(dataset_scaler, disable=args.quiet):
+    pbar = tqdm.tqdm(dataset_scaler, disable=args.quiet)
+
+    for x, y in pbar:
+        pbar.set_description("Compute dataset statistics")
         X = spec(x[None, ...])
         scaler.partial_fit(np.squeeze(X))
-
-    if not args.quiet:
-        print("Computed global average spectrogram")
 
     # set inital input scaler values
     std = np.maximum(
@@ -199,6 +200,7 @@ def main():
     best_epoch = 0
 
     for epoch in t:
+        t.set_description("Training Epoch")
         end = time.time()
         train_loss = train(args, unmix, device, train_sampler, optimizer)
         valid_loss = valid(args, unmix, device, valid_sampler, optimizer)
