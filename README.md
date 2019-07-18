@@ -65,6 +65,8 @@ Additionally `--model umx` can be used to load a different pre-trained models, w
 
 * __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html) which is bandlimited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
+We provide a [notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
+
 ### Separation Parameters
 
 The separation can be controlled with additional parameters that influence the performance of the separation
@@ -76,11 +78,7 @@ The separation can be controlled with additional parameters that influence the p
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether. More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
 | `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
 
-### Jupyter Notebook
-
-We provide a [notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
-
-### Load user models
+### Load user-trained models
 
 ```bash
 python test.py --model /path/to/model/root/directory input_file.wav
@@ -122,7 +120,12 @@ Note that
 
 ## Training
 
-See separate document [here](docs/training.md).
+Details on the training is provided in a separate document [here](docs/training.md).
+
+## Extensions
+
+Details on how _open-unmix_ can be extended or improved for future research on music separation is described in a separate document [here](docs/extensions.md).
+
 
 ## Design Choices / Contributions
 
