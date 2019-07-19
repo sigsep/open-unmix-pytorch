@@ -35,7 +35,7 @@ def train(args, unmix, device, train_sampler, optimizer):
     return losses.avg
 
 
-def valid(args, unmix, device, valid_sampler, optimizer):
+def valid(args, unmix, device, valid_sampler):
     losses = utils.AverageMeter()
     unmix.eval()
     with torch.no_grad():
@@ -203,7 +203,7 @@ def main():
         t.set_description("Training Epoch")
         end = time.time()
         train_loss = train(args, unmix, device, train_sampler, optimizer)
-        valid_loss = valid(args, unmix, device, valid_sampler, optimizer)
+        valid_loss = valid(args, unmix, device, valid_sampler)
         scheduler.step(valid_loss)
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)

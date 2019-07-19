@@ -37,7 +37,7 @@ def load_model(target, model_name='umxhq', device='cpu'):
         state = torch.load(
             target_model_path,
             map_location=device
-        )['state_dict']
+        )
 
         max_bin = utils.bandwidth_to_max_bin(
             state['sample_rate'],
