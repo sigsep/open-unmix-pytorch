@@ -357,7 +357,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         for source in self.source_folders:
             # select a random track for each source
             source_path = random.choice(self.source_tracks[source])
-
             if self.random_chunks:
                 duration = load_info(source_path)['duration']
                 start = random.uniform(0, duration - self.seq_duration)
@@ -793,25 +792,19 @@ if __name__ == "__main__":
     # Iterate over training dataset
     total_training_duration = 0
     for k in tqdm.tqdm(range(len(train_dataset))):
-        train_dataset.seq_duration = None
-        train_dataset.random_chunks = False
         x, y = train_dataset[k]
         total_training_duration += x.shape[1] / train_dataset.sample_rate
         if args.save:
-            import torchaudio
-            torchaudio.save(
+            import soundfile as sf
+            sf.write(
                 "test/" + str(k) + 'x.wav',
-                x,
+                x.detach().numpy().T,
                 44100,
-                precision=16,
-                channels_first=True
             )
-            torchaudio.save(
+            sf.write(
                 "test/" + str(k) + 'y.wav',
-                y,
+                y.detach().numpy().T,
                 44100,
-                precision=16,
-                channels_first=True
             )
 
     print("Total training duration (h): ", total_training_duration / 3600)
