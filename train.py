@@ -59,9 +59,9 @@ def get_statistics(args, dataset):
     dataset_scaler = copy.deepcopy(dataset)
     dataset_scaler.samples_per_track = 1
     dataset_scaler.augmentations = None
-    pbar = tqdm.tqdm(dataset_scaler, disable=args.quiet)
-
-    for x, y in pbar:
+    pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
+    for ind in pbar:
+        x, y = dataset_scaler[ind]
         pbar.set_description("Compute dataset statistics")
         X = spec(x[None, ...])
         scaler.partial_fit(np.squeeze(X))
