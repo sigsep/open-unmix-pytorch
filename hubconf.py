@@ -21,10 +21,10 @@ def umxhq(
     """
     # set urls for weights
     target_urls = {
-        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/bass-e3e1c4be.pth',
-        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/drums-a849ec7d.pth',
-        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/other-732546c5.pth',
-        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/vocals-f3d5fab0.pth'
+        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/bass-8d85a5bd.pth',
+        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/drums-9619578f.pth',
+        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/other-b52fbbf7.pth',
+        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/vocals-b62c91ce.pth'
     }
 
     # determine the maximum bin count for a 16khz bandwidth model
@@ -48,7 +48,7 @@ def umxhq(
         state_dict = torch.hub.load_state_dict_from_url(
             target_urls[target],
             map_location=device
-        )['state_dict']
+        )
         unmix.load_state_dict(state_dict)
         unmix.stft.center = True
         unmix.eval()
@@ -70,10 +70,10 @@ def umx(
     """
     # set urls for weights
     target_urls = {
-        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/bass-cf6c8240.pth',
-        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/drums-6f6173f5.pth',
-        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/other-0f2ff5cc.pth',
-        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/vocals-fbc27976.pth'
+        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/bass-646024d3.pth',
+        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/drums-5a48008b.pth',
+        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/other-f8e132cc.pth',
+        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/vocals-c8df74a5.pth'
     }
 
     # determine the maximum bin count for a 16khz bandwidth model
@@ -97,7 +97,7 @@ def umx(
         state_dict = torch.hub.load_state_dict_from_url(
             target_urls[target],
             map_location=device
-        )['state_dict']
+        )
         unmix.load_state_dict(state_dict)
         unmix.stft.center = True
         unmix.eval()
