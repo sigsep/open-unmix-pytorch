@@ -57,7 +57,7 @@ def load_datasets(parser, args):
             'input_file': args.input_file,
             'output_file': args.output_file
         }
-
+        args.target = Path(args.output_file).stem
         train_dataset = AlignedDataset(
             split='train',
             random_chunks=True,
@@ -79,6 +79,7 @@ def load_datasets(parser, args):
             default=['gain', 'channelswap']
         )
         args = parser.parse_args()
+        args.target = args.target_dir
 
         dataset_kwargs = {
             'root': Path(args.root),
@@ -102,8 +103,8 @@ def load_datasets(parser, args):
 
         valid_dataset = SourceFolderDataset(
             split='valid',
-            random_chunks=False,
-            seq_duration=None,
+            random_chunks=True,
+            seq_duration=args.seq_dur,
             nb_samples=args.nb_valid_samples,
             **dataset_kwargs
         )
@@ -122,6 +123,7 @@ def load_datasets(parser, args):
         )
 
         args = parser.parse_args()
+        args.target = Path(args.target_file).stem
 
         dataset_kwargs = {
             'root': Path(args.root),
@@ -156,6 +158,7 @@ def load_datasets(parser, args):
         )
 
         args = parser.parse_args()
+        args.target = Path(args.target_file).stem
 
         dataset_kwargs = {
             'root': Path(args.root),
