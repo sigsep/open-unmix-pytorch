@@ -222,6 +222,7 @@ def main():
                 'state_dict': unmix.state_dict(),
                 'best_loss': es.best,
                 'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler
             },
             is_best=valid_loss == es.best,
             path=target_path,
