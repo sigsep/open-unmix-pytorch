@@ -567,15 +567,12 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
-        track_path = self.tracks[index]
+        track_path = self.tracks[index]['path']
+        min_duration = self.tracks[index]['min_duration']
         sources = list(track_path.glob('*' + self.ext))
         target_index = sources.index(track_path / self.target_file)
 
         if self.random_chunks:
-            # get minimum duration of all sources needed to not
-            # load out of bounds
-            infos = list(map(load_info, sources))
-            min_duration = min(i['duration'] for i in infos)
             start = random.uniform(0, min_duration - self.seq_duration)
         else:
             start = 0
@@ -583,9 +580,13 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         # load sources
         audio_sources = []
         for source_path in sources:
-            audio = load_audio(
-                source_path, start=start, dur=self.seq_duration
-            )
+            try:
+                audio = load_audio(
+                    source_path, start=start, dur=self.seq_duration
+                )
+            except RuntimeError:
+                index = index - 1 if index > 0 else index + 1
+                return self.__getitem__(index)
             audio = self.source_augmentations(audio)
             audio_sources.append(audio)
 
@@ -613,9 +614,12 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
                         # get minimum duration of source
                         min_duration = min(i['duration'] for i in infos)
                         if min_duration > self.seq_duration:
-                            yield(track_path)
+                            yield({
+                                'path': track_path, 
+                                'min_duration': min_duration
+                            })
                     else:
-                        yield(track_path)
+                        yield({'path': track_path, 'min_duration': None})
 
 
 class MUSDBDataset(torch.utils.data.Dataset):
@@ -822,5 +826,6 @@ if __name__ == "__main__":
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
     )
 
+    for i in range(100):
     for x, y in tqdm.tqdm(train_sampler):
         pass
