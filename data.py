@@ -826,6 +826,5 @@ if __name__ == "__main__":
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
     )
 
-    for i in range(100):
     for x, y in tqdm.tqdm(train_sampler):
         pass
