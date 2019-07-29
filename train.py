@@ -177,6 +177,7 @@ def main():
         n_fft=args.nfft,
         n_hop=args.nhop,
         max_bin=max_bin,
+        sample_rate=train_dataset.sample_rate
     ).to(device)
 
     optimizer = torch.optim.Adam(
