@@ -123,7 +123,7 @@ def save_checkpoint(
     # save full checkpoint including optimizer
     torch.save(
         state,
-        os.path.join(path, target + '_chkpnt.pth')
+        os.path.join(path, target + '.chkpnt')
     )
     if is_best:
         # save just the weights
