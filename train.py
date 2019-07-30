@@ -221,6 +221,8 @@ def main():
         valid_losses = results['valid_loss_history']
         train_times = results['train_time_history']
         best_epoch = results['best_epoch']
+        es.best = results['best_loss']
+        es.num_bad_epochs = results['num_bad_epochs']
     # else start from 0
     else:
         t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
@@ -268,6 +270,7 @@ def main():
             'train_loss_history': train_losses,
             'valid_loss_history': valid_losses,
             'train_time_history': train_times,
+            'num_bad_epochs': es.num_bad_epochs,
             'commit': commit
         }
 
