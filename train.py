@@ -91,6 +91,7 @@ def main():
     parser.add_argument('--root', type=str, help='root path of dataset')
     parser.add_argument('--output', type=str, default="open-unmix",
                         help='provide output path base folder name')
+    parser.add_argument('--model', type=str, help='Path to checkpoint folder')
 
     # Trainig Parameters
     parser.add_argument('--epochs', type=int, default=1000)
@@ -163,7 +164,11 @@ def main():
         **dataloader_kwargs
     )
 
-    scaler_mean, scaler_std = get_statistics(args, train_dataset)
+    if args.model:
+        scaler_mean = None
+        scaler_std = None
+    else:
+        scaler_mean, scaler_std = get_statistics(args, train_dataset)
 
     max_bin = utils.bandwidth_to_max_bin(
         train_dataset.sample_rate, args.nfft, args.bandwidth
@@ -194,11 +199,35 @@ def main():
     )
 
     es = utils.EarlyStopping(patience=args.patience)
-    t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
-    train_losses = []
-    valid_losses = []
-    train_times = []
-    best_epoch = 0
+
+    # if a model is specified: resume training
+    if args.model:
+        model_path = Path(args.model).expanduser()
+        with open(Path(model_path, args.target + '.json'), 'r') as stream:
+            results = json.load(stream)
+
+        target_model_path = Path(model_path, args.target + ".chkpnt")
+        checkpoint = torch.load(target_model_path, map_location=device)
+        unmix.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        # train for another epochs_trained
+        t = tqdm.trange(
+            results['epochs_trained'],
+            results['epochs_trained'] + args.epochs + 1,
+            disable=args.quiet
+        )
+        train_losses = results['train_loss_history']
+        valid_losses = results['valid_loss_history']
+        train_times = results['train_time_history']
+        best_epoch = results['best_epoch']
+    # else start from 0
+    else:
+        t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
+        train_losses = []
+        valid_losses = []
+        train_times = []
+        best_epoch = 0
 
     for epoch in t:
         t.set_description("Training Epoch")
@@ -223,7 +252,7 @@ def main():
                 'state_dict': unmix.state_dict(),
                 'best_loss': es.best,
                 'optimizer': optimizer.state_dict(),
-                'scheduler': scheduler
+                'scheduler': scheduler.state_dict()
             },
             is_best=valid_loss == es.best,
             path=target_path,
