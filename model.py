@@ -72,7 +72,6 @@ class Spectrogram(nn.Module):
         Output: Power/Mag Spectrogram
             (nb_frames, nb_samples, nb_channels, nb_bins)
         """
-        nb_samples, nb_channels, nb_bins, nb_frames, real_imag = stft_f.shape
         stft_f = stft_f.transpose(2, 3)
         # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
