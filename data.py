@@ -232,7 +232,7 @@ class AlignedDataset(torch.utils.data.Dataset):
         output_file='vocals.wav',
         seq_duration=None,
         random_chunks=False,
-        sample_rate=44100,
+        sample_rate=44100
     ):
         """A dataset of that assumes multiple track folders
         where each track includes and input and an output file
@@ -457,12 +457,11 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         # first, get target track
-        track_dir = self.tracks[index]
+        track_path = self.tracks[index]['path']
+        min_duration = self.tracks[index]['min_duration']
         if self.random_chunks:
             # determine start seek by target duration
-            info = load_info(track_dir / self.target_file)
-            duration = info['duration']
-            start = random.uniform(0, duration - self.seq_duration)
+            start = random.uniform(0, min_duration - self.seq_duration)
         else:
             start = 0
 
@@ -470,7 +469,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         audio_sources = []
         # load target
         target_audio = load_audio(
-            track_dir / self.target_file, start=start, dur=self.seq_duration
+            track_path / self.target_file, start=start, dur=self.seq_duration
         )
         target_audio = self.source_augmentations(target_audio)
         audio_sources.append(target_audio)
@@ -478,13 +477,12 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         for source in self.interferer_files:
             # optionally select a random track for each source
             if self.random_track_mix:
-                track_dir = random.choice(self.tracks)
+                track_path = random.choice(self.tracks)['path']
                 if self.random_chunks:
-                    duration = load_info(track_dir / source)['duration']
-                    start = random.uniform(0, duration - self.seq_duration)
+                    start = random.uniform(0, min_duration - self.seq_duration)
 
             audio = load_audio(
-                track_dir / source, start=start, dur=self.seq_duration
+                track_path / source, start=start, dur=self.seq_duration
             )
             audio = self.source_augmentations(audio)
             audio_sources.append(audio)
@@ -506,6 +504,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
             if track_path.is_dir():
                 source_paths = [track_path / s for s in self.source_files]
                 if not all(sp.exists() for sp in source_paths):
+                    print("exclude track ", track_path)
                     continue
 
                 if self.seq_duration is not None:
@@ -513,9 +512,12 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
                     # get minimum duration of track
                     min_duration = min(i['duration'] for i in infos)
                     if min_duration > self.seq_duration:
-                        yield(track_path)
+                        yield({
+                            'path': track_path,
+                            'min_duration': min_duration
+                        })
                 else:
-                    yield(track_path)
+                    yield({'path': track_path, 'min_duration': None})
 
 
 class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
@@ -615,7 +617,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
                         min_duration = min(i['duration'] for i in infos)
                         if min_duration > self.seq_duration:
                             yield({
-                                'path': track_path, 
+                                'path': track_path,
                                 'min_duration': min_duration
                             })
                     else:
@@ -706,7 +708,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
         track = self.mus.tracks[index // self.samples_per_track]
 
         # at training time we assemble a custom mix
-        if self.split == 'train':
+        if self.split == 'train' and self.seq_duration:
             for k, source in enumerate(self.mus.setup['sources']):
                 # memorize index of target source
                 if source == self.target:
