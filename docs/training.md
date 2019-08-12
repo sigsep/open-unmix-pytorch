@@ -42,6 +42,7 @@ An extensive list of additional training parameters allows researchers to quickl
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
 | `--target <str>`           | name of target source (will be passed to the dataset)                         | `vocals`      |
 | `--output <str>`           | path where to save the trained output model as well as checkpoints.                         | `./open-unmix`      |
+| `--model <str>`           | path to checkpoint of target model to resume training. | not set      |
 | `--no_cuda`           | disable cuda even if available                                              | not set      |
 | `--epochs <int>`           | Number of epochs to train                                                       | `1000`          |
 | `--batch-size <int>`       | Batch size has influence on memory usage and performance of the LSTM layer      | `16`            |
