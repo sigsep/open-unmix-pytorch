@@ -31,7 +31,7 @@ def train(args, unmix, device, train_sampler, optimizer):
         loss = torch.nn.functional.mse_loss(Y_hat, Y)
         loss.backward()
         optimizer.step()
-        losses.update(loss.item())
+        losses.update(loss.item(), Y.size(1))
     return losses.avg
 
 
@@ -59,6 +59,7 @@ def get_statistics(args, dataset):
     dataset_scaler = copy.deepcopy(dataset)
     dataset_scaler.samples_per_track = 1
     dataset_scaler.augmentations = None
+    dataset_scaler.seq_duration = None
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
         x, y = dataset_scaler[ind]
