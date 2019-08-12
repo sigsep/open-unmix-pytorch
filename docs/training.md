@@ -193,8 +193,8 @@ python train.py  --root /data --dataset trackfolder_fix --target-file vocals.fla
 A dataset of that assumes audio sources to be stored in track folder where each track has a _variable_ number of sources. The users specifies the target file-name (`target_file`) and the extension of sources to used for mixing. A linear mix is performed on the fly by summing all sources in a track folder.
 
 Since the number of sources differ per track, while target is fixed, a random track mix augmentation cannot be used.
-
-Also make sure, that you do not provide the mixture file among the sources!
+Also make sure, that you do not provide the mixture file among the sources! This dataset maximizes the number of tracks that can be used since it doesn't require the presence of a fixed number of sources per track. However, it is required to 
+have the target file to be present. To increase the dataset utilization even further users can enable the `--silence-missing-targets` option that outputs silence to missing targets.
 
 #### File structure
 
@@ -213,6 +213,7 @@ train/1/vocals.wav -----------------------> output
 | Argument | Description | Default |
 |----------|-------------|---------|
 |`--target-file <str>` | file name of target file | `None` |
+|`--silence-missing-targets` | if a target is not among the list of sources it will be filled with zero | not set |
 |`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
 |`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
 
