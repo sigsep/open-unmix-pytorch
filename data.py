@@ -156,6 +156,10 @@ def load_datasets(parser, args):
             '--source-augmentations', type=str, nargs='+',
             default=['gain', 'channelswap']
         )
+        parser.add_argument(
+            '--silence-missing', action='store_true', default=False,
+            help='silence missing targets'
+        )
 
         args = parser.parse_args()
         args.target = Path(args.target_file).stem
@@ -163,7 +167,8 @@ def load_datasets(parser, args):
         dataset_kwargs = {
             'root': Path(args.root),
             'target_file': args.target_file,
-            'ext': args.ext
+            'ext': args.ext,
+            'silence_missing_targets': args.silence_missing
         }
 
         source_augmentations = Compose(
@@ -531,6 +536,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         random_chunks=False,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
+        silence_missing_targets=False
     ):
         """A dataset of that assumes audio sources to be stored
         in track folder where each track has a _variable_ number of sources.
@@ -563,16 +569,15 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.seq_duration = seq_duration
         self.random_chunks = random_chunks
         self.source_augmentations = source_augmentations
-        # set the input and output files (accept glob)
         self.target_file = target_file
         self.ext = ext
+        self.silence_missing_targets = silence_missing_targets
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
         track_path = self.tracks[index]['path']
         min_duration = self.tracks[index]['min_duration']
         sources = list(track_path.glob('*' + self.ext))
-        target_index = sources.index(track_path / self.target_file)
 
         if self.random_chunks:
             start = random.uniform(0, min_duration - self.seq_duration)
@@ -596,7 +601,11 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         # # apply linear mix over source index=0
         x = stems.sum(0)
         # target is always the last element in the list
-        y = stems[target_index]
+        if track_path / self.target_file in sources:
+            y = stems[sources.index(track_path / self.target_file)]
+        else:
+            y = torch.zeros(x.shape)
+
         return x, y
 
     def __len__(self):
@@ -607,7 +616,9 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         for track_path in tqdm.tqdm(p.iterdir()):
             if track_path.is_dir():
                 # check if target exists
-                if Path(track_path, self.target_file).exists():
+                if Path(
+                    track_path, self.target_file
+                ).exists() or self.silence_missing_targets:
                     # get all sources
                     sources = track_path.glob('*' + self.ext)
                     if self.seq_duration is not None:
