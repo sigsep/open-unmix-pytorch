@@ -21,10 +21,10 @@ def umxhq(
     """
     # set urls for weights
     target_urls = {
-        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/bass-8d85a5bd.pth',
-        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/drums-9619578f.pth',
-        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/other-b52fbbf7.pth',
-        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX-HQ/vocals-b62c91ce.pth'
+        'bass': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth',
+        'drums': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/drums-9619578f.pth',
+        'other': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth',
+        'vocals': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth'
     }
 
     # determine the maximum bin count for a 16khz bandwidth model
@@ -70,10 +70,10 @@ def umx(
     """
     # set urls for weights
     target_urls = {
-        'bass': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/bass-646024d3.pth',
-        'drums': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/drums-5a48008b.pth',
-        'other': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/other-f8e132cc.pth',
-        'vocals': 'https://open-unmix.s3.eu-west-3.amazonaws.com/pytorch-models/UMX/vocals-c8df74a5.pth'
+        'bass': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth',
+        'drums': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/drums-5a48008b.pth',
+        'other': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth',
+        'vocals': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth'
     }
 
     # determine the maximum bin count for a 16khz bandwidth model
