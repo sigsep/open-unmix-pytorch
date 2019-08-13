@@ -1,6 +1,5 @@
 import utils
 import torch.hub
-from model import OpenUnmix
 
 
 # Optional list of dependencies required by the package
@@ -26,6 +25,8 @@ def umxhq(
         'other': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth',
         'vocals': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth'
     }
+
+    from model import OpenUnmix
 
     # determine the maximum bin count for a 16khz bandwidth model
     max_bin = utils.bandwidth_to_max_bin(
@@ -75,6 +76,8 @@ def umx(
         'other': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth',
         'vocals': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth'
     }
+
+    from model import OpenUnmix
 
     # determine the maximum bin count for a 16khz bandwidth model
     max_bin = utils.bandwidth_to_max_bin(
