@@ -10,7 +10,6 @@ import resampy
 import model
 import utils
 import warnings
-import hubconf
 import tqdm
 
 
@@ -23,10 +22,15 @@ def load_model(target, model_name='umxhq', device='cpu'):
     if not model_path.exists():
         # model path does not exist, use hubconf model
         try:
-            pretrained_model = getattr(hubconf, model_name)
-            return pretrained_model(target=target, device=device)
+            return torch.hub.load(
+                'sigsep/open-unmix-pytorch',
+                model_name,
+                target=target,
+                device=device,
+                pretrained=True
+            )
         except AttributeError:
-            raise NameError('Model does not exist on hubconf')
+            raise NameError('Model does not exist on torchhub')
             # assume model is a path to a local model_name direcotry
     else:
         # load model from disk
