@@ -146,7 +146,7 @@ Details on how _open-unmix_ can be extended or improved for future research on m
 @article{stoter19,  
   author={F.-R. St\\"oter and S. Uhlich and A. Liutkus and Y. Mitsufuji},  
   title={Open-unmix: a reference implementation for source separation},  
-  journal={Journal of Open-Source Research},  
+  journal={Journal of Open Source Software},  
   year=2019,  
   note={submitted}}
 }
