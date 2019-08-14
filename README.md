@@ -1,12 +1,10 @@
 #  _Open-Unmix_ for PyTorch
 
-_Open-Unmix Projects:_ pytorch | [nnabla](https://github.com/sigsep/open-unmix-nnabla) | [tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
-
-![](https://sisec18.unmix.app/static/img/hero_header.4f28952.svg)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) [![Build Status](https://travis-ci.com/sigsep/open-unmix-pytorch.svg?branch=master)](https://travis-ci.org/sigsep/open-unmix-pytorch)
 
 This repository contains the PyTorch (1.0+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
-We also provide implementations for [tensorflow](https://github.com/sigsep/open-unmix-tensorflow) and [nnabla](https://github.com/sigsep/open-unmix-nnabla).
+__Related Projects:__ pytorch | [nnabla](https://github.com/sigsep/open-unmix-nnabla) | [tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
 ## The Model
 
@@ -203,7 +201,6 @@ Details on how _open-unmix_ can be extended or improved for future research on m
 
 </p>
 </details>
-
 
 ⚠️ Please note that the official acronym for _open-unmix_ is **UMX**.
 
