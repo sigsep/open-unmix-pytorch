@@ -53,19 +53,27 @@ For installation we recommend to use the [Anaconda](https://anaconda.org/) pytho
 
 ### Applying the pre-trained model on audio files
 
-To separate audio files (wav, flac, ogg) files just run:
-
-```bash
-python test.py input_file.wav
-```
-
-Additionally `--model umx` can be used to load a different pre-trained models, we currently support the following:
+We provide two pre-trained models:
 
 * __`umxhq` (default)__ is trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#MUSDB18HQ) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
-* __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html) which is bandlimited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
+* __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html) which is bandwidth limited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
+
+To separate audio files (wav, flac, ogg) files just run:
+
+```bash
+python test.py input_file.wav --model umxhq
+```
 
 We provide a [notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
+
+### Torch.hub
+
+The pre-trained models can be loaded from other pytorch based repositories using torch.hub.load:
+
+```python
+torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', target='vocals')
+```
 
 ### Separation Parameters
 

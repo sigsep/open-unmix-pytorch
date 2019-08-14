@@ -13,8 +13,9 @@ def umxhq(
     Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
 
     Args:
-        target (str): select the target for the source to be separated. Supported targets are
-                      ['vocals', 'drums', 'bass', 'other']
+        target (str): select the target for the source to be separated.
+                      Supported targets are
+                        ['vocals', 'drums', 'bass', 'other']
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
         device (str): selects device to be used for inference
     """
@@ -64,8 +65,9 @@ def umx(
     Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
 
     Args:
-        target (str): select the target for the source to be separated. Supported targets are
-                      ['vocals', 'drums', 'bass', 'other']
+        target (str): select the target for the source to be separated.
+                      Supported targets are
+                        ['vocals', 'drums', 'bass', 'other']
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
         device (str): selects device to be used for inference
     """
