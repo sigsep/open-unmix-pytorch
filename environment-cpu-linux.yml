@@ -7,6 +7,7 @@ channels:
 dependencies:
   - python=3.7
   - numpy=1.15
+  - mkl
   - pytorch-cpu=1.1.0
   - tqdm=4.32
   - scikit-learn=0.21
