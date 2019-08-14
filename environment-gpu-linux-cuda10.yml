@@ -1,0 +1,20 @@
+name: open-unmix-pytorch-gpu
+
+channels:
+  - conda-forge
+  - pytorch
+
+dependencies:
+  - python=3.7
+  - numpy=1.15
+  - pytorch=1.1.0
+  - cudatoolkit=10.0
+  - scikit-learn=0.21
+  - tqdm=4.32
+  - ffmpeg
+  - resampy
+  - pip
+  - pip:
+    - musdb==0.3.1
+    - norbert==0.2.0
+    - gitpython
