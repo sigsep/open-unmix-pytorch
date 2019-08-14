@@ -1,6 +1,6 @@
 #  _Open-Unmix_ for PyTorch
 
-_Open-Unmix Projects:_ pytorch | [nnabla](https://github.com/sigsep/open-unmix-nnabla) | [tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
+_Related Projects:_ pytorch | [nnabla](https://github.com/sigsep/open-unmix-nnabla) | [tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
 ![](https://sisec18.unmix.app/static/img/hero_header.4f28952.svg)
 
