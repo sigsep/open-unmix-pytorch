@@ -139,6 +139,7 @@ def main():
     args, _ = parser.parse_known_args()
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
+    print("Using GPU:", use_cuda)
     dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
 
     repo_dir = os.path.abspath(os.path.dirname(__file__))
