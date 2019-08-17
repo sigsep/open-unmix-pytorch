@@ -49,23 +49,27 @@ Since PyTorch currently lacks an invertible STFT, the synthesis is performed in 
 
 For installation we recommend to use the [Anaconda](https://anaconda.org/) python distribution. To create a conda environment for _open-unmix_, simply run:
 
-`conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
+`conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
 
 ### Applying the pre-trained model on audio files
 
 We provide two pre-trained models:
 
-* __`umxhq` (default)__ is trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
+* __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
+
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3267291.svg)](https://doi.org/10.5281/zenodo.3267291)
 
 * __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html#compressed-stems) which is bandwidth limited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
-To separate audio files (wav, flac, ogg) files just run:
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3340804.svg)](https://doi.org/10.5281/zenodo.3340804)
+
+To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
 ```bash
 python test.py input_file.wav --model umxhq
 ```
 
-We provide a [notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
+We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
 
 ### Torch.hub
 
@@ -82,11 +86,14 @@ The separation can be controlled with additional parameters that influence the p
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
 | `--targets list(str)`           | Targets to be used for separation. For each target a model file with with same name is required.                                                  | `['vocals', 'drums', 'bass', 'other']`          |
+| `--residual`           |               computes a residual target, for custom separation scenarios when not all targets are available (at the expense of slightly less performance). E.g vocal/accompaniment can be performed with `--targets vocals --residual`.                                   | not set          |
 | `--softmask`       | if activated, then the initial estimates for the sources will be obtained through a ratio mask of the mixture STFT, and not by using the default behavior of reconstructing waveforms by using the mixture phase.  | not set            |
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether. More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
 | `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
 
 ### Load user-trained models
+
+When a path instead of a model-name is provided to `--model` the pre-trained model will be loaded from disk.
 
 ```bash
 python test.py --model /path/to/model/root/directory input_file.wav
