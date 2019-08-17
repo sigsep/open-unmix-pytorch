@@ -120,7 +120,7 @@ if __name__ == '__main__':
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = museval.EvalStore()
-        scores = list(
+        scores_list = list(
             pool.imap_unordered(
                 func=functools.partial(
                     separate_and_evaluate,
@@ -139,8 +139,8 @@ if __name__ == '__main__':
         )
         pool.close()
         pool.join()
-        for score in scores:
-            results.add_track(score)
+        for scores in scores_list:
+            results.add_track(scores)
 
     else:
         results = museval.EvalStore()
