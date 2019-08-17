@@ -18,4 +18,5 @@ dependencies:
   - pip:
     - musdb==0.3.1
     - norbert==0.2.0
-    - gitpython    
+    - gitpython
+    - git+https://github.com/sigsep/sigsep-mus-eval#egg=museval 

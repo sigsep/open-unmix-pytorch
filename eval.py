@@ -64,14 +64,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
-        default="umxhq-estimates",
         help='Results path where audio evaluation results are stored'
     )
 
     parser.add_argument(
         '--evaldir',
         type=str,
-        default="umxhq-eval",
         help='Results path for museval estimates'
     )
 
@@ -121,10 +119,12 @@ if __name__ == '__main__':
     )
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
-        results = list(
+        results = museval.EvalStore()
+        scores = list(
             pool.imap_unordered(
                 func=functools.partial(
                     separate_and_evaluate,
+                    targets=args.targets,
                     model_name=args.model,
                     niter=args.niter,
                     alpha=args.alpha,
@@ -133,16 +133,19 @@ if __name__ == '__main__':
                     eval_dir=args.evaldir,
                     device=device
                 ),
-                iterable=mus.tracks,
+                iterable=mus.tracks[:2],
                 chunksize=1
             )
         )
-
         pool.close()
         pool.join()
+        for score in scores:
+            results.add_track(score)
+
     else:
+        results = museval.EvalStore()
         for track in tqdm.tqdm(mus.tracks):
-            separate_and_evaluate(
+            scores = separate_and_evaluate(
                 track,
                 targets=args.targets,
                 model_name=args.model,
@@ -153,3 +156,9 @@ if __name__ == '__main__':
                 eval_dir=args.evaldir,
                 device=device
             )
+            results.add_track(scores)
+
+    print(results)
+    method = museval.MethodStore()
+    method.add_evalstore(results, args.model)
+    method.save(args.model + '.pandas')
