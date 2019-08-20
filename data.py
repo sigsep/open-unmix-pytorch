@@ -619,10 +619,13 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
                 if Path(
                     track_path, self.target_file
                 ).exists() or self.silence_missing_targets:
-                    # get all sources
-                    sources = track_path.glob('*' + self.ext)
+                    sources = list(track_path.glob('*' + self.ext))
+                    if not sources:
+                        # in case of empty folder
+                        print("empty track: ", track_path)
+                        continue
                     if self.seq_duration is not None:
-                        # check all sources
+                        # check sources
                         infos = list(map(load_info, sources))
                         # get minimum duration of source
                         min_duration = min(i['duration'] for i in infos)
