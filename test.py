@@ -11,6 +11,8 @@ import model
 import utils
 import warnings
 import tqdm
+from contextlib import redirect_stderr
+import io
 
 
 def load_model(target, model_name='umxhq', device='cpu'):
@@ -22,13 +24,17 @@ def load_model(target, model_name='umxhq', device='cpu'):
     if not model_path.exists():
         # model path does not exist, use hubconf model
         try:
-            return torch.hub.load(
-                'sigsep/open-unmix-pytorch',
-                model_name,
-                target=target,
-                device=device,
-                pretrained=True
-            )
+            # disable progress bar
+            err = io.StringIO()
+            with redirect_stderr(err):
+                return torch.hub.load(
+                    'sigsep/open-unmix-pytorch',
+                    model_name,
+                    target=target,
+                    device=device,
+                    pretrained=True
+                )
+            print(err.getvalue())
         except AttributeError:
             raise NameError('Model does not exist on torchhub')
             # assume model is a path to a local model_name direcotry
