@@ -133,7 +133,7 @@ if __name__ == '__main__':
                     eval_dir=args.evaldir,
                     device=device
                 ),
-                iterable=mus.tracks[:2],
+                iterable=mus.tracks,
                 chunksize=1
             )
         )
