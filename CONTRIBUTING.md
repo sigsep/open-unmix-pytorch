@@ -23,12 +23,16 @@ GitHub:
 
 2. Clone this copy to your local disk:
 
-    $ git clone git@github.com:YourLogin/open-unmix-pytorch.git
-    $ cd open-unmix-pytorch
+```
+$ git clone git@github.com:YourLogin/open-unmix-pytorch.git
+$ cd open-unmix-pytorch
+```
 
 3. Create a branch to hold your changes:
 
-    $ git checkout -b my-feature
+```
+$ git checkout -b my-feature
+```
 
    and start making changes. Never work in the ``master`` branch!
 
@@ -39,12 +43,16 @@ GitHub:
 6. Work on this copy on your computer using Git to do the version
    control. When you're done editing, do:
 
-    $ git add modified_files
-    $ git commit
+```
+$ git add modified_files
+$ git commit
+```
 
    to record your changes in Git, then push them to GitHub with:
 
-    $ git push -u origin my-feature
+```
+$ git push -u origin my-feature
+```
 
 Finally, go to the web page of your fork of the open-unmix repo,
 and click 'Pull request' to send your changes to the maintainers for
