@@ -140,7 +140,7 @@ We designed the code to allow researchers to reproduce existing results, quickly
 
 ## How to contribute
 
-_open-unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and comments and improve the computational performance. For more details of how to contribute, please have a look at our [`CONTRIBUTING.md`](CONTRIBUTING.md).
+_open-unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and requests for technical support through [github issues](https://github.com/sigsep/open-unmix-pytorch/issues/new/choose). For more details of how to contribute, please follow our [`CONTRIBUTING.md`](CONTRIBUTING.md). 
 
 ### Authors
 
