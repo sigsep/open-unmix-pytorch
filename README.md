@@ -69,7 +69,9 @@ To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 python test.py input_file.wav --model umxhq
 ```
 
-We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
+A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
+We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to 
+experiment with open-unmix and to separate files online without any installation setup.
 
 ### Torch.hub
 
@@ -78,8 +80,6 @@ The pre-trained models can be loaded from other pytorch based repositories using
 ```python
 torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', target='vocals')
 ```
-
-A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
 
 ### Load user-trained models
 
