@@ -85,10 +85,51 @@ def separate(
     audio,
     targets,
     model_name='umxhq',
-    niter=1, softmask=False, alpha=1,
+    niter=1, softmask=False, alpha=1.0,
     residual_model=False, device='cpu'
 ):
+    """
+    Performing the separation on audio input
 
+    Parameters
+    ----------
+    audio: np.ndarray [shape=(nb_samples, nb_channels, nb_timesteps)]
+        mixture audio
+
+    targets: list of str
+        a list of the separation targets.
+        Note that for each target a separate model is expected
+        to be loaded.
+
+    model_name: str
+        name of torchhub model or path to model folder, defaults to `umxhq`
+
+    niter: int
+         Number of EM steps for refining initial estimates in a
+         post-processing stage, defaults to 1.
+
+    softmask: boolean
+        if activated, then the initial estimates for the sources will
+        be obtained through a ratio mask of the mixture STFT, and not
+        by using the default behavior of reconstructing waveforms
+        by using the mixture phase, defaults to False
+
+    alpha: float
+        changes the exponent to use for building ratio masks, defaults to 1.0
+
+    residual_model: boolean
+        computes a residual target, for custom separation scenarios
+        when not all targets are available, defaults to False
+
+    device: str
+        set torch device. Defaults to `cpu`.
+
+    Returns
+    -------
+    estimates: `dict` [`str`, `np.ndarray`]
+        dictionary of all restimates as performed by the separation model.
+
+    """
     # convert numpy audio to torch
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
 
