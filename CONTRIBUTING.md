@@ -24,7 +24,7 @@ GitHub:
 2. Clone this copy to your local disk:
 
     $ git clone git@github.com:YourLogin/open-unmix-pytorch.git
-    $ cd open-unmix 
+    $ cd open-unmix-pytorch
 
 3. Create a branch to hold your changes:
 
@@ -33,19 +33,18 @@ GitHub:
    and start making changes. Never work in the ``master`` branch!
 
 4. Ensure any install or build artifacts are removed before making the pull request.
-   
-5. Update the README.md and/or the appropriate document in the `/docs` folder with details of changes  to the interface, this includes new command line arguments, dataset description or command line examples.
 
+5. Update the README.md and/or the appropriate document in the `/docs` folder with details of changes  to the interface, this includes new command line arguments, dataset description or command line examples.
 
 6. Work on this copy on your computer using Git to do the version
    control. When you're done editing, do:
 
-          $ git add modified_files
-          $ git commit
+    $ git add modified_files
+    $ git commit
 
    to record your changes in Git, then push them to GitHub with:
 
-          $ git push -u origin my-feature
+    $ git push -u origin my-feature
 
 Finally, go to the web page of your fork of the open-unmix repo,
 and click 'Pull request' to send your changes to the maintainers for
