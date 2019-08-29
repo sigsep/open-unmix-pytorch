@@ -107,12 +107,12 @@ and then run the evaluation using
 
 Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 2018](https://sisec18.unmix.app). The performance of `UMXHQ` and `UMX` is almost identical since it was evaluated on compressed STEMS.
 
-![boxplot](https://user-images.githubusercontent.com/72940/61372474-7c45fb80-a897-11e9-8abb-0acd3f267542.png)
+![boxplot_updated](https://user-images.githubusercontent.com/72940/63944652-3f624c80-ca72-11e9-8d33-bed701679fe6.png)
 
 Note that
 
-* [`STL1`, `STL2`, `TAK2`, `TAK3`, `TAU1`, `UHL3`] used additional training datasets which is why we didn't list them here.
-* [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
+1. [`STL1`, `TAK2`, `TAK3`, `TAU1`, `UHL3`, `UMXHQ`] were ommited as were trained on only _MUSDB18_.
+2. [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
 
 #### Scores (Median of frames, Median of tracks)
 
