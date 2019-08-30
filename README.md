@@ -57,11 +57,11 @@ We provide two pre-trained models:
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
-  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3267291.svg)](https://doi.org/10.5281/zenodo.3267291)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3370489.svg)](https://doi.org/10.5281/zenodo.3370489)
 
 * __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html#compressed-stems) which is bandwidth limited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
-  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3340804.svg)](https://doi.org/10.5281/zenodo.3340804)
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3370486.svg)](https://doi.org/10.5281/zenodo.3370486)
 
 To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
