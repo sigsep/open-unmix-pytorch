@@ -24,7 +24,7 @@ The separation can be controlled with additional parameters that influence the p
 
 At the core of the process of separating files is the `separate` function which 
 takes a numpy audio array as input (the mixture) and separates into `targets` number of stems.
-Note, that for each target a separate model will be loaded and the user would need no know if 
+Note, that for each target a separate model will be loaded and the user would need to know if 
 a particular target is available. E.g. for `umx` and `umxhq` the supported targets are 
 `['vocals', 'drums', 'bass', 'other']`. The model can be specified using `model_name` parameter.
 Both models `umx` and `umxhq` are downloaded automatically. 

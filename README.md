@@ -111,7 +111,7 @@ Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 
 
 Note that
 
-1. [`STL1`, `TAK2`, `TAK3`, `TAU1`, `UHL3`, `UMXHQ`] were ommited as were trained on only _MUSDB18_.
+1. [`STL1`, `TAK2`, `TAK3`, `TAU1`, `UHL3`, `UMXHQ`] were omitted as were trained on only _MUSDB18_.
 2. [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
 
 #### Scores (Median of frames, Median of tracks)
