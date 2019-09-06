@@ -17,6 +17,6 @@ dependencies:
   - pip
   - pip:
     - musdb==0.3.1
-    - norbert==0.2.0
+    - norbert>=0.2.0
     - museval==0.3.0
     - gitpython
