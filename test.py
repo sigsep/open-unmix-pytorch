@@ -142,29 +142,38 @@ def separate(
             model_name=model_name,
             device=device
         )
-        Vj = unmix_target(audio_torch).cpu().detach().numpy()
+        Vj = unmix_target(audio_torch)
         if softmask:
             # only exponentiate the model if we use softmask
             Vj = Vj**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
-        V.append(Vj[:, 0, ...])  # remove sample dim
+        V.append(Vj[:, 0, ..., None])  # remove sample dim and add source dim
         source_names += [target]
+    # Creating a Tensor out of the list:
+    # (nb_frames, nb_channels, nb_bins, nb_sources)
+    V = torch.cat(V, dim=-1)
 
-    V = np.transpose(np.array(V), (1, 3, 2, 0))
+    # transposing it as (nb_frames, nb_bins, {1,nb_channels}, nb_sources)
+    V = V.permute(0, 2, 1, 3).to(torch.float64)
 
-    X = unmix_target.stft(audio_torch).detach().cpu().numpy()
-    # convert to complex numpy type
-    X = X[..., 0] + X[..., 1]*1j
-    X = X[0].transpose(2, 1, 0)
+    # getting the STFT of mix: (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+    X = unmix_target.stft(audio_torch).to(torch.float64)
 
+    # rearranging it into: (nb_frames, nb_bins, nb_channels, 2) to feed into
+    # filtering methods
+    X = X[0].permute(2, 1, 0, 3)
+
+    import filtering as norbert
     if residual_model or len(targets) == 1:
         V = norbert.residual_model(V, X, alpha if softmask else 1)
         source_names += (['residual'] if len(targets) > 1
                          else ['accompaniment'])
 
-    Y = norbert.wiener(V, X.astype(np.complex128), niter,
+    Y = norbert.wiener(V, X, 0,
                        use_softmask=softmask)
 
+    Y = Y.detach().cpu().numpy()
+    Y = Y[..., 0, :] + 1j*Y[..., 1, :]
     estimates = {}
     for j, name in enumerate(source_names):
         audio_hat = istft(
