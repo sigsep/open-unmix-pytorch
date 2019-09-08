@@ -153,9 +153,11 @@ _open-unmix_ is a community focused project, we therefore encourage the communit
 ```latex
 @article{stoter19,  
   author={F.-R. St\\"oter and S. Uhlich and A. Liutkus and Y. Mitsufuji},  
-  title={Open-unmix: a reference implementation for source separation},  
+  title={Open-Unmix - A Reference Implementation for Music Source Separation},  
   journal={Journal of Open Source Software},  
-  year=2019
+  year=2019,
+  doi = {10.21105/joss.01667},
+  url = {https://doi.org/10.21105/joss.01667}
 }
 ```
 
