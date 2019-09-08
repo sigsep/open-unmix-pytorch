@@ -1,5 +1,6 @@
 # Extending Open-Unmix
 
+![](https://docs.google.com/drawings/d/e/2PACX-1vQ1WgVU4PGeEqTQ26j-2RbwaN9ZPlxabBI5N7mYqOK66VjT96UmT9wAaX1s6u6jDHe0ARfAo9E--lQM/pub?w=1918&h=703)
 One of the key aspects of _Open-Unmix_ is that it was made to be easily extensible and thus is a good starting point for new research on music source separation. In fact, the open-unmix training code is based on the [pytorch MNIST example](https://github.com/pytorch/examples/blob/master/mnist/main.py). In this document we provide a short overview of ways to extend open-unmix.
 
 ## Code Structure
