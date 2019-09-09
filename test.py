@@ -255,12 +255,14 @@ if __name__ == '__main__':
         '--start',
         type=float,
         default=0.0,
+        help='Audio chunk start in seconds'
     )
 
     parser.add_argument(
         '--duration',
         type=float,
         default=-1.0,
+        help='Audio chunk duration in seconds, negative values load the full track'
     )
 
     parser.add_argument(

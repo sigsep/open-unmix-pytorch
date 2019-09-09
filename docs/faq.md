@@ -5,7 +5,7 @@
 First, separating an audio track into four separation models `vocals`, `drums`, `bass` and `other` is requires a significant amount of RAM to load all four separate models.
 Furthermore, another computationally important step in the separation is the post-processing of the `norbert` package, controlled by the parameter `niter`. 
 For faster and less memory intensive inference (at the expense of separation quality) it is advised to use `niter 0`.
-Another way to improve performance is to apply separation on smaller excerpts using the `start` and `stop`, arguments. We suggest to only perform separation of ~30s stereo excerpts on machines with less 8GB of memory.
+Another way to improve performance is to apply separation on smaller excerpts using the `start` and `duration`, arguments. We suggest to only perform separation of ~30s stereo excerpts on machines with less 8GB of memory.
 
 ## Why is the training so slow?
 
