@@ -169,7 +169,7 @@ def separate(
         source_names += (['residual'] if len(targets) > 1
                          else ['accompaniment'])
 
-    Y = norbert.wiener(V, X, 0,
+    Y = norbert.wiener(V, X, 5,
                        use_softmask=softmask)
 
     Y = Y.detach().cpu().numpy()

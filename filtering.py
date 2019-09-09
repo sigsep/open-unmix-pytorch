@@ -41,6 +41,18 @@ def _conj(z):
     return torch.cat((z[..., 0, None], -z[..., 1, None]), dim=-1)
 
 
+import numpy as np
+def _numpy(z):
+    res = z.detach().cpu().numpy()
+    res = res[..., 0] + res[..., 1]*1j
+    return res
+def _torch(z):
+    res = torch.cat((
+                    torch.tensor(np.real(z[..., None]), dtype=torch.float64),
+                    torch.tensor(np.imag(z[..., None]), dtype=torch.float64)
+    ), dim=-1)
+    return res
+
 def residual_model(v, x, alpha=1, autoscale=False):
     r"""Compute a model for the residual based on spectral subtraction.
 
@@ -238,8 +250,6 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
                         regularization[None, None, ...].expand(
                             (-1, nb_bins, -1, -1, -1)))
     for it in range(iterations):
-        print(torch.max(_norm(y)))
-
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
         if verbose:
@@ -247,20 +257,42 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
         for j in range(nb_sources):
             # update the spectrogram model for source j
-            v[..., j], R[..., j] = get_local_gaussian_model(
-                y[..., j],
-                eps)
-            print(j, v[..., j].max())
+            use_norbert = False
+            compare_norbert = True
+            # import ipdb; ipdb.set_trace()
+            v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
+
+
+            if use_norbert or compare_norbert:
+                import norbert
+                Rj_t = _numpy(R[..., j])
+                vj_t = v[..., j].detach().cpu().numpy()
+
+                vj, Rj = norbert.get_local_gaussian_model(
+                    _numpy(y[..., j]), eps.item())
+                print('erreur avec numpy',
+                      'vj:', np.linalg.norm(vj - vj_t),
+                      'Rj:', np.linalg.norm(Rj-Rj_t))
+
+            if use_norbert:
+                v[..., j] = torch.tensor(vj, dtype=y.dtype)
+                R[..., j] = _torch(Rj)
 
         for t in range(nb_frames):
             Cxx = get_mix_model(v[None, t, ...], R)
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx)
+            # aa = _numpy(Cxx)
+            # aanpinv = np.linalg.inv(aa)
+            # npinv = _numpy(inv_Cxx)
+            # import ipdb; ipdb.set_trace()
+            #inv_Cxx = _torch(aanpinv)
+
             # separate the sources
             for j in range(nb_sources):
                 W_j = wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
                 y[t, ..., j] = apply_filter(x[None, t, ...], W_j)[0]
-                print(t, 'before:', torch.norm(_norm(x[t, ...])).item(), 'after:',torch.norm(_norm(y[t, ...])).item())
+            #print(t, 'before:', torch.norm(_norm(x[t, ...])).item(), 'after:',torch.norm(_norm(y[t, ...])).item())
 
     return y, v, R
 
@@ -372,7 +404,6 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
     # numerical stability
     max_abs = torch.max(torch.tensor(1., dtype=x.dtype, device=x.device),
                         torch.sqrt(_norm(x)).max()/10.)
-    import ipdb; ipdb.set_trace()
     y = expectation_maximization(y/max_abs, x/max_abs, iterations, eps=eps)[0]
     return y*max_abs
 
@@ -584,9 +615,13 @@ def _covariance(y_j):
                      dtype=y_j.dtype,
                      device=y_j.device)
     for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
-        Cj[..., i1, i2] = (Cj[..., i1, i2]
+        Cj[..., i1, i2, :] = (Cj[..., i1, i2,:]
                            + _mul(y_j[..., i1, :],
                                   _conj(y_j[..., i2, :])))
+        if nb_frames > 1:
+            print('_covariance',_numpy(Cj[100,50]))
+    if nb_frames > 1:
+        import ipdb; ipdb.set_trace()
 
     return Cj
 
