@@ -252,6 +252,18 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--start',
+        type=float,
+        default=0.0,
+    )
+
+    parser.add_argument(
+        '--duration',
+        type=float,
+        default=-1.0,
+    )
+
+    parser.add_argument(
         '--model',
         default='umxhq',
         type=str,
@@ -273,7 +285,22 @@ if __name__ == '__main__':
 
     for input_file in args.input:
         # handling an input audio path
-        audio, rate = sf.read(input_file, always_2d=True)
+        info = sf.info(input_file)
+        start = int(args.start * info.samplerate)
+        # check if dur is none
+        if args.duration > 0:
+            # stop in soundfile is calc in samples, not seconds
+            stop = start + int(args.duration * info.samplerate)
+        else:
+            # set to None for reading complete file
+            stop = None
+
+        audio, rate = sf.read(
+            input_file,
+            always_2d=True,
+            start=start,
+            stop=stop
+        )
 
         if audio.shape[1] > 2:
             warnings.warn(

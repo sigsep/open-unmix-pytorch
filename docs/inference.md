@@ -1,5 +1,6 @@
 # Performing separation
 
+
 ## Interfacing using the command line
 
 The primary interface to separate files is the command line. To separate a mixture file into the four stems you can just run
@@ -13,6 +14,8 @@ The separation can be controlled with additional parameters that influence the p
 
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
+|`--start <float>`  | set start in seconds to reduce the duration of the audio being loaded | `0.0` |
+|`--stop <float>`  | set stop in seconds to reduce the duration of the audio being loaded. Negative values will make the full audio being loaded | `-1.0` |
 |`--model <str>`  | path or string of model name to select either a self pre-trained model or a model loaded from `torchhub`.  | |
 | `--targets list(str)`           | Targets to be used for separation. For each target a model file with with same name is required.                                                  | `['vocals', 'drums', 'bass', 'other']`          |
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether (and thus makes separation significantly faster) More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
