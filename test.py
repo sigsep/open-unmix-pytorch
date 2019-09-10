@@ -12,6 +12,7 @@ import utils
 import warnings
 import tqdm
 from contextlib import redirect_stderr
+import filtering
 import io
 
 
@@ -154,22 +155,21 @@ def separate(
     V = torch.cat(V, dim=-1)
 
     # transposing it as (nb_frames, nb_bins, {1,nb_channels}, nb_sources)
-    V = V.permute(0, 2, 1, 3).to(torch.float64)
+    V = V.permute(0, 2, 1, 3).detach().cpu().to(torch.float64)
 
     # getting the STFT of mix: (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-    X = unmix_target.stft(audio_torch).to(torch.float64)
+    X = unmix_target.stft(audio_torch).detach().cpu().to(torch.float64)
 
     # rearranging it into: (nb_frames, nb_bins, nb_channels, 2) to feed into
     # filtering methods
     X = X[0].permute(2, 1, 0, 3)
 
-    import filtering as norbert
     if residual_model or len(targets) == 1:
-        V = norbert.residual_model(V, X, alpha if softmask else 1)
+        V = filtering.residual_model(V, X, alpha if softmask else 1)
         source_names += (['residual'] if len(targets) > 1
                          else ['accompaniment'])
 
-    Y = norbert.wiener(V, X, 5,
+    Y = filtering.wiener(V, X, 1,
                        use_softmask=softmask)
 
     Y = Y.detach().cpu().numpy()
@@ -282,6 +282,7 @@ if __name__ == '__main__':
 
     for input_file in args.input:
         # handling an input audio path
+        print(input_file)
         audio, rate = sf.read(input_file, always_2d=True)
 
         if audio.shape[1] > 2:

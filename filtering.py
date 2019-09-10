@@ -1,5 +1,6 @@
 import torch
 import itertools
+from tqdm import trange
 
 
 def _norm(x):
@@ -253,32 +254,31 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
         if verbose:
-            print('EM, iteration %d' % (it+1))
+            print('EM, iteration', (it+1))
 
         for j in range(nb_sources):
             # update the spectrogram model for source j
-            use_norbert = False
-            compare_norbert = True
-            # import ipdb; ipdb.set_trace()
+
             v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
 
 
-            if use_norbert or compare_norbert:
-                import norbert
-                Rj_t = _numpy(R[..., j])
-                vj_t = v[..., j].detach().cpu().numpy()
-
-                vj, Rj = norbert.get_local_gaussian_model(
-                    _numpy(y[..., j]), eps.item())
-                print('erreur avec numpy',
-                      'vj:', np.linalg.norm(vj - vj_t),
-                      'Rj:', np.linalg.norm(Rj-Rj_t))
-
-            if use_norbert:
-                v[..., j] = torch.tensor(vj, dtype=y.dtype)
-                R[..., j] = _torch(Rj)
-
-        for t in range(nb_frames):
+            # use_norbert = False
+            # compare_norbert = True
+            # if use_norbert or compare_norbert:
+            #     import norbert
+            #     Rj_t = _numpy(R[..., j])
+            #     vj_t = v[..., j].detach().cpu().numpy()
+            #
+            #     vj, Rj = norbert.get_local_gaussian_model(
+            #         _numpy(y[..., j]), eps.item())
+            #     print('erreur avec numpy',
+            #           'vj:', np.linalg.norm(vj - vj_t),
+            #           'Rj:', np.linalg.norm(Rj-Rj_t))
+            #
+            # if use_norbert:
+            #     v[..., j] = torch.tensor(vj, dtype=y.dtype)
+            #     R[..., j] = _torch(Rj)
+        for t in trange(nb_frames):
             Cxx = get_mix_model(v[None, t, ...], R)
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx)
