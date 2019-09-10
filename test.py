@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 import scipy.signal
 import resampy
-import model
 import utils
+import model
 import warnings
 import tqdm
 from contextlib import redirect_stderr
@@ -222,8 +222,8 @@ def inference_args(parser, remaining_args):
     return inf_parser.parse_args()
 
 
-def main(input_files, samplerate, niter, alpha, softmask, residual_model, model,
-         targets=('vocals', 'drums', 'bass', 'other'), outdir=None, no_cuda=False):
+def test_main(input_files, samplerate, niter, alpha, softmask, residual_model, model,
+              targets=('vocals', 'drums', 'bass', 'other'), outdir=None, no_cuda=False):
 
     use_cuda = not no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -322,5 +322,5 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
 
-    main(args.input, args.samplerate, args.niter, args.alpha, args.softmask, args.residual_model, args.model,
-         args.targets, args.outdir, args.no_cuda)
+    test_main(args.input, args.samplerate, args.niter, args.alpha, args.softmask, args.residual_model, args.model,
+              args.targets, args.outdir, args.no_cuda)
