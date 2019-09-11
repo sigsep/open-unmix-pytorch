@@ -222,8 +222,8 @@ def inference_args(parser, remaining_args):
     return inf_parser.parse_args()
 
 
-def test_main(input_files, samplerate, niter, alpha, softmask, residual_model, model,
-              targets=('vocals', 'drums', 'bass', 'other'), outdir=None, no_cuda=False):
+def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=False, residual_model=False,
+              model='umxhq', targets=('vocals', 'drums', 'bass', 'other'), outdir=None, no_cuda=False):
 
     use_cuda = not no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -322,5 +322,6 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
 
-    test_main(args.input, args.samplerate, args.niter, args.alpha, args.softmask, args.residual_model, args.model,
-              args.targets, args.outdir, args.no_cuda)
+    test_main(input_files=args.input, samplerate=args.samplerate, niter=args.niter, alpha=args.alpha,
+              softmask=args.softmask, residual_model=args.residual_model, model=args.model, targets=args.targets,
+              outdir=args.outdir, no_cuda=args.no_cuda)
