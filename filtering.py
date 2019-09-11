@@ -1,6 +1,10 @@
 import torch
 import itertools
+import torch.nn as nn
 
+
+# Define basic complex operations on torch.Tensor objects whose last dimension
+# consists in the concatenation of the real and imaginary parts.
 
 def _norm(x):
     r"""Computes the norm value of a torch Tensor, assuming that it
@@ -41,17 +45,45 @@ def _conj(z):
     return torch.cat((z[..., 0, None], -z[..., 1, None]), dim=-1)
 
 
-import numpy as np
-def _numpy(z):
-    res = z.detach().cpu().numpy()
-    res = res[..., 0] + res[..., 1]*1j
-    return res
-def _torch(z):
-    res = torch.cat((
-                    torch.tensor(np.real(z[..., None]), dtype=torch.float64),
-                    torch.tensor(np.imag(z[..., None]), dtype=torch.float64)
-    ), dim=-1)
-    return res
+def _invert(M):
+    """
+    Invert 1x1 or 2x2 matrices
+
+    Will generate errors if the matrices are singular: user must handle this
+    through his own regularization schemes.
+
+    Parameters
+    ----------
+    M: torch.Tensor [shape=(..., nb_channels, nb_channels, 2)]
+        matrices to invert: must be square along dimensions -3 and -2
+
+    Returns
+    -------
+    invM: torch.Tensor, [shape=M.shape]
+        inverses of M
+    """
+    nb_channels = M.shape[-2]
+    if nb_channels == 1:
+        # scalar case
+        invM = _inv(M)
+    elif nb_channels == 2:
+        # two channels case: analytical expression
+        det = (
+            _mul(M[..., 0, 0, :], M[..., 1, 1, :])
+            - _mul(M[..., 0, 1, :], M[..., 1, 0, :]))
+        invDet = _inv(det)
+        invM = torch.empty_like(M)
+        invM[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :])
+        invM[..., 1, 0, :] = -_mul(invDet, M[..., 1, 0, :])
+        invM[..., 0, 1, :] = -_mul(invDet, M[..., 0, 1, :])
+        invM[..., 1, 1, :] = _mul(invDet, M[..., 0, 0, :])
+    else:
+        raise Exception('Only 2 channels are supported for the torch version.')
+    return invM
+
+
+# Now define the signal-processing low-level functions used by the Separator
+
 
 def residual_model(v, x, alpha=1, autoscale=True):
     r"""Compute a model for the residual based on spectral subtraction.
@@ -261,39 +293,16 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
             v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
 
-
-            # use_norbert = False
-            # compare_norbert = True
-            # if use_norbert or compare_norbert:
-            #     import norbert
-            #     Rj_t = _numpy(R[..., j])
-            #     vj_t = v[..., j].detach().cpu().numpy()
-            #
-            #     vj, Rj = norbert.get_local_gaussian_model(
-            #         _numpy(y[..., j]), eps.item())
-            #     print('erreur avec numpy',
-            #           'vj:', np.linalg.norm(vj - vj_t),
-            #           'Rj:', np.linalg.norm(Rj-Rj_t))
-            #
-            # if use_norbert:
-            #     v[..., j] = torch.tensor(vj, dtype=y.dtype)
-            #     R[..., j] = _torch(Rj)
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
                                              batch_size=400):
             Cxx = get_mix_model(v[t, ...], R)
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx)
-            # aa = _numpy(Cxx)
-            # aanpinv = np.linalg.inv(aa)
-            # npinv = _numpy(inv_Cxx)
-            # import ipdb; ipdb.set_trace()
-            #inv_Cxx = _torch(aanpinv)
 
             # separate the sources
             for j in range(nb_sources):
                 W_j = wiener_gain(v[t, ..., j], R[..., j], inv_Cxx)
                 y[t, ..., j] = apply_filter(x[t, ...], W_j)
-            #print(t, 'before:', torch.norm(_norm(x[t, ...])).item(), 'after:',torch.norm(_norm(y[t, ...])).item())
 
     return y, v, R
 
@@ -392,7 +401,6 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
     :func:`wiener`.
 
     """
-    #import ipdb; ipdb.set_trace()
     if use_softmask:
         y = softmask(v, x, eps=eps)
     else:
@@ -456,46 +464,6 @@ def softmask(v, x, eps=None):
     return x[..., None] * (
         v / (eps + torch.sum(v, dim=-1, keepdim=True).to(x.dtype))
     )[..., None, :]
-    # total_energy = torch.sum(v, dim=-1, keepdim=True)
-    # filter = v/(eps + total_energy.to(x.dtype))
-    # return filter[..., None, :] * x[..., None]
-
-
-def _invert(M):
-    """
-    Invert 1x1 or 2x2 matrices
-
-    Will generate errors if the matrices are singular: user must handle this
-    through his own regularization schemes.
-
-    Parameters
-    ----------
-    M: torch.Tensor [shape=(..., nb_channels, nb_channels, 2)]
-        matrices to invert: must be square along dimensions -3 and -2
-
-    Returns
-    -------
-    invM: torch.Tensor, [shape=M.shape]
-        inverses of M
-    """
-    nb_channels = M.shape[-2]
-    if nb_channels == 1:
-        # scalar case
-        invM = _inv(M)
-    elif nb_channels == 2:
-        # two channels case: analytical expression
-        det = (
-            _mul(M[..., 0, 0, :], M[..., 1, 1, :])
-            - _mul(M[..., 0, 1, :], M[..., 1, 0, :]))
-        invDet = _inv(det)
-        invM = torch.empty_like(M)
-        invM[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :])
-        invM[..., 1, 0, :] = -_mul(invDet, M[..., 1, 0, :])
-        invM[..., 0, 1, :] = -_mul(invDet, M[..., 0, 1, :])
-        invM[..., 1, 1, :] = _mul(invDet, M[..., 0, 0, :])
-    else:
-        raise Exception('Only 2 channels are supported for the torch version.')
-    return invM
 
 
 def wiener_gain(v_j, R_j, inv_Cxx):

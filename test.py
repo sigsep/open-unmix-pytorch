@@ -2,10 +2,9 @@ import torch
 import numpy as np
 import argparse
 import soundfile as sf
-from torchaudio.functional import istft
+import utils
 import json
 from pathlib import Path
-import scipy.signal
 import resampy
 import model
 import utils
@@ -144,10 +143,10 @@ def separate(
     V = torch.cat(V, dim=-1)
 
     # transposing it as (nb_frames, nb_bins, {1,nb_channels}, nb_sources)
-    V = V.permute(0, 2, 1, 3).detach().cpu().to(torch.float64)
+    V = V.permute(0, 2, 1, 3).to(torch.float64)
 
     # getting the STFT of mix: (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-    X = unmix_target.stft(audio_torch).detach().cpu().to(torch.float64)
+    X = unmix_target.stft(audio_torch).to(torch.float64)
 
     # rearranging it into: (nb_frames, nb_bins, nb_channels, 2) to feed into
     # filtering methods
@@ -169,19 +168,39 @@ def separate(
                                 ).to(torch.float32)
 
     estimates = {}
-    # getting to (channel, fft_size, n_frames, 2, nb_sources)
-    Y = Y.permute(2, 1, 0, 3, 4)
 
-    for j, name in enumerate(source_names):
-        estimates[name] = istft(
-            Y[..., j],
-            n_fft=unmix_target.stft.n_fft,
-            hop_length=unmix_target.stft.n_hop,
-            window=unmix_target.stft.window.cpu(),
-            center=unmix_target.stft.center,
-            normalized=False, onesided=True,
-            pad_mode='reflect', length=audio_torch.shape[-1]
-        ).T
+    if utils._torchaudio_available():
+        from torchaudio.functional import istft
+        # getting to (channel, fft_size, n_frames, 2, nb_sources)
+        Y = Y.permute(2, 1, 0, 3, 4)
+
+        for j, name in enumerate(source_names):
+            estimates[name] = istft(
+                Y[..., j],
+                n_fft=unmix_target.stft.n_fft,
+                hop_length=unmix_target.stft.n_hop,
+                window=unmix_target.stft.window,
+                center=unmix_target.stft.center,
+                normalized=False, onesided=True,
+                pad_mode='reflect', length=audio_torch.shape[-1]
+            ).detach().cpu().numpy().T
+    else:
+        from scipy.signal import istft
+
+        # bringing the STFTs to numpy
+        Y = Y.detach().cpu().numpy()
+        Y = Y[..., 0, :] + 1j*Y[..., 1, :]
+        nperseg = unmix_target.stft.n_fft
+        noverlap = nperseg - unmix_target.stft.n_hop
+
+        for j, name in enumerate(source_names):
+            estimates[name] = istft(
+                Y[..., j].T / (nperseg / 2),
+                fs=44100,
+                nperseg=nperseg,
+                noverlap=noverlap,
+                boundary=True
+                )[1].T
     return estimates
 
 
@@ -309,7 +328,6 @@ if __name__ == '__main__':
             residual_model=args.residual_model,
             device=device
         )
-        # import ipdb; ipdb.set_trace()
         if not args.outdir:
             model_path = Path(args.model)
             if not model_path.exists():
