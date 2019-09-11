@@ -1,6 +1,5 @@
 import torch
 import itertools
-from tqdm import trange
 
 
 def _norm(x):
@@ -54,7 +53,7 @@ def _torch(z):
     ), dim=-1)
     return res
 
-def residual_model(v, x, alpha=1, autoscale=False):
+def residual_model(v, x, alpha=1, autoscale=True):
     r"""Compute a model for the residual based on spectral subtraction.
 
     The method consists in two steps:
@@ -109,9 +108,10 @@ def residual_model(v, x, alpha=1, autoscale=False):
         nb_frames = x.shape[0]
         gain = 0
         weights = eps
-        for t in range(nb_frames):
-            gain = gain + vx[None, t] * v_total[None, t]
-            weights = weights + v_total[None, t]**2
+        for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
+                                             batch_size=400):
+            gain = gain + torch.sum(vx[t] * v_total[t], dim=0, keepdim=True)
+            weights = weights + torch.sum(v_total[t]**2, dim=0, keepdim=True)
         gain = gain / weights
         v = v * gain[..., None]
         # compute the total model as provided
@@ -278,8 +278,9 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
             # if use_norbert:
             #     v[..., j] = torch.tensor(vj, dtype=y.dtype)
             #     R[..., j] = _torch(Rj)
-        for t in trange(nb_frames):
-            Cxx = get_mix_model(v[None, t, ...], R)
+        for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
+                                             batch_size=400):
+            Cxx = get_mix_model(v[t, ...], R)
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx)
             # aa = _numpy(Cxx)
@@ -290,8 +291,8 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
             # separate the sources
             for j in range(nb_sources):
-                W_j = wiener_gain(v[None, t, ..., j], R[..., j], inv_Cxx)
-                y[t, ..., j] = apply_filter(x[None, t, ...], W_j)[0]
+                W_j = wiener_gain(v[t, ..., j], R[..., j], inv_Cxx)
+                y[t, ..., j] = apply_filter(x[t, ...], W_j)
             #print(t, 'before:', torch.norm(_norm(x[t, ...])).item(), 'after:',torch.norm(_norm(y[t, ...])).item())
 
     return y, v, R
@@ -391,12 +392,17 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
     :func:`wiener`.
 
     """
+    #import ipdb; ipdb.set_trace()
     if use_softmask:
         y = softmask(v, x, eps=eps)
     else:
         angle = torch.atan2(x[..., 1], x[..., 0])[..., None]
-        angle = torch.cat((torch.cos(angle), torch.sin(angle)), dim=-1)
-        y = v[..., None, :] * angle[..., None]
+        nb_sources = v.shape[-1]
+        y = torch.zeros(x.shape + (nb_sources,), dtype=x.dtype,
+                        device=x.device)
+        y[..., 0, :] = v * torch.cos(angle)
+        y[..., 1, :] = v * torch.sin(angle)
+        angle = None
     if not iterations:
         return y
 
@@ -446,9 +452,13 @@ def softmask(v, x, eps=None):
     # to avoid dividing by zero
     if eps is None:
         eps = torch.finfo(x.dtype).eps
-    total_energy = torch.sum(v, dim=-1, keepdim=True)
-    filter = v/(eps + total_energy.to(x.dtype))
-    return filter[..., None, :] * x[..., None]
+    # create the soft mask as the ratio of the spectrograms with their sum
+    return x[..., None] * (
+        v / (eps + torch.sum(v, dim=-1, keepdim=True).to(x.dtype))
+    )[..., None, :]
+    # total_energy = torch.sum(v, dim=-1, keepdim=True)
+    # filter = v/(eps + total_energy.to(x.dtype))
+    # return filter[..., None, :] * x[..., None]
 
 
 def _invert(M):
@@ -560,15 +570,6 @@ def apply_filter(x, W):
     return y_hat
 
 
-    """    nb_channels = W.shape[-1]
-
-        # apply the filter
-        y_hat = 0+0j
-        for i in range(nb_channels):
-            y_hat += W[..., i] * x[..., i, None]
-        return y_hat"""
-
-
 def get_mix_model(v, R):
     """
     Compute the model covariance of a mixture based on local Gaussian models.
@@ -615,14 +616,9 @@ def _covariance(y_j):
                      dtype=y_j.dtype,
                      device=y_j.device)
     for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
-        Cj[..., i1, i2, :] = (Cj[..., i1, i2,:]
-                           + _mul(y_j[..., i1, :],
-                                  _conj(y_j[..., i2, :])))
-        if nb_frames > 1:
-            print('_covariance',_numpy(Cj[100,50]))
-    if nb_frames > 1:
-        import ipdb; ipdb.set_trace()
-
+        Cj[..., i1, i2, :] = (Cj[..., i1, i2, :]
+                              + _mul(y_j[..., i1, :],
+                                     _conj(y_j[..., i2, :])))
     return Cj
 
 
@@ -665,8 +661,9 @@ def get_local_gaussian_model(y_j, eps=1.):
     R_j = torch.zeros((nb_bins, nb_channels, nb_channels, 2),
                       dtype=y_j.dtype, device=y_j.device)
     weight = eps
-    for t in range(nb_frames):
-        R_j = R_j + _covariance(y_j[None, t, ...])
-        weight = weight + v_j[None, t, ...]
+    for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
+                                         batch_size=400):
+        R_j = R_j + torch.sum(_covariance(y_j[t, ...]), dim=0)
+        weight = weight + torch.sum(v_j[t, ...], dim=0)
     R_j = R_j / weight[..., None, None, None]
     return v_j, R_j
