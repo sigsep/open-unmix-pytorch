@@ -51,6 +51,14 @@ For installation we recommend to use the [Anaconda](https://anaconda.org/) pytho
 
 `conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
 
+### Using Docker
+
+We also provide a docker container as an alternative to anaconda. That way performing separation of a local track in `~/Music/track1.wav` can be performed in a single line:
+
+```
+docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch python test.py "/data/track1.wav" --outdir /data/track1
+```
+
 ### Applying the pre-trained model on audio files
 
 We provide two pre-trained models:
