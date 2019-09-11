@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import argparse
 import soundfile as sf
-import norbert
+from torchaudio.functional import istft
 import json
 from pathlib import Path
 import scipy.signal
@@ -69,17 +69,6 @@ def load_model(target, model_name='umxhq', device='cpu'):
         unmix.eval()
         unmix.to(device)
         return unmix
-
-
-def istft(X, rate=44100, n_fft=4096, n_hopsize=1024):
-    t, audio = scipy.signal.istft(
-        X / (n_fft / 2),
-        rate,
-        nperseg=n_fft,
-        noverlap=n_fft - n_hopsize,
-        boundary=True
-    )
-    return audio
 
 
 def separate(
@@ -172,24 +161,26 @@ def separate(
     # initializing the result
     nb_sources = V.shape[-1]
     nb_frames = V.shape[0]
-    Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float64,
+    Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float32,
                     device=X.device)
     for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
                                          batch_size=300):
-        Y[t] = filtering.wiener(V[t], X[t], niter, use_softmask=softmask)
+        Y[t] = filtering.wiener(V[t], X[t], niter, use_softmask=softmask
+                                ).to(torch.float32)
 
-    # Y = filtering.wiener(V, X, niter,
-    #                      use_softmask=softmask)
-
-    import ipdb; ipdb.set_trace()
-    Y = Y.detach().cpu().numpy()
-    Y = Y[..., 0, :] + 1j*Y[..., 1, :]
     estimates = {}
+    # getting to (channel, fft_size, n_frames, 2, nb_sources)
+    Y = Y.permute(2, 1, 0, 3, 4)
+
     for j, name in enumerate(source_names):
         estimates[name] = istft(
-            Y[..., j].T,
+            Y[..., j],
             n_fft=unmix_target.stft.n_fft,
-            n_hopsize=unmix_target.stft.n_hop
+            hop_length=unmix_target.stft.n_hop,
+            window=unmix_target.stft.window.cpu(),
+            center=unmix_target.stft.center,
+            normalized=False, onesided=True,
+            pad_mode='reflect', length=audio_torch.shape[-1]
         ).T
     return estimates
 
@@ -318,7 +309,7 @@ if __name__ == '__main__':
             residual_model=args.residual_model,
             device=device
         )
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         if not args.outdir:
             model_path = Path(args.model)
             if not model_path.exists():
