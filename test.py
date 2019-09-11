@@ -7,11 +7,9 @@ import json
 from pathlib import Path
 import resampy
 import model
-import utils
 import warnings
-import tqdm
 from contextlib import redirect_stderr
-import filtering
+from filtering import Separator
 import io
 
 
@@ -119,89 +117,24 @@ def separate(
         dictionary of all restimates as performed by the separation model.
 
     """
-    # convert numpy audio to torch
-    audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
-
     source_names = []
-    V = []
-
-    for j, target in enumerate(tqdm.tqdm(targets)):
-        unmix_target = load_model(
+    target_models = []
+    for j, target in enumerate(targets):
+        target_models += [load_model(
             target=target,
             model_name=model_name,
             device=device
-        )
-        Vj = unmix_target(audio_torch)
-        if softmask:
-            # only exponentiate the model if we use softmask
-            Vj = Vj**alpha
-        # output is nb_frames, nb_samples, nb_channels, nb_bins
-        V.append(Vj[:, 0, ..., None])  # remove sample dim and add source dim
+        ), ]
         source_names += [target]
-    # Creating a Tensor out of the list:
-    # (nb_frames, nb_channels, nb_bins, nb_sources)
-    V = torch.cat(V, dim=-1)
 
-    # transposing it as (nb_frames, nb_bins, {1,nb_channels}, nb_sources)
-    V = V.permute(0, 2, 1, 3).to(torch.float64)
-
-    # getting the STFT of mix: (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-    X = unmix_target.stft(audio_torch).to(torch.float64)
-
-    # rearranging it into: (nb_frames, nb_bins, nb_channels, 2) to feed into
-    # filtering methods
-    X = X[0].permute(2, 1, 0, 3)
-
-    if residual_model or len(targets) == 1:
-        V = filtering.residual_model(V, X, alpha if softmask else 1)
-        source_names += (['residual'] if len(targets) > 1
-                         else ['accompaniment'])
-
-    # initializing the result
-    nb_sources = V.shape[-1]
-    nb_frames = V.shape[0]
-    Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float32,
-                    device=X.device)
-    for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                         batch_size=300):
-        Y[t] = filtering.wiener(V[t], X[t], niter, use_softmask=softmask
-                                ).to(torch.float32)
-
-    estimates = {}
-
-    if utils._torchaudio_available():
-        from torchaudio.functional import istft
-        # getting to (channel, fft_size, n_frames, 2, nb_sources)
-        Y = Y.permute(2, 1, 0, 3, 4)
-
-        for j, name in enumerate(source_names):
-            estimates[name] = istft(
-                Y[..., j],
-                n_fft=unmix_target.stft.n_fft,
-                hop_length=unmix_target.stft.n_hop,
-                window=unmix_target.stft.window,
-                center=unmix_target.stft.center,
-                normalized=False, onesided=True,
-                pad_mode='reflect', length=audio_torch.shape[-1]
-            ).detach().cpu().numpy().T
-    else:
-        from scipy.signal import istft
-
-        # bringing the STFTs to numpy
-        Y = Y.detach().cpu().numpy()
-        Y = Y[..., 0, :] + 1j*Y[..., 1, :]
-        nperseg = unmix_target.stft.n_fft
-        noverlap = nperseg - unmix_target.stft.n_hop
-
-        for j, name in enumerate(source_names):
-            estimates[name] = istft(
-                Y[..., j].T / (nperseg / 2),
-                fs=44100,
-                nperseg=nperseg,
-                noverlap=noverlap,
-                boundary=True
-                )[1].T
-    return estimates
+    separator = Separator(source_names, target_models,
+                          niter=niter, softmask=softmask,
+                          alpha=alpha, residual_model=residual_model,
+                          batch_size=100)
+    # convert numpy audio to torch
+    audio_torch = torch.tensor(audio.T[None, ...]).float().to(device).detach()
+    estimates = separator(audio_torch)
+    return {key: estimates[key].detach().cpu().numpy() for key in estimates}
 
 
 def inference_args(parser, remaining_args):

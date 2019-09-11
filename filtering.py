@@ -1,6 +1,9 @@
 import torch
-import itertools
+from torch.utils.data import DataLoader
 import torch.nn as nn
+import itertools
+from tqdm import tqdm
+import utils
 
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
@@ -141,7 +144,7 @@ def residual_model(v, x, alpha=1, autoscale=True):
         gain = 0
         weights = eps
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                             batch_size=400):
+                                             batch_size=200):
             gain = gain + torch.sum(vx[t] * v_total[t], dim=0, keepdim=True)
             weights = weights + torch.sum(v_total[t]**2, dim=0, keepdim=True)
         gain = gain / weights
@@ -294,7 +297,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
             v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
 
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                             batch_size=400):
+                                             batch_size=200):
             Cxx = get_mix_model(v[t, ...], R)
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx)
@@ -630,8 +633,133 @@ def get_local_gaussian_model(y_j, eps=1.):
                       dtype=y_j.dtype, device=y_j.device)
     weight = eps
     for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                         batch_size=400):
+                                         batch_size=200):
         R_j = R_j + torch.sum(_covariance(y_j[t, ...]), dim=0)
         weight = weight + torch.sum(v_j[t, ...], dim=0)
     R_j = R_j / weight[..., None, None, None]
     return v_j, R_j
+
+
+class Separator(nn.Module):
+    """
+    Separator class to encapsulate all the stereo filtering
+    as a torch Module, to enable end-to-end learning.
+
+    Parameters
+    ----------
+    target_names: list of str
+        names for the sources.
+
+    target_models: list of OpenUnmix objects
+        one for each source.
+
+    niter: int
+         Number of EM steps for refining initial estimates in a
+         post-processing stage, defaults to 1.
+
+    softmask: boolean
+        if activated, then the initial estimates for the sources will
+        be obtained through a ratio mask of the mixture STFT, and not
+        by using the default behavior of reconstructing waveforms
+        by using the mixture phase, defaults to False
+
+    alpha: float
+        changes the exponent to use for building ratio masks, defaults to 1.0
+
+    residual_model: boolean
+        computes a residual target, for custom separation scenarios
+        when not all targets are available, defaults to False
+
+    batch_size: {None | int}
+        The size of the batches (number of frames) on which to apply filtering
+        independently. This means assuming time varying stereo models and
+        localization of sources.
+        None means not batching but using the whole signal. It comes at the
+        price of a much larger memory usage.
+
+    Returns
+    -------
+    estimates: `dict` [`str`, `np.ndarray`]
+        dictionary of all restimates as performed by the separation model.
+        Note that there may be an additional source in case
+        a residual source is added.
+
+    """
+    def __init__(self, source_names, source_models,
+                 niter, softmask, alpha, residual_model, batch_size):
+        super(Separator, self).__init__()
+        self.source_names = source_names
+        self.source_models = source_models
+        self.niter = niter
+        self.alpha = alpha
+        self.softmask = softmask
+        self.residual_model = residual_model
+        self.batch_size = batch_size
+        if not utils._torchaudio_available():
+            raise Exception('The Separator class only works when torchaudio '
+                            'is available.')
+
+    def forward(self, audio):
+        V = []
+        nb_sources = len(self.source_models)
+
+        for j, unmix_target in enumerate(tqdm(self.source_models)):
+            Vj = unmix_target(audio)
+            if self.softmask:
+                # only exponentiate the model if we use softmask
+                Vj = Vj**self.alpha
+            # output is nb_frames, nb_samples, nb_channels, nb_bins
+            V.append(Vj[:, 0, ..., None])  # - sample dim + source dim
+
+        # Creating a Tensor out of the list:
+        # (nb_frames, nb_channels, nb_bins, nb_sources)
+        V = torch.cat(V, dim=-1)
+
+        # transposing it as (nb_frames, nb_bins, {1,nb_channels}, nb_sources)
+        V = V.permute(0, 2, 1, 3).to(torch.float64)
+
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        X = unmix_target.stft(audio).to(torch.float64)
+
+        # rearranging it into: (nb_frames, nb_bins, nb_channels, 2) to feed
+        # into filtering methods
+        X = X[0].permute(2, 1, 0, 3)
+
+        source_names = self.source_names
+        if self.residual_model or nb_sources == 1:
+            V = residual_model(V, X, self.alpha if self.softmask else 1)
+            source_names += (['residual'] if nb_sources > 1
+                             else ['accompaniment'])
+
+        nb_frames = V.shape[0]
+        Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float32,
+                        device=X.device)
+        frames_loader = ([torch.arange(nb_frames), ] if self.batch_size is None
+                         else DataLoader(torch.arange(nb_frames),
+                                         batch_size=self.batch_size))
+        for t in frames_loader:
+            Y[t] = wiener(V[t], X[t],
+                          self.niter, use_softmask=self.softmask
+                          ).to(torch.float32)
+
+        estimates = {}
+
+        if utils._torchaudio_available():
+            from torchaudio.functional import istft
+            # getting to (channel, fft_size, n_frames, 2, nb_sources)
+            Y = Y.permute(2, 1, 0, 3, 4)
+
+            for j, name in enumerate(source_names):
+                estimates[name] = istft(
+                    Y[..., j],
+                    n_fft=unmix_target.stft.n_fft,
+                    hop_length=unmix_target.stft.n_hop,
+                    window=unmix_target.stft.window,
+                    center=unmix_target.stft.center,
+                    normalized=False, onesided=True,
+                    pad_mode='reflect', length=audio.shape[-1]
+                ).transpose(0, 1)
+        else:
+            raise Exception('Torchaudio must be available.')
+        return estimates
