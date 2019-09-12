@@ -13,6 +13,7 @@ dependencies:
   - scikit-learn=0.21
   - ffmpeg
   - resampy
+  - torchaudio=0.3.0
   - pip
   - pip:
     - musdb==0.3.1

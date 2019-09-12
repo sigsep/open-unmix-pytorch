@@ -12,6 +12,7 @@ dependencies:
   - cpuonly
   - tqdm=4.32
   - scikit-learn=0.21
+  - torchaudio=0.3.0
   - ffmpeg
   - resampy
   - pip
