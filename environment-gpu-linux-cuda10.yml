@@ -14,6 +14,7 @@ dependencies:
   - tqdm=4.32
   - ffmpeg
   - resampy
+  - torchaudio=0.3.0
   - pip
   - pip:
     - musdb==0.3.1
