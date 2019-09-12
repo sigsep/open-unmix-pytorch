@@ -108,3 +108,30 @@ def umx(
         unmix.eval()
 
     return unmix.to(device)
+
+
+def separator(
+    targets=['vocals', 'drums', 'bass', 'other'],
+    model_name='umxhq',
+    device='cpu', *args, **kwargs
+):
+    """
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
+
+    Args:
+        target (str): select the target for the source to be separated.
+                      Supported targets are
+                        ['vocals', 'drums', 'bass', 'other']
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        device (str): selects device to be used for inference
+    """
+    from filtering import Separator
+
+    model = Separator(
+        targets=targets,
+        model_name=model_name,
+        device=device,
+        *args, **kwargs
+    )
+
+    return model.to(device)
