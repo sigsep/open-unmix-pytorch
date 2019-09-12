@@ -3,7 +3,6 @@ import argparse
 import soundfile as sf
 from pathlib import Path
 from filtering import Separator
-import time
 
 
 def separate(
@@ -152,7 +151,6 @@ if __name__ == '__main__':
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    print('Open-unmix: the device is:', device)
     # create the Separator object
     separator = Separator(targets=args.targets,
                           model_name=args.model,
@@ -165,7 +163,6 @@ if __name__ == '__main__':
 
     # loop over the files
     for input_file in args.input:
-        start = time.time()
         # handling an input audio path
         audio, rate = sf.read(input_file, always_2d=True)
 
@@ -197,4 +194,3 @@ if __name__ == '__main__':
                 estimate,
                 model_rate
             )
-        print('   %s done in %0.3fs' % (input_file, time.time()-start))
