@@ -24,32 +24,48 @@ def _norm(x):
     return torch.abs(x[..., 0])**2 + torch.abs(x[..., 1])**2
 
 
-def _mul(a, b):
+def _mul(a, b, out=None):
     """Element-wise multiplication of two complex Tensors described
-    through their real and imaginary parts"""
-    return torch.cat(
-        ((a[..., 0] * b[..., 0] - a[..., 1] * b[..., 1])[..., None],
-         (a[..., 0] * b[..., 1] + a[..., 1] * b[..., 0])[..., None]),
-        dim=-1)
+    through their real and imaginary parts
+    can work in place in case out is a only"""
+    target_shape = torch.Size([
+        max(sa, sb) for (sa, sb) in zip(a.shape, b.shape)])
+    if out is None or out.shape != target_shape:
+        out = torch.zeros(target_shape, dtype=a.dtype, device=a.device)
+    if out is a:
+        real_a = a[..., 0]
+        out[..., 0] = real_a * b[..., 0] - a[..., 1] * b[..., 1]
+        out[..., 1] = real_a * b[..., 1] + a[..., 1] * b[..., 0]
+    else:
+        out[..., 0] = a[..., 0] * b[..., 0] - a[..., 1] * b[..., 1]
+        out[..., 1] = a[..., 0] * b[..., 1] + a[..., 1] * b[..., 0]
+    return out
 
 
-def _inv(z):
+def _inv(z, out=None):
     """Element-wise multiplicative inverse of a Tensor with complex
-    entries described through their real and imaginary parts."""
+    entries described through their real and imaginary parts.
+    can work in place in case out is z"""
     ez = _norm(z)
-    return torch.cat(
-        ((z[..., 0] / ez)[..., None],
-         (-z[..., 1] / ez)[..., None]),
-        dim=-1)
+    if out is None or out.shape != z.shape:
+        out = torch.zeros_like(z)
+    out[..., 0] = z[..., 0] / ez
+    out[..., 1] = -z[..., 1] / ez
+    return out
 
 
-def _conj(z):
+def _conj(z, out=None):
     """Element-wise complex conjugate of a Tensor with complex entries
-    described through their real and imaginary parts."""
-    return torch.cat((z[..., 0, None], -z[..., 1, None]), dim=-1)
+    described through their real and imaginary parts.
+    can work in place in case out is z"""
+    if out is None or out.shape != z.shape:
+        out = torch.zeros_like(z)
+    out[..., 0] = z[..., 0]
+    out[..., 1] = -z[..., 1]
+    return out
 
 
-def _invert(M):
+def _invert(M, out=None):
     """
     Invert 1x1 or 2x2 matrices
 
@@ -67,23 +83,27 @@ def _invert(M):
         inverses of M
     """
     nb_channels = M.shape[-2]
+    if out is None or out.shape != M.shape:
+        out = torch.empty_like(M)
+
     if nb_channels == 1:
         # scalar case
-        invM = _inv(M)
+        out = _inv(M, out)
     elif nb_channels == 2:
         # two channels case: analytical expression
-        det = (
-            _mul(M[..., 0, 0, :], M[..., 1, 1, :])
-            - _mul(M[..., 0, 1, :], M[..., 1, 0, :]))
-        invDet = _inv(det)
-        invM = torch.empty_like(M)
-        invM[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :])
-        invM[..., 1, 0, :] = -_mul(invDet, M[..., 1, 0, :])
-        invM[..., 0, 1, :] = -_mul(invDet, M[..., 0, 1, :])
-        invM[..., 1, 1, :] = _mul(invDet, M[..., 0, 0, :])
+        temp = torch.zeros_like(M[..., 0, 0, :])
+        # first compute the determinent
+        invDet = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
+        invDet = invDet - _mul(M[..., 0, 1, :], M[..., 1, 0, :], temp)
+        # invert it
+        invDet = _inv(invDet, invDet)
+        out[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :], out[..., 0, 0, :])
+        out[..., 1, 0, :] = _mul(-invDet, M[..., 1, 0, :], out[..., 1, 0, :])
+        out[..., 0, 1, :] = _mul(-invDet, M[..., 0, 1, :], out[..., 0, 1, :])
+        out[..., 1, 1, :] = _mul(invDet, M[..., 0, 0, :], out[..., 1, 1, :])
     else:
         raise Exception('Only 2 channels are supported for the torch version.')
-    return invM
+    return out
 
 
 # Now define the signal-processing low-level functions used by the Separator
@@ -299,11 +319,12 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
             v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
 
+        inv_Cxx = None
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
                                              batch_size=200):
             Cxx = get_mix_model(v[t, ...], R)
             Cxx = Cxx + regularization
-            inv_Cxx = _invert(Cxx)
+            inv_Cxx = _invert(Cxx, inv_Cxx)
 
             # separate the sources
             for j in range(nb_sources):
@@ -511,10 +532,11 @@ def wiener_gain(v_j, R_j, inv_Cxx):
 
     # computes multichannel Wiener gain as v_j R_j inv_Cxx
     G = torch.zeros_like(inv_Cxx)
+    temp = torch.zeros_like(G[..., 0, 0, :])
     for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
         G[..., i1, i2, :] = (G[..., i1, i2, :]
                              + _mul(R_j[None, :, i1, i3, :],
-                                    inv_Cxx[..., i3, i2, :]))
+                                    inv_Cxx[..., i3, i2, :], temp))
     G = G * v_j[..., None, None, None]
     return G
 
@@ -541,8 +563,9 @@ def apply_filter(x, W):
 
     # apply the filter
     y_hat = torch.zeros_like(x)
+    temp = torch.zeros_like(W[..., 0, :])
     for i in range(nb_channels):
-        y_hat = y_hat + _mul(W[..., i, :], x[..., i, None, :])
+        y_hat = y_hat + _mul(W[..., i, :], x[..., i, None, :], temp)
     return y_hat
 
 
@@ -591,10 +614,11 @@ def _covariance(y_j):
     Cj = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
                      dtype=y_j.dtype,
                      device=y_j.device)
+    temp = torch.zeros_like(y_j[..., 0, :])
     for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
         Cj[..., i1, i2, :] = (Cj[..., i1, i2, :]
                               + _mul(y_j[..., i1, :],
-                                     _conj(y_j[..., i2, :])))
+                                     _conj(y_j[..., i2, :]), temp))
     return Cj
 
 
@@ -763,7 +787,7 @@ class Separator(nn.Module):
             # as the input of OpenUnmix is always stereo
             audio = audio.expand(-1, 2, -1)
 
-        V = []
+        V = None
 
         nb_sources = len(self.targets)
         nb_samples = audio.shape[0]
@@ -800,12 +824,12 @@ class Separator(nn.Module):
             if self.softmask:
                 # only exponentiate the model if we use softmask
                 Vj = Vj**self.alpha
-            # output is nb_frames, nb_samples, nb_channels, nb_bins
-            V.append(Vj[..., None])  # add source dim
 
-        # Creating a Tensor out of the list:
-        # (nb_frames, nb_samples, nb_channels, nb_bins, nb_sources)
-        V = torch.cat(V, dim=-1)
+            # output is nb_frames, nb_samples, nb_channels, nb_bins
+            if V is None:
+                V = torch.zeros(Vj.shape + (nb_sources,), dtype=torch.float64,
+                                device=Vj.device)
+            V[..., j] = Vj
 
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)

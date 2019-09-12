@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
+    print('Open-unmix: the device is:', device)
     # create the Separator object
     separator = Separator(targets=args.targets,
                           model_name=args.model,
