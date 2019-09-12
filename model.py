@@ -7,6 +7,7 @@ import json
 import model
 from pathlib import Path
 from contextlib import redirect_stderr
+import io
 
 
 class NoOp(nn.Module):
