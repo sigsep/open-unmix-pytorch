@@ -2,6 +2,11 @@ from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import utils
+import json
+import model
+from pathlib import Path
+from contextlib import redirect_stderr
 
 
 class NoOp(nn.Module):
@@ -84,6 +89,61 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
+def load_model(target, model_name='umxhq', device='cpu'):
+    """
+    target model path can be either <target>.pth, or <target>-sha256.pth
+    (as used on torchub)
+    """
+    model_path = Path(model_name).expanduser()
+    if not model_path.exists():
+        # model path does not exist, use hubconf model
+        try:
+            # disable progress bar
+            err = io.StringIO()
+            with redirect_stderr(err):
+                return torch.hub.load(
+                    'sigsep/open-unmix-pytorch',
+                    model_name,
+                    target=target,
+                    device=device,
+                    pretrained=True
+                )
+            print(err.getvalue())
+        except AttributeError:
+            raise NameError('Model does not exist on torchhub')
+            # assume model is a path to a local model_name direcotry
+    else:
+        # load model from disk
+        with open(Path(model_path, target + '.json'), 'r') as stream:
+            results = json.load(stream)
+
+        target_model_path = next(Path(model_path).glob("%s*.pth" % target))
+        state = torch.load(
+            target_model_path,
+            map_location=device
+        )
+
+        max_bin = utils.bandwidth_to_max_bin(
+            state['sample_rate'],
+            results['args']['nfft'],
+            results['args']['bandwidth']
+        )
+
+        unmix = model.OpenUnmix(
+            n_fft=results['args']['nfft'],
+            n_hop=results['args']['nhop'],
+            nb_channels=results['args']['nb_channels'],
+            hidden_size=results['args']['hidden_size'],
+            max_bin=max_bin
+        )
+
+        unmix.load_state_dict(state)
+        unmix.stft.center = True
+        unmix.eval()
+        unmix.to(device)
+        return unmix
+
+
 class OpenUnmix(nn.Module):
     def __init__(
         self,
@@ -98,7 +158,7 @@ class OpenUnmix(nn.Module):
         input_scale=None,
         max_bin=None,
         unidirectional=False,
-        power=1,
+        power=1
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)
@@ -187,6 +247,12 @@ class OpenUnmix(nn.Module):
             torch.ones(self.nb_output_bins).float()
         )
 
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+
     def forward(self, x):
         # check for waveform or spectrogram
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
@@ -198,7 +264,6 @@ class OpenUnmix(nn.Module):
 
         # crop
         x = x[..., :self.nb_bins]
-
         # shift and scale input to mean=0 std=1 (across all bins)
         x += self.input_mean
         x *= self.input_scale

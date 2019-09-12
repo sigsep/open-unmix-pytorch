@@ -1,71 +1,9 @@
 import torch
-import numpy as np
 import argparse
 import soundfile as sf
-import utils
-import json
 from pathlib import Path
-import resampy
-import model
-import warnings
-from contextlib import redirect_stderr
 from filtering import Separator
-import io
-
-
-def load_model(target, model_name='umxhq', device='cpu'):
-    """
-    target model path can be either <target>.pth, or <target>-sha256.pth
-    (as used on torchub)
-    """
-    model_path = Path(model_name).expanduser()
-    if not model_path.exists():
-        # model path does not exist, use hubconf model
-        try:
-            # disable progress bar
-            err = io.StringIO()
-            with redirect_stderr(err):
-                return torch.hub.load(
-                    'sigsep/open-unmix-pytorch',
-                    model_name,
-                    target=target,
-                    device=device,
-                    pretrained=True
-                )
-            print(err.getvalue())
-        except AttributeError:
-            raise NameError('Model does not exist on torchhub')
-            # assume model is a path to a local model_name direcotry
-    else:
-        # load model from disk
-        with open(Path(model_path, target + '.json'), 'r') as stream:
-            results = json.load(stream)
-
-        target_model_path = next(Path(model_path).glob("%s*.pth" % target))
-        state = torch.load(
-            target_model_path,
-            map_location=device
-        )
-
-        max_bin = utils.bandwidth_to_max_bin(
-            state['sample_rate'],
-            results['args']['nfft'],
-            results['args']['bandwidth']
-        )
-
-        unmix = model.OpenUnmix(
-            n_fft=results['args']['nfft'],
-            n_hop=results['args']['nhop'],
-            nb_channels=results['args']['nb_channels'],
-            hidden_size=results['args']['hidden_size'],
-            max_bin=max_bin
-        )
-
-        unmix.load_state_dict(state)
-        unmix.stft.center = True
-        unmix.eval()
-        unmix.to(device)
-        return unmix
+import time
 
 
 def separate(
@@ -117,24 +55,15 @@ def separate(
         dictionary of all restimates as performed by the separation model.
 
     """
-    source_names = []
-    target_models = []
-    for j, target in enumerate(targets):
-        target_models += [load_model(
-            target=target,
-            model_name=model_name,
-            device=device
-        ), ]
-        source_names += [target]
 
-    separator = Separator(source_names, target_models,
+    separator = Separator(targets=targets, model_name=model_name,
                           niter=niter, softmask=softmask,
                           alpha=alpha, residual_model=residual_model,
-                          batch_size=100)
+                          batch_size=300, training=False, device=device)
     # convert numpy audio to torch
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device).detach()
     estimates = separator(audio_torch)
-    return {key: estimates[key].detach().cpu().numpy() for key in estimates}
+    return {key: estimates[key].detach().cpu().numpy()[0] for key in estimates}
 
 
 def inference_args(parser, remaining_args):
@@ -165,13 +94,6 @@ def inference_args(parser, remaining_args):
         type=int,
         default=1,
         help='exponent in case of softmask separation'
-    )
-
-    inf_parser.add_argument(
-        '--samplerate',
-        type=int,
-        default=44100,
-        help='model samplerate'
     )
 
     inf_parser.add_argument(
@@ -231,36 +153,33 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # create the Separator object
+    separator = Separator(targets=args.targets,
+                          model_name=args.model,
+                          niter=args.niter,
+                          softmask=args.softmask,
+                          alpha=args.alpha,
+                          residual_model=args.residual_model,
+                          device=device,
+                          batch_size=400, training=False)
+
+    # loop over the files
     for input_file in args.input:
+        start = time.time()
         # handling an input audio path
-        print(input_file)
         audio, rate = sf.read(input_file, always_2d=True)
 
-        if audio.shape[1] > 2:
-            warnings.warn(
-                'Channel count > 2! '
-                'Only the first two channels will be processed!')
-            audio = audio[:, :2]
+        # convert numpy audio to torch
+        audio_torch = torch.tensor(
+                        audio.T[None, ...]).float().to(device).detach()
 
-        if rate != args.samplerate:
-            # resample to model samplerate if needed
-            audio = resampy.resample(audio, rate, args.samplerate, axis=0)
+        # getting the separated signals
+        estimates, model_rate = separator(audio_torch, rate)
 
-        if audio.shape[1] == 1:
-            # if we have mono, let's duplicate it
-            # as the input of OpenUnmix is always stereo
-            audio = np.repeat(audio, 2, axis=1)
+        estimates = {
+            key: estimates[key].detach().cpu().numpy()[0]
+            for key in estimates}
 
-        estimates = separate(
-            audio,
-            targets=args.targets,
-            model_name=args.model,
-            niter=args.niter,
-            alpha=args.alpha,
-            softmask=args.softmask,
-            residual_model=args.residual_model,
-            device=device
-        )
         if not args.outdir:
             model_path = Path(args.model)
             if not model_path.exists():
@@ -276,5 +195,6 @@ if __name__ == '__main__':
             sf.write(
                 outdir / Path(target).with_suffix('.wav'),
                 estimate,
-                args.samplerate
+                model_rate
             )
+        print('   %s done in %0.3fs' % (input_file, time.time()-start))
