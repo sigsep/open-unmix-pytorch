@@ -96,7 +96,7 @@ def _invert(M, out=None):
         invDet = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
         invDet = invDet - _mul(M[..., 0, 1, :], M[..., 1, 0, :], temp)
         # invert it
-        invDet = _inv(invDet, invDet)
+        invDet = _inv(invDet, None)
         out[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :], out[..., 0, 0, :])
         out[..., 1, 0, :] = _mul(-invDet, M[..., 1, 0, :], out[..., 1, 0, :])
         out[..., 0, 1, :] = _mul(-invDet, M[..., 0, 1, :], out[..., 0, 1, :])
@@ -716,14 +716,35 @@ class Separator(nn.Module):
         If false, the models will only be loaded when required, saving RAM
         usage.
 
+    device: {torch device | 'cpu'|'cuda'}
+        The device on which to create the separator
+
+    smart_input_management: boolean
+        whether or not to try smart management of the shapes and type of the
+        audio input. This includes:
+        -  conversion to pytorch
+        -  if input is 1D, adding the samples and channels dimensions.
+        -  if input is 2D
+            o and the smallest dimension is 1 or 2, adding the samples one.
+            o and all dimensions are > 2, assuming the smallest is the samples
+              one, and adding the channel one
+        - at he end, if the number of channels is greater than the number
+          of time steps, swap those two.
+
+        if the samples dimension is added, then it is removed from the output.
     """
     def __init__(self, targets, model_name='umxhq',
                  niter=1, softmask=False, alpha=1.0, residual_model=False,
-                 batch_size=None, training=False, device='cpu'):
+                 batch_size=None, training=False, device='cpu',
+                 smart_input_management='True'):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
             raise Exception('The Separator class only works when torchaudio '
                             'is available.')
+        if training and niter:
+            raise Exception('Separator: Training mode is incompatible with '
+                            'using the EM  algorithm (niter>0).')
+
         # saving parameters
         self.device = device
         self.targets = targets
@@ -734,6 +755,7 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.residual_model = residual_model
         self.batch_size = batch_size
+        self.smart_input_management = smart_input_management
 
         # loading all models in the case of training
         if self.training:
@@ -766,7 +788,11 @@ class Separator(nn.Module):
         estimates: `dict` [`str`, `torch.Tensor`]
             dictionary of all restimates as performed by the separation model.
             Note that there may be an additional source in case
-            a residual source is added.
+            a residual source is added. If the input audio is 2D, then the
+            first dimension (sample) is removed also from the input.
+
+            Note however, that the last two dimensions are
+            (channel, time steps) in all cases.
         model_rate: int
             the new sampling rate, desired by the open-unmix model
             """
@@ -776,12 +802,29 @@ class Separator(nn.Module):
         import torchaudio
         from torchaudio.functional import istft
 
-        if audio.shape[1] > 2:
-            warnings.warn(
-                'Channel count > 2! '
-                'Only the first two channels will be processed!')
-            audio = audio[..., :2]
-
+        # shape management
+        remove_samples_dim = False
+        if self.smart_input_management:
+            shape = torch.tensor(audio.shape)
+            if not isinstance(audio, torch.Tensor):
+                audio = torch.tensor(audio, device=self.device)
+            if len(shape) == 1:
+                audio = audio[None, None, ...]
+                remove_samples_dim = True
+            elif len(shape) == 2:
+                if shape.min() <= 2:
+                    audio = audio[None, ...]
+                    remove_samples_dim = True
+                else:
+                    audio = audio[:, None, ...]
+            if audio.shape[1] > audio.shape[2]:
+                audio = audio.transpose(1, 2)
+            if audio.shape[1] > 2:
+                warnings.warn(
+                    'Channel count > 2!. Only the first two channels '
+                    'will be processed!')
+                audio = audio[..., :2]
+        audio = audio.float()
         if audio.shape[1] == 1:
             # if we have mono, we duplicate it
             # as the input of OpenUnmix is always stereo
@@ -812,10 +855,13 @@ class Separator(nn.Module):
                 resampler = torchaudio.transforms.Resample(
                     orig_freq=rate,
                     new_freq=model_rate).to(self.device)
+                # Until torchaudio has not merged the PR
+                # https://github.com/pytorch/audio/pull/277 , There is a need
+                # to do the resampling on cpu
                 audio = torch.cat(
-                    [resampler(audio[sample])[None, ...]
+                    [resampler(audio[sample])[None, ...].cpu()
                      for sample in range(nb_samples)],
-                    dim=0)
+                    dim=0).to(self.device)
                 rate = model_rate
 
             # apply current model to get the source spectrogram
@@ -884,5 +930,7 @@ class Separator(nn.Module):
                     pad_mode='reflect', length=audio.shape[-1]
                 ).transpose(0, 1)[None, ...]
                 for sample in range(nb_samples)], dim=0)
+            if remove_samples_dim:
+                estimates[name] = estimates[name][0]
 
         return estimates, model_rate
