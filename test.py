@@ -97,12 +97,12 @@ if __name__ == '__main__':
     # create the Separator object
     separator = Separator(targets=args.targets,
                           model_name=args.model,
-                          niter=0,#args.niter,
+                          niter=args.niter,
                           softmask=args.softmask,
                           alpha=args.alpha,
                           residual_model=args.residual_model,
                           device=device,
-                          batch_size=400, training=True,
+                          batch_size=400, training=False,
                           smart_input_management=True)
 
     # loop over the files
@@ -112,18 +112,18 @@ if __name__ == '__main__':
 
         # convert numpy audio to torch
         audio_torch = torch.tensor(audio).to(device)
-        audio_torch.requires_grad = True
+        audio_torch.requires_grad = False
 
         # getting the separated signals
         estimates, model_rate = separator(audio_torch, rate)
 
-        loss = torch.abs(estimates['vocals']).sum()
-        loss.backward()
+        # loss = torch.abs(estimates['vocals']).sum()
+        #loss.backward()
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         estimates = {
-            key: estimates[key].detach().cpu().numpy()[0]
+            key: estimates[key].detach().cpu().numpy()
             for key in estimates}
 
         if not args.outdir:

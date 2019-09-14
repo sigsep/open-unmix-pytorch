@@ -96,7 +96,7 @@ def _invert(M, out=None):
         invDet = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
         invDet = invDet - _mul(M[..., 0, 1, :], M[..., 1, 0, :], temp)
         # invert it
-        invDet = _inv(invDet, None)
+        invDet = _inv(invDet, invDet)
         out[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :], out[..., 0, 0, :])
         out[..., 1, 0, :] = _mul(-invDet, M[..., 1, 0, :], out[..., 1, 0, :])
         out[..., 0, 1, :] = _mul(-invDet, M[..., 0, 1, :], out[..., 0, 1, :])
@@ -807,7 +807,8 @@ class Separator(nn.Module):
         if self.smart_input_management:
             shape = torch.tensor(audio.shape)
             if not isinstance(audio, torch.Tensor):
-                audio = torch.tensor(audio, device=self.device)
+                audio = torch.tensor(audio, device=self.device,
+                                     requires_grad=False)
             if len(shape) == 1:
                 audio = audio[None, None, ...]
                 remove_samples_dim = True
