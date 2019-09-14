@@ -4,6 +4,7 @@ import museval
 import test
 import multiprocessing
 import functools
+from filtering import Separator
 from pathlib import Path
 import torch
 import tqdm
@@ -20,15 +21,19 @@ def separate_and_evaluate(
     eval_dir,
     device='cpu'
 ):
-    estimates = test.separate(
-        audio=track.audio,
-        targets=targets,
-        model_name=model_name,
-        niter=niter,
-        alpha=alpha,
-        softmask=softmask,
-        device=device
-    )
+
+    # create the Separator object
+    separator = Separator(targets=targets,
+                          model_name=model_name,
+                          niter=niter,
+                          softmask=softmask,
+                          alpha=alpha,
+                          residual_model=False,
+                          device=device,
+                          batch_size=400, training=False,
+                          smart_input_management=True)
+
+    estimates, rate = separator(audio=track.audio, rate=track.rate)
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 

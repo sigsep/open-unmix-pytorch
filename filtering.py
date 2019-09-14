@@ -804,11 +804,13 @@ class Separator(nn.Module):
 
         # shape management
         remove_samples_dim = False
+        convert_to_numpy = False
         if self.smart_input_management:
             shape = torch.tensor(audio.shape)
             if not isinstance(audio, torch.Tensor):
                 audio = torch.tensor(audio, device=self.device,
                                      requires_grad=False)
+                convert_to_numpy = True
             if len(shape) == 1:
                 audio = audio[None, None, ...]
                 remove_samples_dim = True
@@ -933,5 +935,7 @@ class Separator(nn.Module):
                 for sample in range(nb_samples)], dim=0)
             if remove_samples_dim:
                 estimates[name] = estimates[name][0]
+            if convert_to_numpy:
+                estimates[name] = estimates[name].detach().cpu().numpy()
 
         return estimates, model_rate
