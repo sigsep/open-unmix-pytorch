@@ -1,8 +1,10 @@
-#  _Open-Unmix_ for PyTorch
+#  _Open-Unmix_ for PyTorch: end-to-end torch branch
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) [![Build Status](https://travis-ci.com/sigsep/open-unmix-pytorch.svg?branch=master)](https://travis-ci.com/sigsep/open-unmix-pytorch)
 
 This repository contains the PyTorch (1.0+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
+
+This branch implements a full end-to-end version of _Open-unmix_, notably enabling complete inference on the GPU and time-domain training.
 
 __Related Projects:__ open-unmix-pytorch | [open-unmix-nnabla](https://github.com/sigsep/open-unmix-nnabla) | [open-unmix-tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
@@ -41,7 +43,7 @@ After applying the LSTM, the signal is decoded back to its original input dimens
 
 ## Separation
 
-Since PyTorch currently lacks an invertible STFT, the synthesis is performed in numpy. For inference, we rely on [an implementation](https://github.com/sigsep/norbert) of a multichannel Wiener filter that is a very popular way of filtering multichannel audio for several applications, notably speech enhancement and source separation. The `norbert` module assumes to have some way of estimating power-spectrograms for all the audio sources (non-negative) composing a mixture.
+For inference, this branch enables a `Separator` pytorch Module, that puts together one _Open-unmix_ model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`. The filtering is a rewriting in torch of the [numpy implementation](https://github.com/sigsep/norbert) used in the main branch.
 
 ## Getting started
 
@@ -70,15 +72,15 @@ python test.py input_file.wav --model umxhq
 ```
 
 A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
-We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to 
+We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to
 experiment with open-unmix and to separate files online without any installation setup.
 
 ### Torch.hub
 
-The pre-trained models can be loaded from other pytorch based repositories using torch.hub.load:
+A pre-trained Separator can be loaded from other pytorch based repositories using torch.hub.load:
 
 ```python
-torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', target='vocals')
+separator = torch.hub.load('sigsep/open-unmix-pytorch:torchfilters', 'separator',device=device)
 ```
 
 ### Load user-trained models
@@ -89,7 +91,7 @@ When a path instead of a model-name is provided to `--model` the pre-trained mod
 python test.py --model /path/to/model/root/directory input_file.wav
 ```
 
-Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated.
+Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated, unless the `residual-model` option is selected, in which case an additional source will be produced, containing an estimate of all that is not the targets in the mixtures.
 
 ### Evaluation using `museval`
 
@@ -140,7 +142,7 @@ We designed the code to allow researchers to reproduce existing results, quickly
 
 ## How to contribute
 
-_open-unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and requests for technical support through [github issues](https://github.com/sigsep/open-unmix-pytorch/issues/new/choose). For more details of how to contribute, please follow our [`CONTRIBUTING.md`](CONTRIBUTING.md). 
+_open-unmix_ is a community focused project, we therefore encourage the community to submit bug-fixes and requests for technical support through [github issues](https://github.com/sigsep/open-unmix-pytorch/issues/new/choose). For more details of how to contribute, please follow our [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Authors
 
@@ -149,7 +151,7 @@ _open-unmix_ is a community focused project, we therefore encourage the communit
 ## References
 
 <details><summary>If you use open-unmix for your research – Cite Open-Unmix</summary>
-  
+
 ```latex
 @article{stoter19,  
   author={F.-R. St\\"oter and S. Uhlich and A. Liutkus and Y. Mitsufuji},  

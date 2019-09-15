@@ -116,12 +116,14 @@ def separator(
     device='cpu', *args, **kwargs
 ):
     """
-    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
+    Create a complete Separator exploiting 2-channel/stereo BiLSTM UMX with
+    several targets, trained on MUSDB18-HQ or MUSDB18.
 
     Args:
-        target (str): select the target for the source to be separated.
-                      Supported targets are
-                        ['vocals', 'drums', 'bass', 'other']
+        targets (str): select the targets for the source to be separated.
+                       a list including: ['vocals', 'drums', 'bass', 'other'].
+                       If you don't pick them all, you probably want to
+                       activate the `residual_model=True` option.
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
         device (str): selects device to be used for inference
     """
