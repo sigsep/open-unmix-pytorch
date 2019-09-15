@@ -9,7 +9,7 @@ python test.py input_file.wav
 ```
 
 Note that we support all files that can be read by pysoundfile (wav, flac and ogg files).
-The separation can be controlled with additional parameters that influence the performance of the separation. 
+The separation can be controlled with additional parameters that influence the performance of the separation.
 
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
@@ -22,34 +22,35 @@ The separation can be controlled with additional parameters that influence the p
 
 ## Interfacing from python
 
-At the core of the process of separating files is the `separate` function which 
-takes a numpy audio array as input (the mixture) and separates into `targets` number of stems.
-Note, that for each target a separate model will be loaded and the user would need to know if 
-a particular target is available. E.g. for `umx` and `umxhq` the supported targets are 
+At the core of the process of separating audio is the `Separator` Module which
+takes a numpy audio array or a torch.Tensor as input (the mixture) and separates into `targets` stems.
+Note, that for each target a separate model will be loaded and the user would need to know if
+a particular target is available. E.g. for `umx` and `umxhq` the supported targets are
 `['vocals', 'drums', 'bass', 'other']`. The model can be specified using `model_name` parameter.
-Both models `umx` and `umxhq` are downloaded automatically. 
+Both models `umx` and `umxhq` are downloaded automatically.
 
-The remaining parameters are suggested to set to the default values.
+the constructor for the Separator class takes the following arguments, with suggested default values:
 
 ```python
-def separate(
-    audio,
+class Separator(nn.Module):
+  def __init__(
     targets,
     model_name='umxhq',
     niter=1,
     softmask=False,
     alpha=1.0,
     residual_model=False,
-    device='cpu'
-):
+    batch_size=None,
+    training=False,
+    device='cpu',
+    smart_input_management='True'
+    )
     """
-    Performing the separation on audio input
+    Separator class to encapsulate all the stereo filtering
+    as a torch Module, to enable end-to-end learning.
 
     Parameters
     ----------
-    audio: np.ndarray [shape=(nb_samples, nb_channels, nb_timesteps)]
-        mixture audio
-
     targets: list of str
         a list of the separation targets.
         Note that for each target a separate model is expected
@@ -75,14 +76,38 @@ def separate(
         computes a residual target, for custom separation scenarios
         when not all targets are available, defaults to False
 
-    device: str
-        set torch device. Defaults to `cpu`.
+    batch_size: {None | int}
+        The size of the batches (number of frames) on which to apply filtering
+        independently. This means assuming time varying stereo models and
+        localization of sources.
+        None means not batching but using the whole signal. It comes at the
+        price of a much larger memory usage.
 
-    Returns
-    -------
-    estimates: `dict` [`str`, `np.ndarray`]
-        dictionary of all restimates as performed by the separation model.
+    training: boolean
+        if True, all models will be loaded right from the constructor, so that
+        they will be available for back propagation and training.
+        If false, the models will only be loaded when required, saving RAM
+        usage.
 
+    device: {torch device | 'cpu'|'cuda'}
+        The device on which to create the separator
+
+    smart_input_management: boolean
+        whether or not to try smart management of the shapes and type of the
+        audio input. This includes:
+        -  conversion to pytorch
+        -  if input is 1D, adding the samples and channels dimensions.
+        -  if input is 2D
+            o and the smallest dimension is 1 or 2, adding the samples one.
+            o and all dimensions are > 2, assuming the smallest is the samples
+              one, and adding the channel one
+        - at he end, if the number of channels is greater than the number
+          of time steps, swap those two.
+
+        if the samples dimension is added, then it is removed from the output.
     """
 ```
 
+
+
+> __Caution__ The `training` mode is incompatible with using the EM algorithm (`niter>0`). Only plain post-processing is supported right now for gradient computation. This is because the speed overhead of avoiding all the in-places operations was too large.

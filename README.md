@@ -4,15 +4,17 @@
 
 This repository contains the PyTorch (1.0+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
-This branch implements a full end-to-end version of _Open-unmix_, notably enabling complete inference on the GPU and time-domain training.
+This branch implements a full end-to-end version of _Open-unmix_, notably enabling complete inference on the GPU and time-domain training. This is done with the introduction of a `Separator` Module, that encapsulates everything needed to do the separation.
 
 __Related Projects:__ open-unmix-pytorch | [open-unmix-nnabla](https://github.com/sigsep/open-unmix-nnabla) | [open-unmix-tensorflow](https://github.com/sigsep/open-unmix-tensorflow) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
-## The Model
+## The Model for one source
 
 ![](https://docs.google.com/drawings/d/e/2PACX-1vTPoQiPwmdfET4pZhue1RvG7oEUJz7eUeQvCu6vzYeKRwHl6by4RRTnphImSKM0k5KXw9rZ1iIFnpGW/pub?w=959&h=308)
 
-_Open-Unmix_ is based on a three-layer bidirectional deep LSTM. The model learns to predict the magnitude spectrogram of a target, like _vocals_, from the magnitude spectrogram of a mixture input. Internally, the prediction is obtained by applying a mask on the input. The model is optimized in the magnitude domain using mean squared error and the actual separation is done in a post-processing step involving a multichannel wiener filter implemented using [norbert](https://github.com/sigsep/norbert). To perform separation into multiple sources, multiple models are trained for each particular target. While this makes the training less comfortable, it allows great flexibility to customize the training data for each target source.
+To perform separation into multiple sources, _Open-unmix_ comprises multiple models that are trained for each particular target. While this makes the training less comfortable, it allows great flexibility to customize the training data for each target source.
+
+Each _Open-Unmix_ source model is based on a three-layer bidirectional deep LSTM. The model learns to predict the magnitude spectrogram of a target source, like _vocals_, from the magnitude spectrogram of a mixture input. Internally, the prediction is obtained by applying a mask on the input. The model is optimized in the magnitude domain using mean squared error.
 
 ### Input Stage
 
@@ -41,9 +43,11 @@ An uni-directional model can easily be trained as described [here](docs/training
 
 After applying the LSTM, the signal is decoded back to its original input dimensionality. In the last steps the output is multiplied with the input magnitude spectrogram, so that the models is asked to learn a mask.
 
-## Separation
+## Putting source models together: the `Separator`
 
-For inference, this branch enables a `Separator` pytorch Module, that puts together one _Open-unmix_ model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`. The filtering is a rewriting in torch of the [numpy implementation](https://github.com/sigsep/norbert) used in the main branch.
+For inference, this branch enables a `Separator` pytorch Module, that puts together one _Open-unmix_ model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`.
+The filtering is a rewriting in torch of the [numpy implementation](https://github.com/sigsep/norbert) used in the main branch.
+
 
 ## Getting started
 
@@ -59,7 +63,7 @@ We provide two pre-trained models:
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3370489.svg)](https://doi.org/10.5281/zenodo.3370489)
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3370489.svg)](https://doi.org/10.5281/zenodo.3370489)
 
 * __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html#compressed-stems) which is bandwidth limited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
@@ -75,13 +79,20 @@ A more detailed list of the parameters used for the separation is given in the [
 We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to
 experiment with open-unmix and to separate files online without any installation setup.
 
-### Torch.hub
+### Creating a Separator through torch.hub
 
 A pre-trained Separator can be loaded from other pytorch based repositories using torch.hub.load:
 
 ```python
 separator = torch.hub.load('sigsep/open-unmix-pytorch:torchfilters', 'separator',device=device)
 ```
+
+This object may then simply be used for separation of some `audio` (ndarray or Tensor), sampled at a sampling rate `rate`, through:
+
+```python
+estimates, rate = separator(audio, rate)
+```
+
 
 ### Load user-trained models
 
@@ -113,7 +124,7 @@ Open-Unmix yields state-of-the-art results compared to participants from [SiSEC 
 
 Note that
 
-1. [`STL1`, `TAK2`, `TAK3`, `TAU1`, `UHL3`, `UMXHQ`] were omitted as were trained on only _MUSDB18_.
+1. [`STL1`, `TAK2`, `TAK3`, `TAU1`, `UHL3`, `UMXHQ`] were omitted as were not trained on only _MUSDB18_.
 2. [`HEL1`, `TAK1`, `UHL1`, `UHL2`] are not open-source.
 
 #### Scores (Median of frames, Median of tracks)
