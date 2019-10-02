@@ -86,7 +86,9 @@ def separate(
     targets,
     model_name='umxhq',
     niter=1, softmask=False, alpha=1.0,
-    residual_model=False, device='cpu'
+    residual_model=False,
+    other_targets=None,
+    device='cpu'
 ):
     """
     Performing the separation on audio input
@@ -121,6 +123,11 @@ def separate(
         computes a residual target, for custom separation scenarios
         when not all targets are available, defaults to False
 
+    other_targets:  list
+        sums specified targets to 'other' target, e.g. useful for
+        vocal/accompaniment scenario, where accompaniment would
+        be specified as `[other, drums, bass]`
+
     device: str
         set torch device. Defaults to `cpu`.
 
@@ -133,7 +140,7 @@ def separate(
     # convert numpy audio to torch
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
 
-    source_names = []
+    output_targets = []
     V = []
 
     for j, target in enumerate(tqdm.tqdm(targets)):
@@ -148,7 +155,7 @@ def separate(
             Vj = Vj**alpha
         # output is nb_frames, nb_samples, nb_channels, nb_bins
         V.append(Vj[:, 0, ...])  # remove sample dim
-        source_names += [target]
+        output_targets.append(target)
 
     V = np.transpose(np.array(V), (1, 3, 2, 0))
 
@@ -159,14 +166,14 @@ def separate(
 
     if residual_model or len(targets) == 1:
         V = norbert.residual_model(V, X, alpha if softmask else 1)
-        source_names += (['residual'] if len(targets) > 1
-                         else ['accompaniment'])
+        output_targets += (['residual'] if len(targets) > 1
+                           else ['accompaniment'])
 
     Y = norbert.wiener(V, X.astype(np.complex128), niter,
                        use_softmask=softmask)
 
     estimates = {}
-    for j, name in enumerate(source_names):
+    for j, name in enumerate(output_targets):
         audio_hat = istft(
             Y[..., j].T,
             n_fft=unmix_target.stft.n_fft,
@@ -174,6 +181,11 @@ def separate(
         )
         estimates[name] = audio_hat.T
 
+    if other_targets is not None:
+        for t in other_targets:
+            if t != 'other':
+                estimates['other'] += estimates[t]
+                del estimates[t]
     return estimates
 
 
@@ -219,6 +231,14 @@ def inference_args(parser, remaining_args):
         action='store_true',
         help='create a model for the residual'
     )
+
+    inf_parser.add_argument(
+        '--other-targets',
+        nargs='+',
+        type=str,
+        help='targets to be summed to `other`'
+    )
+
     return inf_parser.parse_args()
 
 
@@ -327,6 +347,7 @@ if __name__ == '__main__':
             alpha=args.alpha,
             softmask=args.softmask,
             residual_model=args.residual_model,
+            other_targets=args.other_targets,
             device=device
         )
         if not args.outdir:
