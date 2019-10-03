@@ -232,13 +232,6 @@ def inference_args(parser, remaining_args):
         help='create a model for the residual'
     )
 
-    inf_parser.add_argument(
-        '--other-targets',
-        nargs='+',
-        type=str,
-        help='targets to be summed to `other`'
-    )
-
     return inf_parser.parse_args()
 
 
@@ -266,6 +259,13 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--other-targets',
+        nargs='+',
+        type=str,
+        help='targets to be summed to `other`'
+    )
+
+    parser.add_argument(
         '--outdir',
         type=str,
         help='Results path where audio evaluation results are stored'
@@ -282,7 +282,7 @@ if __name__ == '__main__':
         '--duration',
         type=float,
         default=-1.0,
-        help='Audio chunk duration in seconds, negative values load the full track'
+        help='Audio chunk duration in seconds, values <0 load full tracks'
     )
 
     parser.add_argument(

@@ -4,7 +4,6 @@ import museval
 import test
 import multiprocessing
 import functools
-from pathlib import Path
 import torch
 import tqdm
 
@@ -18,6 +17,7 @@ def separate_and_evaluate(
     softmask,
     output_dir,
     eval_dir,
+    other_targets,
     device='cpu'
 ):
     estimates = test.separate(
@@ -27,6 +27,7 @@ def separate_and_evaluate(
         niter=niter,
         alpha=alpha,
         softmask=softmask,
+        other_targets=other_targets,
         device=device
     )
     if output_dir:
@@ -52,6 +53,13 @@ if __name__ == '__main__':
         type=str,
         help='provide targets to be processed. \
               If none, all available targets will be computed'
+    )
+
+    parser.add_argument(
+        '--other-targets',
+        nargs='+',
+        type=str,
+        help='targets to be summed to `other`'
     )
 
     parser.add_argument(
@@ -131,6 +139,7 @@ if __name__ == '__main__':
                     softmask=args.softmask,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
+                    other_targets=args.other_targets,
                     device=device
                 ),
                 iterable=mus.tracks,
@@ -154,6 +163,7 @@ if __name__ == '__main__':
                 softmask=args.softmask,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
+                other_targets=args.other_targets,
                 device=device
             )
             results.add_track(scores)
