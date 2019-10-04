@@ -217,6 +217,8 @@ _open-unmix_ is a community focused project, we therefore encourage the communit
 
 MIT
 
-![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/logo_INRIA.svg?sanitize=true)
-![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/anr.jpg?sanitize=true)
+### Acknowledgements
+
+![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/logo_INRIA.svg?sanitize=true | height=100)
+![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/anr.jpg | height=50)
 
