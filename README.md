@@ -219,6 +219,7 @@ MIT
 
 ### Acknowledgements
 
-![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/logo_INRIA.svg?sanitize=true | height=100)
-![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/anr.jpg | height=50)
+![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/logo_INRIA.svg?sanitize=true | width=200)
+
+![](https://raw.githubusercontent.com/sigsep/website/master/content/open-unmix/anr.jpg | width=100)
 
