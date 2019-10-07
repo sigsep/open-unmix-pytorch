@@ -22,3 +22,5 @@ RUN conda install tqdm=4.28 ffmpeg resampy -c conda-forge
 
 RUN pip install musdb>=0.3.0
 RUN pip install norbert>=0.2.0
+
+ENTRYPOINT ["python", "test.py"]

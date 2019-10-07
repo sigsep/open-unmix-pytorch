@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 import scipy.signal
 import resampy
-import utils
-import model
+from autosynch.umx import model, utils
 import warnings
 import tqdm
 from contextlib import redirect_stderr
@@ -223,14 +222,30 @@ def inference_args(parser, remaining_args):
 
 
 def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=False, residual_model=False,
-              model='umxhq', targets=('vocals', 'drums', 'bass', 'other'), outdir=None, no_cuda=False):
+              model='umxhq', targets=('vocals', 'drums', 'bass', 'other'), outdir=None, start=0.0, duration=-1.0,
+              no_cuda=False):
 
     use_cuda = not no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
     for input_file in input_files:
         # handling an input audio path
-        audio, rate = sf.read(input_file, always_2d=True)
+        info = sf.info(input_file)
+        start = int(start * info.samplerate)
+        # check if dur is none
+        if duration > 0:
+            # stop in soundfile is calc in samples, not seconds
+            stop = start + int(duration * info.samplerate)
+        else:
+            # set to None for reading complete file
+            stop = None
+
+        audio, rate = sf.read(
+            input_file,
+            always_2d=True,
+            start=start,
+            stop=stop
+        )
 
         if audio.shape[1] > 2:
             warnings.warn(
@@ -270,7 +285,7 @@ def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=F
         # write out estimates
         for target, estimate in estimates.items():
             sf.write(
-                outdir / Path(target).with_suffix('.wav'),
+                outdir / Path(Path(input_file).stem+'_'+target).with_suffix('.wav'),
                 estimate,
                 samplerate
             )
@@ -306,6 +321,20 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--start',
+        type=float,
+        default=0.0,
+        help='Audio chunk start in seconds'
+    )
+
+    parser.add_argument(
+        '--duration',
+        type=float,
+        default=-1.0,
+        help='Audio chunk duration in seconds, negative values load the full track'
+    )
+
+    parser.add_argument(
         '--model',
         default='umxhq',
         type=str,
@@ -324,4 +353,4 @@ if __name__ == '__main__':
 
     test_main(input_files=args.input, samplerate=args.samplerate, niter=args.niter, alpha=args.alpha,
               softmask=args.softmask, residual_model=args.residual_model, model=args.model, targets=args.targets,
-              outdir=args.outdir, no_cuda=args.no_cuda)
+              outdir=args.outdir, start=args.start, duration=args.duration, no_cuda=args.no_cuda)
