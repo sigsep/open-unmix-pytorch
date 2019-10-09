@@ -7,7 +7,8 @@ import json
 from pathlib import Path
 import scipy.signal
 import resampy
-from autosynch.umx import model, utils
+import model
+import utils
 import warnings
 import tqdm
 from contextlib import redirect_stderr
