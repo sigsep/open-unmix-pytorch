@@ -157,9 +157,9 @@ def load_datasets(parser, args):
             default=['gain', 'channelswap']
         )
         parser.add_argument(
-            '--random-target-mix',
+            '--random-interferer-mix',
             action='store_true', default=False,
-            help='Apply random target mixing augmentation'
+            help='Apply random interferer mixing augmentation'
         )
         parser.add_argument(
             '--silence-missing', action='store_true', default=False,
@@ -183,7 +183,7 @@ def load_datasets(parser, args):
         train_dataset = VariableSourcesTrackFolderDataset(
             split='train',
             source_augmentations=source_augmentations,
-            random_target_mix=args.random_target_mix,
+            random_interferer_mix=args.random_interferer_mix,
             random_chunks=True,
             seq_duration=args.seq_dur,
             **dataset_kwargs
@@ -542,7 +542,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         ext='.wav',
         seq_duration=None,
         random_chunks=False,
-        random_target_mix=False,
+        random_interferer_mix=False,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
         silence_missing_targets=False
@@ -580,7 +580,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.sample_rate = sample_rate
         self.seq_duration = seq_duration
         self.random_chunks = random_chunks
-        self.random_target_mix = random_target_mix
+        self.random_interferer_mix = random_interferer_mix
         self.source_augmentations = source_augmentations
         self.target_file = target_file
         self.ext = ext
@@ -588,56 +588,61 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.tracks = list(self.get_tracks())
 
     def __getitem__(self, index):
-        track_path = self.tracks[index]['path']
-        min_duration = self.tracks[index]['min_duration']
-        sources = list(track_path.glob('*' + self.ext))
-
+        # select the target based on the dataset   index
+        target_track_path = self.tracks[index]['path']
         if self.random_chunks:
-            start = random.uniform(0, min_duration - self.seq_duration)
+            target_min_duration = self.tracks[index]['min_duration']
+            target_start = random.uniform(
+                0, target_min_duration - self.seq_duration
+            )
+
+        # optionally select a random interferer track
+        if self.random_interferer_mix:
+            random_idx = random.choice(range(len(self.tracks)))
+            intfr_track_path = self.tracks[random_idx]['path']
+            if self.random_chunks:
+                intfr_min_duration = self.tracks[random_idx]['min_duration']
+                intfr_start = random.uniform(
+                    0, intfr_min_duration - self.seq_duration
+                )
+            else:
+                intfr_start = 0
         else:
-            start = 0
+            intfr_track_path = target_track_path
+            intfr_start = target_start
+
+        # get sources from interferer track
+        sources = list(intfr_track_path.glob('*' + self.ext))
 
         # load sources
-        audio_sources = []
+        x = 0
         for source_path in sources:
             # skip target file and load it later
-            if source_path == track_path / self.target_file:
+            if source_path == intfr_track_path / self.target_file:
                 continue
 
             try:
                 audio = load_audio(
-                    source_path, start=start, dur=self.seq_duration
+                    source_path, start=intfr_start, dur=self.seq_duration
                 )
             except RuntimeError:
                 index = index - 1 if index > 0 else index + 1
                 return self.__getitem__(index)
-            audio = self.source_augmentations(audio)
-            audio_sources.append(audio)
-
-        # optionally select a random target
-        if self.random_target_mix:
-            random_idx = random.choice(range(len(self.tracks)))
-            track_path = self.tracks[random_idx]['path']
-            if self.random_chunks:
-                min_duration = self.tracks[random_idx]['min_duration']
-                start = random.uniform(0, min_duration - self.seq_duration)
+            x += self.source_augmentations(audio)
 
         # load the selected track target
-        if Path(track_path / self.target_file).exists():
+        if Path(target_track_path / self.target_file).exists():
             y = load_audio(
-                track_path / self.target_file,
-                start=start,
+                target_track_path / self.target_file,
+                start=target_start,
                 dur=self.seq_duration
             )
+            y = self.source_augmentations(y)
+            x += y
+
         # Use silence if target does not exist
         else:
             y = torch.zeros(audio.shape)
-
-        audio_sources.append(y)
-
-        stems = torch.stack(audio_sources, dim=0)
-        # # apply linear mix over source index=0
-        x = stems.sum(0)
 
         return x, y
 
