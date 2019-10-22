@@ -222,9 +222,12 @@ def inference_args(parser, remaining_args):
     return inf_parser.parse_args()
 
 
-def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=False, residual_model=False,
-              model='umxhq', targets=('vocals', 'drums', 'bass', 'other'), outdir=None, start=0.0, duration=-1.0,
-              no_cuda=False):
+def test_main(
+    input_files=None, samplerate=44100, niter=1, alpha=1.0,
+    softmask=False, residual_model=False, model='umxhq',
+    targets=('vocals', 'drums', 'bass', 'other'),
+    outdir=None, start=0.0, duration=-1.0, no_cuda=False
+):
 
     use_cuda = not no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -286,7 +289,9 @@ def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=F
         # write out estimates
         for target, estimate in estimates.items():
             sf.write(
-                outdir / Path(Path(input_file).stem+'_'+target).with_suffix('.wav'),
+                outdir / Path(
+                    Path(input_file).stem + '_' + target
+                ).with_suffix('.wav'),
                 estimate,
                 samplerate
             )
@@ -332,7 +337,7 @@ if __name__ == '__main__':
         '--duration',
         type=float,
         default=-1.0,
-        help='Audio chunk duration in seconds, negative values load the full track'
+        help='Audio chunk duration in seconds, negative values load full track'
     )
 
     parser.add_argument(
@@ -352,6 +357,10 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
 
-    test_main(input_files=args.input, samplerate=args.samplerate, niter=args.niter, alpha=args.alpha,
-              softmask=args.softmask, residual_model=args.residual_model, model=args.model, targets=args.targets,
-              outdir=args.outdir, start=args.start, duration=args.duration, no_cuda=args.no_cuda)
+    test_main(
+        input_files=args.input, samplerate=args.samplerate,
+        alpha=args.alpha, softmask=args.softmask, niter=args.niter,
+        residual_model=args.residual_model, model=args.model,
+        targets=args.targets, outdir=args.outdir, start=args.start,
+        duration=args.duration, no_cuda=args.no_cuda
+    )
