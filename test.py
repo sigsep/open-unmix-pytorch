@@ -222,6 +222,76 @@ def inference_args(parser, remaining_args):
     return inf_parser.parse_args()
 
 
+def test_main(input_files=None, samplerate=44100, niter=1, alpha=1.0, softmask=False, residual_model=False,
+              model='umxhq', targets=('vocals', 'drums', 'bass', 'other'), outdir=None, start=0.0, duration=-1.0,
+              no_cuda=False):
+
+    use_cuda = not no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    for input_file in input_files:
+        # handling an input audio path
+        info = sf.info(input_file)
+        start = int(start * info.samplerate)
+        # check if dur is none
+        if duration > 0:
+            # stop in soundfile is calc in samples, not seconds
+            stop = start + int(duration * info.samplerate)
+        else:
+            # set to None for reading complete file
+            stop = None
+
+        audio, rate = sf.read(
+            input_file,
+            always_2d=True,
+            start=start,
+            stop=stop
+        )
+
+        if audio.shape[1] > 2:
+            warnings.warn(
+                'Channel count > 2! '
+                'Only the first two channels will be processed!')
+            audio = audio[:, :2]
+
+        if rate != samplerate:
+            # resample to model samplerate if needed
+            audio = resampy.resample(audio, rate, samplerate, axis=0)
+
+        if audio.shape[1] == 1:
+            # if we have mono, let's duplicate it
+            # as the input of OpenUnmix is always stereo
+            audio = np.repeat(audio, 2, axis=1)
+
+        estimates = separate(
+            audio,
+            targets=targets,
+            model_name=model,
+            niter=niter,
+            alpha=alpha,
+            softmask=softmask,
+            residual_model=residual_model,
+            device=device
+        )
+        if not outdir:
+            model_path = Path(model)
+            if not model_path.exists():
+                out_dir = Path(Path(input_file).stem + '_' + model)
+            else:
+                out_dir = Path(Path(input_file).stem + '_' + model_path.stem)
+        else:
+            out_dir = Path(outdir)
+        out_dir.mkdir(exist_ok=True, parents=True)
+
+        # write out estimates
+        for target, estimate in estimates.items():
+            sf.write(
+                outdir / Path(Path(input_file).stem+'_'+target).with_suffix('.wav'),
+                estimate,
+                samplerate
+            )
+
+
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(
@@ -282,67 +352,6 @@ if __name__ == '__main__':
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
 
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    for input_file in args.input:
-        # handling an input audio path
-        info = sf.info(input_file)
-        start = int(args.start * info.samplerate)
-        # check if dur is none
-        if args.duration > 0:
-            # stop in soundfile is calc in samples, not seconds
-            stop = start + int(args.duration * info.samplerate)
-        else:
-            # set to None for reading complete file
-            stop = None
-
-        audio, rate = sf.read(
-            input_file,
-            always_2d=True,
-            start=start,
-            stop=stop
-        )
-
-        if audio.shape[1] > 2:
-            warnings.warn(
-                'Channel count > 2! '
-                'Only the first two channels will be processed!')
-            audio = audio[:, :2]
-
-        if rate != args.samplerate:
-            # resample to model samplerate if needed
-            audio = resampy.resample(audio, rate, args.samplerate, axis=0)
-
-        if audio.shape[1] == 1:
-            # if we have mono, let's duplicate it
-            # as the input of OpenUnmix is always stereo
-            audio = np.repeat(audio, 2, axis=1)
-
-        estimates = separate(
-            audio,
-            targets=args.targets,
-            model_name=args.model,
-            niter=args.niter,
-            alpha=args.alpha,
-            softmask=args.softmask,
-            residual_model=args.residual_model,
-            device=device
-        )
-        if not args.outdir:
-            model_path = Path(args.model)
-            if not model_path.exists():
-                outdir = Path(Path(input_file).stem + '_' + args.model)
-            else:
-                outdir = Path(Path(input_file).stem + '_' + model_path.stem)
-        else:
-            outdir = Path(args.outdir)
-        outdir.mkdir(exist_ok=True, parents=True)
-
-        # write out estimates
-        for target, estimate in estimates.items():
-            sf.write(
-                outdir / Path(target).with_suffix('.wav'),
-                estimate,
-                args.samplerate
-            )
+    test_main(input_files=args.input, samplerate=args.samplerate, niter=args.niter, alpha=args.alpha,
+              softmask=args.softmask, residual_model=args.residual_model, model=args.model, targets=args.targets,
+              outdir=args.outdir, start=args.start, duration=args.duration, no_cuda=args.no_cuda)
