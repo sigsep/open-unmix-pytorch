@@ -159,7 +159,7 @@ def load_datasets(parser, args):
         parser.add_argument(
             '--random-target-mix',
             action='store_true', default=False,
-            help='Apply random track mixing augmentation'
+            help='Apply random target mixing augmentation'
         )
         parser.add_argument(
             '--silence-missing', action='store_true', default=False,
