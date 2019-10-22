@@ -632,7 +632,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         if Path(target_track_path / self.target_file).exists():
             y = load_audio(
                 target_track_path / self.target_file,
-                start=target_start,
+                start=target_track_path,
                 dur=self.seq_duration
             )
             y = self.source_augmentations(y)
