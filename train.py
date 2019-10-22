@@ -60,6 +60,8 @@ def get_statistics(args, dataset):
     dataset_scaler.samples_per_track = 1
     dataset_scaler.augmentations = None
     dataset_scaler.random_chunks = False
+    dataset_scaler.random_track_mix = False
+    dataset_scaler.random_interferer_mix = False
     dataset_scaler.seq_duration = None
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
