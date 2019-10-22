@@ -202,8 +202,8 @@ def inference_args(parser, remaining_args):
 
     inf_parser.add_argument(
         '--alpha',
-        type=int,
-        default=1,
+        type=float,
+        default=1.0,
         help='exponent in case of softmask separation'
     )
 
