@@ -593,6 +593,8 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
             target_start = random.uniform(
                 0, target_min_duration - self.seq_duration
             )
+        else:
+            target_start = 0
 
         # optionally select a random interferer track
         if self.random_interferer_mix:
