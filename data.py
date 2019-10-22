@@ -557,9 +557,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         Since the number of sources differ per track,
         while target is fixed, a random track mix
         augmentation cannot be used. Instead, a random track
-        can be used to load the target. If that is not available,
-        and `silence_missing_targets=True`, zeros will be used as
-        target
+        can be used to load the interfering sources.
 
         Also make sure, that you do not provide the mixture
         file among the sources!
