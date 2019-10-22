@@ -157,6 +157,11 @@ def load_datasets(parser, args):
             default=['gain', 'channelswap']
         )
         parser.add_argument(
+            '--random-target-mix',
+            action='store_true', default=False,
+            help='Apply random track mixing augmentation'
+        )
+        parser.add_argument(
             '--silence-missing', action='store_true', default=False,
             help='silence missing targets'
         )
@@ -178,6 +183,7 @@ def load_datasets(parser, args):
         train_dataset = VariableSourcesTrackFolderDataset(
             split='train',
             source_augmentations=source_augmentations,
+            random_target_mix=args.random_target_mix,
             random_chunks=True,
             seq_duration=args.seq_dur,
             **dataset_kwargs
@@ -482,8 +488,10 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         for source in self.interferer_files:
             # optionally select a random track for each source
             if self.random_track_mix:
-                track_path = random.choice(self.tracks)['path']
+                random_idx = random.choice(range(len(self.tracks)))
+                track_path = self.tracks[random_idx]['path']
                 if self.random_chunks:
+                    min_duration = self.tracks[random_idx]['min_duration']
                     start = random.uniform(0, min_duration - self.seq_duration)
 
             audio = load_audio(
@@ -534,6 +542,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         ext='.wav',
         seq_duration=None,
         random_chunks=False,
+        random_target_mix=False,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
         silence_missing_targets=False
@@ -547,7 +556,10 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
 
         Since the number of sources differ per track,
         while target is fixed, a random track mix
-        augmentation cannot be used.
+        augmentation cannot be used. Instead, a random track
+        can be used to load the target. If that is not available,
+        and `silence_missing_targets=True`, zeros will be used as
+        target
 
         Also make sure, that you do not provide the mixture
         file among the sources!
@@ -568,6 +580,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.sample_rate = sample_rate
         self.seq_duration = seq_duration
         self.random_chunks = random_chunks
+        self.random_target_mix = random_target_mix
         self.source_augmentations = source_augmentations
         self.target_file = target_file
         self.ext = ext
@@ -587,6 +600,10 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         # load sources
         audio_sources = []
         for source_path in sources:
+            # skip target file and load it later
+            if source_path == track_path / self.target_file:
+                continue
+
             try:
                 audio = load_audio(
                     source_path, start=start, dur=self.seq_duration
@@ -597,14 +614,30 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
             audio = self.source_augmentations(audio)
             audio_sources.append(audio)
 
+        # optionally select a random target
+        if self.random_target_mix:
+            random_idx = random.choice(range(len(self.tracks)))
+            track_path = self.tracks[random_idx]['path']
+            if self.random_chunks:
+                min_duration = self.tracks[random_idx]['min_duration']
+                start = random.uniform(0, min_duration - self.seq_duration)
+
+        # load the selected track target
+        if Path(track_path / self.target_file).exists():
+            y = load_audio(
+                track_path / self.target_file,
+                start=start,
+                dur=self.seq_duration
+            )
+        # Use silence if target does not exist
+        else:
+            y = torch.zeros(audio.shape)
+
+        audio_sources.append(y)
+
         stems = torch.stack(audio_sources, dim=0)
         # # apply linear mix over source index=0
         x = stems.sum(0)
-        # target is always the last element in the list
-        if track_path / self.target_file in sources:
-            y = stems[sources.index(track_path / self.target_file)]
-        else:
-            y = torch.zeros(x.shape)
 
         return x, y
 

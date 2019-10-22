@@ -215,6 +215,7 @@ train/1/vocals.wav -----------------------> output
 |----------|-------------|---------|
 |`--target-file <str>` | file name of target file | `None` |
 |`--silence-missing-targets` | if a target is not among the list of sources it will be filled with zero | not set |
+|`random track mixing` | use _random track_ for target file to increase generalization of the model. | not set |
 |`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
 |`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
 
