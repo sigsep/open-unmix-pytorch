@@ -279,14 +279,14 @@ def test_main(
         if not outdir:
             model_path = Path(model)
             if not model_path.exists():
-                out_dir = Path(Path(input_file).stem + '_' + model)
+                outdir = Path(Path(input_file).stem + '_' + model)
             else:
-                out_dir = Path(Path(input_file).stem + '_' + model_path.stem)
+                outdir = Path(Path(input_file).stem + '_' + model_path.stem)
         else:
-            out_dir = Path(outdir)
-        out_dir.mkdir(exist_ok=True, parents=True)
+            outdir = Path(outdir)
 
-        # write out estimates
+        outdir.mkdir(exist_ok=True, parents=True)
+
         for target, estimate in estimates.items():
             sf.write(
                 outdir / Path(
