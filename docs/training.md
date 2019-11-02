@@ -52,7 +52,7 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--hidden-size <int>`             | Initial seed to set the random initialization                                   | `42`            |
 | `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
 | `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
-| `--lr <float>`             | learning rate                                                                   | `0.0001`        |
+| `--lr <float>`             | learning rate                                                                   | `0.001`        |
 | `--lr-decay-patience <int>`             | learning rate decay patience for plateau scheduler                                                                   | `80`        |
 | `--lr-decay-gamma <float>`             | gamma of learning rate plateau scheduler.  | `0.3`        |
 | `--weight-decay <float>`             | weight decay for regularization                                                                   | `0.00001`        |
