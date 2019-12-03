@@ -26,12 +26,13 @@ def train(args, unmix, device, train_sampler, optimizer):
     pbar = tqdm.tqdm(train_sampler, disable=args.quiet)
     for x, y in pbar:
         pbar.set_description("Training batch")
+        x = x.to(device)
         y = [i.to(device) for i in y]
         optimizer.zero_grad()
         Y_hats = unmix(x)
         loss = 0
         for Y_hat, target, criterion in zip(Y_hats, y, criteria):
-            loss = loss + criterion(Y_hat, unmix.models[0].transform(target))
+            loss = loss + criterion(Y_hat, unmix.transform(target))
         loss.backward()
         optimizer.step()
         losses.update(loss.item(), Y_hat.size(1))
@@ -40,13 +41,17 @@ def train(args, unmix, device, train_sampler, optimizer):
 
 def valid(args, unmix, device, valid_sampler):
     losses = utils.AverageMeter()
+    criteria = [torch.nn.MSELoss() for t in args.targets]
     unmix.eval()
     with torch.no_grad():
         for x, y in valid_sampler:
-            x, y = x.to(device), y.to(device)
-            Y_hat = unmix(x)
+            x = x.to(device)
+            y = [i.to(device) for i in y]
+            Y_hats = unmix(x)
             Y = unmix.transform(y)
-            loss = torch.nn.functional.mse_loss(Y_hat, Y)
+            loss = 0
+            for Y_hat, target, criterion in zip(Y_hats, y, criteria):
+                loss = loss + criterion(Y_hat, unmix.transform(target))
             losses.update(loss.item(), Y.size(1))
         return losses.avg
 
@@ -65,7 +70,6 @@ def get_statistics(args, dataloader):
         X = spec(x)
         scaler.partial_fit(np.squeeze(X))
 
-    # set inital input scaler values
     std = np.maximum(
         scaler.scale_,
         1e-4*np.max(scaler.scale_)
@@ -75,10 +79,6 @@ def get_statistics(args, dataloader):
 
 def main():
     parser = argparse.ArgumentParser(description='Open Unmix Trainer')
-
-    # which target do we want to train?
-    parser.add_argument('--target', type=str, default='vocals',
-                        help='target source (will be passed to the dataset)')
 
     # Dataset paramaters
     parser.add_argument('--dataset', type=str, default="musdb",
@@ -201,7 +201,8 @@ def main():
         train_dataset.sample_rate, args.nfft, args.bandwidth
     )
 
-    unmix = model.OpenUnmix(
+    unmix = model.OpenUnmixJoint(
+        targets=args.targets,
         input_mean=scaler_mean,
         input_scale=scaler_std,
         nb_channels=args.nb_channels,
@@ -230,10 +231,10 @@ def main():
     # if a model is specified: resume training
     if args.model:
         model_path = Path(args.model).expanduser()
-        with open(Path(model_path, args.target + '.json'), 'r') as stream:
+        with open(Path(model_path, str(len(args.targets)) + '.json'), 'r') as stream:
             results = json.load(stream)
 
-        target_model_path = Path(model_path, args.target + ".chkpnt")
+        target_model_path = Path(model_path, str(len(args.targets)) + ".chkpnt")
         checkpoint = torch.load(target_model_path, map_location=device)
         unmix.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
@@ -285,7 +286,6 @@ def main():
             },
             is_best=valid_loss == es.best,
             path=target_path,
-            target=args.target
         )
 
         # save params
@@ -301,7 +301,7 @@ def main():
             'commit': commit
         }
 
-        with open(Path(target_path,  args.target + '.json'), 'w') as outfile:
+        with open(Path(target_path,  str(len(args.targets)) + '.json'), 'w') as outfile:
             outfile.write(json.dumps(params, indent=4, sort_keys=True))
 
         train_times.append(time.time() - end)

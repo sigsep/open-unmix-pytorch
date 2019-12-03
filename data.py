@@ -761,7 +761,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         audio_sources = []
         # select track
         track = self.mus.tracks[index // self.samples_per_track]
-
         # at training time we assemble a custom mix
         if self.split == 'train':
             for k, source in enumerate(self.targets):

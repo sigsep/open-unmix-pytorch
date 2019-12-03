@@ -109,22 +109,15 @@ class OpenUnmix(nn.Module):
 
         super(OpenUnmix, self).__init__()
 
+        self.hidden_size = hidden_size
+
         self.nb_output_bins = n_fft // 2 + 1
         if max_bin:
             self.nb_bins = max_bin
         else:
             self.nb_bins = self.nb_output_bins
 
-        self.hidden_size = hidden_size
-
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
-        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
         self.register_buffer('sample_rate', torch.tensor(sample_rate))
-
-        if input_is_spectrogram:
-            self.transform = NoOp()
-        else:
-            self.transform = nn.Sequential(self.stft, self.spec)
 
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
@@ -191,7 +184,6 @@ class OpenUnmix(nn.Module):
         # check for waveform or spectrogram
         # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
         # and reduce feature dimensions, therefore we reshape
-        x = self.transform(x)
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         mix = x.detach().clone()
@@ -236,9 +228,7 @@ class OpenUnmix(nn.Module):
         x += self.output_mean
 
         # since our output is non-negative, we can apply RELU
-        x = F.relu(x) * mix
-
-        return x
+        return F.relu(x)
 
 
 class OpenUnmixJoint(nn.Module):
@@ -248,9 +238,26 @@ class OpenUnmixJoint(nn.Module):
         *args, **kwargs
     ):
         super(OpenUnmixJoint, self).__init__()
+
+        self.stft = STFT(n_fft=4096, n_hop=1024)
+        self.spec = Spectrogram(power=1, mono=False)
+
+        self.transform = nn.Sequential(self.stft, self.spec)
+
         self.models = nn.ModuleList(
             [OpenUnmix(*args, **kwargs) for target in targets]
         )
+        self.softmax = torch.nn.Softmax(0)
 
     def forward(self, x):
-        return [model(x) for model in self.models]
+        X = self.transform(x)
+
+        logit_mask_list = []
+        for umx_single_source in self.models:
+            logit_mask_list.append(umx_single_source(X))
+
+        masks = self.softmax(torch.stack(logit_mask_list))
+        out = []
+        for i, models in enumerate(self.models):
+            out.append(masks[i, ...] * X)
+        return out

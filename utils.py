@@ -118,18 +118,18 @@ def bandwidth_to_max_bin(rate, n_fft, bandwidth):
 
 
 def save_checkpoint(
-    state, is_best, path, target
+    state, is_best, path
 ):
     # save full checkpoint including optimizer
     torch.save(
         state,
-        os.path.join(path, target + '.chkpnt')
+        os.path.join(path, 'model.chkpnt')
     )
     if is_best:
         # save just the weights
         torch.save(
             state['state_dict'],
-            os.path.join(path, target + '.pth')
+            os.path.join(path, 'model.pth')
         )
 
 
