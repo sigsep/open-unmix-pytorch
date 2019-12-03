@@ -26,4 +26,4 @@ install:
   - pip install pytest
 
 script:
-  - py.test tests/
+  - py.test tests

@@ -72,7 +72,6 @@ class Spectrogram(nn.Module):
         Output: Power/Mag Spectrogram
             (nb_frames, nb_samples, nb_channels, nb_bins)
         """
-        nb_samples, nb_channels, nb_bins, nb_frames, real_imag = stft_f.shape
         stft_f = stft_f.transpose(2, 3)
         # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
@@ -90,17 +89,16 @@ class OpenUnmix(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        hidden_size=512,
-        nb_channels=1,
         input_is_spectrogram=False,
+        hidden_size=512,
+        nb_channels=2,
         sample_rate=44100,
-        power=1,
         nb_layers=3,
         input_mean=None,
         input_scale=None,
-        output_mean=None,
         max_bin=None,
-        unidirectional=False
+        unidirectional=False,
+        power=1,
     ):
         """
         Input: (nb_samples, nb_channels, nb_timesteps)

@@ -17,6 +17,7 @@ def separate_and_evaluate(
     alpha,
     softmask,
     output_dir,
+    eval_dir,
     device='cpu'
 ):
     estimates = test.separate(
@@ -28,11 +29,11 @@ def separate_and_evaluate(
         softmask=softmask,
         device=device
     )
-    if args.outdir:
-        mus.save_estimates(estimates, track, args.outdir)
+    if output_dir:
+        mus.save_estimates(estimates, track, output_dir)
 
     scores = museval.eval_mus_track(
-        track, estimates, output_dir=args.evaldir
+        track, estimates, output_dir=eval_dir
     )
     return scores
 
@@ -63,7 +64,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--outdir',
         type=str,
-        default="OSU_RESULTS",
         help='Results path where audio evaluation results are stored'
     )
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--is-wav', 
+        '--is-wav',
         action='store_true', default=False,
         help='flags wav version of the dataset'
     )
@@ -112,40 +112,53 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     mus = musdb.DB(
-        root=args.root, 
+        root=args.root,
         download=args.root is None,
         subsets=args.subset,
         is_wav=args.is_wav
     )
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
-        results = list(
+        results = museval.EvalStore()
+        scores_list = list(
             pool.imap_unordered(
                 func=functools.partial(
                     separate_and_evaluate,
+                    targets=args.targets,
                     model_name=args.model,
                     niter=args.niter,
                     alpha=args.alpha,
                     softmask=args.softmask,
-                    output_dir=args.evaldir,
+                    output_dir=args.outdir,
+                    eval_dir=args.evaldir,
                     device=device
                 ),
                 iterable=mus.tracks,
                 chunksize=1
             )
         )
-
         pool.close()
         pool.join()
+        for scores in scores_list:
+            results.add_track(scores)
+
     else:
+        results = museval.EvalStore()
         for track in tqdm.tqdm(mus.tracks):
-            separate_and_evaluate(
+            scores = separate_and_evaluate(
                 track,
                 targets=args.targets,
                 model_name=args.model,
                 niter=args.niter,
                 alpha=args.alpha,
                 softmask=args.softmask,
-                output_dir=args.evaldir,
+                output_dir=args.outdir,
+                eval_dir=args.evaldir,
                 device=device
             )
+            results.add_track(scores)
+
+    print(results)
+    method = museval.MethodStore()
+    method.add_evalstore(results, args.model)
+    method.save(args.model + '.pandas')
