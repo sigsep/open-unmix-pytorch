@@ -13,6 +13,7 @@ import random
 from git import Repo
 import os
 import copy
+from torch.utils.data.sampler import SubsetRandomSampler
 
 
 tqdm.monitor_interval = 0
@@ -50,7 +51,7 @@ def valid(args, unmix, device, valid_sampler):
         return losses.avg
 
 
-def get_statistics(args, dataset):
+def get_statistics(args, dataloader):
     scaler = sklearn.preprocessing.StandardScaler()
 
     spec = torch.nn.Sequential(
@@ -58,18 +59,10 @@ def get_statistics(args, dataset):
         model.Spectrogram(mono=True)
     )
 
-    dataset_scaler = copy.deepcopy(dataset)
-    dataset_scaler.samples_per_track = 1
-    dataset_scaler.augmentations = None
-    dataset_scaler.random_chunks = False
-    dataset_scaler.random_track_mix = False
-    dataset_scaler.random_interferer_mix = False
-    dataset_scaler.seq_duration = None
-    pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
-    for ind in pbar:
-        x, y = dataset_scaler[ind]
+    pbar = tqdm.tqdm(dataloader, disable=args.quiet)
+    for x, y in pbar:
         pbar.set_description("Compute dataset statistics")
-        X = spec(x[None, ...])
+        X = spec(x)
         scaler.partial_fit(np.squeeze(X))
 
     # set inital input scaler values
@@ -101,6 +94,13 @@ def main():
 
     # Trainig Parameters
     parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument(
+        '--reduce-samples',
+        type=int,
+        default=1,
+        help="reduce training samples by factor n"
+    )
+
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate, defaults to 1e-3')
@@ -159,14 +159,33 @@ def main():
 
     train_dataset, valid_dataset, args = data.load_datasets(parser, args)
 
+    num_train = len(train_dataset)
+    indices = list(range(num_train))
+
+    # shuffle train indices once and for all
+    np.random.seed(args.seed)
+    np.random.shuffle(indices)
+
+    if args.reduce_samples > 1:
+        split = int(np.floor(num_train / args.reduce_samples))
+        train_idx = indices[:split]
+    else:
+        train_idx = indices
+    sampler = SubsetRandomSampler(train_idx)
     # create output dir if not exist
     target_path = Path(args.output)
     target_path.mkdir(parents=True, exist_ok=True)
 
     train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True,
-        **dataloader_kwargs
+        train_dataset, batch_size=args.batch_size,
+        sampler=sampler, **dataloader_kwargs
     )
+
+    stats_sampler = torch.utils.data.DataLoader(
+        train_dataset, batch_size=1,
+        sampler=sampler, **dataloader_kwargs
+    )
+
     valid_sampler = torch.utils.data.DataLoader(
         valid_dataset, batch_size=1,
         **dataloader_kwargs
@@ -176,7 +195,7 @@ def main():
         scaler_mean = None
         scaler_std = None
     else:
-        scaler_mean, scaler_std = get_statistics(args, train_dataset)
+        scaler_mean, scaler_std = get_statistics(args, stats_sampler)
 
     max_bin = utils.bandwidth_to_max_bin(
         train_dataset.sample_rate, args.nfft, args.bandwidth
