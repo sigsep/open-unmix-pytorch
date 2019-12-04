@@ -12,7 +12,6 @@ import numpy as np
 import random
 from git import Repo
 import os
-import copy
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
@@ -48,7 +47,6 @@ def valid(args, unmix, device, valid_sampler):
             x = x.to(device)
             y = [i.to(device) for i in y]
             Y_hats = unmix(x)
-            Y = unmix.transform(y)
             loss = 0
             for Y_hat, target, criterion in zip(Y_hats, y, criteria):
                 loss = loss + criterion(Y_hat, unmix.transform(target))
