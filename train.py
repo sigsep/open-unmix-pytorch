@@ -50,7 +50,7 @@ def valid(args, unmix, device, valid_sampler):
             loss = 0
             for Y_hat, target, criterion in zip(Y_hats, y, criteria):
                 loss = loss + criterion(Y_hat, unmix.transform(target))
-            losses.update(loss.item(), Y.size(1))
+            losses.update(loss.item(), Y_hat.size(1))
         return losses.avg
 
 
