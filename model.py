@@ -186,8 +186,6 @@ class OpenUnmix(nn.Module):
         # and reduce feature dimensions, therefore we reshape
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
-        mix = x.detach().clone()
-
         # crop
         x = x[..., :self.nb_bins]
 
