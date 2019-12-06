@@ -289,9 +289,7 @@ def test_main(
 
         for target, estimate in estimates.items():
             sf.write(
-                str(outdir / Path(
-                    Path(input_file).stem + '_' + target
-                ).with_suffix('.wav')),
+                str(outdir / Path(target).with_suffix('.wav')),
                 estimate,
                 samplerate
             )
