@@ -25,7 +25,7 @@ def load_model(targets, model_name='umxhq', device='cpu'):
         raise NotImplementedError
     else:
         # load model from disk
-        with open(Path(model_path, len(targets) + '.json'), 'r') as stream:
+        with open(Path(model_path, str(len(targets)) + '.json'), 'r') as stream:
             results = json.load(stream)
 
         target_model_path = Path(model_path) / "model.pth"
@@ -35,7 +35,7 @@ def load_model(targets, model_name='umxhq', device='cpu'):
         )
 
         max_bin = utils.bandwidth_to_max_bin(
-            state['sample_rate'],
+            44100,
             results['args']['nfft'],
             results['args']['bandwidth']
         )
@@ -119,16 +119,16 @@ def separate(
     # convert numpy audio to torch
     audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
 
-    source_names = []
+    source_names = targets
 
     unmix = load_model(
         targets=targets,
         model_name=model_name,
         device=device
     )
-    V = unmix(audio_torch).cpu().detach().numpy()
-
-    V = np.transpose(np.array(V), (1, 3, 2, 0))
+    V = unmix(audio_torch)
+    V = np.array([m.cpu().detach().numpy() for m in V])[:, :, 0, :, :]
+    V = np.transpose(V, (1, 3, 2, 0))
 
     X = unmix.stft(audio_torch).detach().cpu().numpy()
     # convert to complex numpy type
@@ -266,10 +266,9 @@ def test_main(
         outdir.mkdir(exist_ok=True, parents=True)
 
         for target, estimate in estimates.items():
+            print(Path(Path(input_file).stem + '_' + target))
             sf.write(
-                str(outdir / Path(
-                    Path(input_file).stem + '_' + target
-                ).with_suffix('.wav')),
+                str(outdir / Path(target).with_suffix('.wav')),
                 estimate,
                 samplerate
             )
