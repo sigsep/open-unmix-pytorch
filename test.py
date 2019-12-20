@@ -279,17 +279,22 @@ def test_main(
         if not outdir:
             model_path = Path(model)
             if not model_path.exists():
-                outdir = Path(Path(input_file).stem + '_' + model)
+                output_path = Path(Path(input_file).stem + '_' + model)
             else:
-                outdir = Path(Path(input_file).stem + '_' + model_path.stem)
+                output_path = Path(
+                    Path(input_file).stem + '_' + model_path.stem
+                )
         else:
-            outdir = Path(outdir)
+            if len(input_files) > 1:
+                output_path = Path(outdir) / Path(input_file).stem
+            else:
+                output_path = Path(outdir)
 
-        outdir.mkdir(exist_ok=True, parents=True)
+        output_path.mkdir(exist_ok=True, parents=True)
 
         for target, estimate in estimates.items():
             sf.write(
-                str(outdir / Path(target).with_suffix('.wav')),
+                str(output_path / Path(target).with_suffix('.wav')),
                 estimate,
                 samplerate
             )
