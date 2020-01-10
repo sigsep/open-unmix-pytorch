@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-gpu
+name: open-unmix-pytorch-dev-gpu
 
 channels:
   - conda-forge
@@ -8,7 +8,7 @@ dependencies:
   - python=3.7
   - numpy=1.16
   - scipy=1.3
-  - pytorch=1.2.0
+  - pytorch=1.3.1
   - cudatoolkit=10.0
   - scikit-learn=0.21
   - tqdm=4.32

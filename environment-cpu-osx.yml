@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-osx
+name: open-unmix-pytorch-dev-osx
 
 channels:
   - conda-forge
@@ -8,7 +8,7 @@ dependencies:
   - python=3.7.3
   - numpy=1.16
   - scipy=1.3
-  - pytorch=1.2.0
+  - pytorch=1.3.1
   - tqdm=4.32
   - scikit-learn=0.21
   - ffmpeg
