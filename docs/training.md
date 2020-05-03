@@ -49,7 +49,7 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--patience <int>`         | early stopping patience                                                         | `140`            |
 | `--seq-dur <int>`          | Sequence duration in seconds of chunks taken from the dataset. A value of `<=0.0` results in full/variable length               | `6.0`           |
 | `--unidirectional`           | changes the bidirectional LSTM to unidirectional (for real-time applications)  | not set      |
-| `--hidden-size <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--hidden-size <int>`             | Hidden size parameter of dense bottleneck layers  | `512`            |
 | `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
 | `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
 | `--lr <float>`             | learning rate                                                                   | `0.001`        |
