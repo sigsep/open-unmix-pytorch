@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-gpu
+name: umx-gpu
 
 channels:
   - conda-forge

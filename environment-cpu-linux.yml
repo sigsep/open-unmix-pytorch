@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-linux-cpu
+name: umx-cpu
 
 channels:
   - conda-forge
