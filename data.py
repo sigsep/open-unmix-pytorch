@@ -6,6 +6,7 @@ import random
 import musdb
 import torch
 import tqdm
+import torchaudio
 
 
 class Compose(object):
@@ -857,17 +858,8 @@ if __name__ == "__main__":
         x, y = train_dataset[k]
         total_training_duration += x.shape[1] / train_dataset.sample_rate
         if args.save:
-            import soundfile as sf
-            sf.write(
-                "test/" + str(k) + 'x.wav',
-                x.detach().numpy().T,
-                44100,
-            )
-            sf.write(
-                "test/" + str(k) + 'y.wav',
-                y.detach().numpy().T,
-                44100,
-            )
+            torchaudio.save("test/" + str(k) + 'x.wav', x.T, 44100)
+            torchaudio.save("test/" + str(k) + 'y.wav', y.T, 44100)
 
     print("Total training duration (h): ", total_training_duration / 3600)
     print("Number of train samples: ", len(train_dataset))
