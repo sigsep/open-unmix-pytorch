@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-dev-osx
+name: umx-osx
 
 channels:
   - conda-forge
