@@ -8,6 +8,10 @@
 
 This repository contains the PyTorch (1.0+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
+## News:
+
+- 06/05/2020: We also added a pre-trained speech enhancement model (`umxse`) provided by Sony. For more information we refer [to this site](https://sigsep.github.io/open-unmix/se)
+
 __Related Projects:__ open-unmix-pytorch | [open-unmix-nnabla](https://github.com/sigsep/open-unmix-nnabla) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
 ## The Model
@@ -63,9 +67,9 @@ We also provide a docker container as an alternative to anaconda. That way perfo
 docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch python test.py "/data/track1.wav" --outdir /data/track1
 ```
 
-### Applying the pre-trained model on audio files
+### Applying pre-trained models on audio files
 
-We provide two pre-trained models:
+We provide two pre-trained music separation models:
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
@@ -74,6 +78,12 @@ We provide two pre-trained models:
 * __`umx`__ is trained on the regular [MUSDB18](https://sigsep.github.io/datasets/musdb.html#compressed-stems) which is bandwidth limited to 16 kHz do to AAC compression. This model should be used for comparison with other (older) methods for evaluation in [SiSEC18](sisec18.unmix.app).
 
   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3370486.svg)](https://doi.org/10.5281/zenodo.3370486)
+
+Furthermore, we provide a model for speech enhancement trained by [Sony Corporation](link)
+
+* __`umxse`__ speech enhancement model is trained on the 28-speaker version of [Voicebank](https://ieeexplore.ieee.org/document/6709856) + [Demand](https://zenodo.org/record/1227121). 
+
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3786908.svg)](https://doi.org/10.5281/zenodo.3786908)
 
 To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
@@ -93,7 +103,7 @@ The pre-trained models can be loaded from other pytorch based repositories using
 torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', target='vocals')
 ```
 
-### Load user-trained models
+### Load user-trained models (only music separation models)
 
 When a path instead of a model-name is provided to `--model` the pre-trained model will be loaded from disk.
 
