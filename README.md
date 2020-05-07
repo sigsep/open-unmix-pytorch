@@ -81,7 +81,7 @@ We provide two pre-trained music separation models:
 
 Furthermore, we provide a model for speech enhancement trained by [Sony Corporation](link)
 
-* __`umxse`__ speech enhancement model is trained on the 28-speaker version of [Voicebank](https://ieeexplore.ieee.org/document/6709856) + [Demand](https://zenodo.org/record/1227121). 
+* __`umxse`__ speech enhancement model is trained on the 28-speaker version of the [Voicebank+DEMAND corpus](https://datashare.is.ed.ac.uk/handle/10283/1942?show=full).
 
   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3786908.svg)](https://doi.org/10.5281/zenodo.3786908)
 
