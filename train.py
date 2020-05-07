@@ -13,7 +13,7 @@ import random
 from git import Repo
 import os
 import copy
-
+import torchaudio
 
 tqdm.monitor_interval = 0
 
@@ -96,8 +96,10 @@ def main():
     parser.add_argument('--output', type=str, default="open-unmix",
                         help='provide output path base folder name')
     parser.add_argument('--model', type=str, help='Path to checkpoint folder')
+    parser.add_argument('--audio-backend', type=str, default="soundfile",
+                        help='Set torchaudio backend (`sox` or `soundfile`')
 
-    # Trainig Parameters
+    # Training Parameters
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=0.001,
@@ -140,6 +142,7 @@ def main():
 
     args, _ = parser.parse_known_args()
 
+    torchaudio.set_audio_backend(args.audio_backend)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)
     dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}

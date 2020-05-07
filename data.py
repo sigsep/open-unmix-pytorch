@@ -865,6 +865,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument('--target', type=str, default='vocals')
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--audio-backend', type=str, default="soundfile",
+                        help='Set torchaudio backend (`sox` or `soundfile`')
 
     # I/O Parameters
     parser.add_argument(
@@ -875,8 +878,10 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=16)
 
     args, _ = parser.parse_known_args()
-    train_dataset, valid_dataset, args = load_datasets(parser, args)
+    torchaudio.set_audio_backend(args.audio_backend)
 
+    train_dataset, valid_dataset, args = load_datasets(parser, args)
+    print("Audio Backend: ", torchaudio.get_audio_backend())
     # Iterate over training dataset
     total_training_duration = 0
     for k in tqdm.tqdm(range(len(train_dataset))):

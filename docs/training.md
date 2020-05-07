@@ -61,6 +61,7 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--nb-workers <int>`      | Number of (parallel) workers for data-loader, can be safely increased for wav files   | `0` |
 | `--quiet`                  | disable print and progress bar during training                                   | not set         |
 | `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--audio-backend <str>`         | choose audio loading backend, either `sox` or `soundfile` | `soundfile` for training, `sox` for inference |
 
 ### Training details of `umxhq`
 
