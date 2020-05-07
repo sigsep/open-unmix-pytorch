@@ -93,7 +93,7 @@ def separate(
 
     Parameters
     ----------
-    audio: torch tenso [shape=(nb_samples, nb_channels, nb_timesteps)]
+    audio: torch tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
         mixture audio
 
     targets: list of str
@@ -251,7 +251,7 @@ def test_main(
             warnings.warn(
                 'Channel count > 2! '
                 'Only the first two channels will be processed!')
-            audio = audio[:2, :]
+            audio = audio[:2]
 
         if info['samplerate'] != samplerate:
             # resample to model samplerate if needed
