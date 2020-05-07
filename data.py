@@ -1,4 +1,3 @@
-from utils import load_audio, load_info
 from pathlib import Path
 import torch.utils.data
 import argparse
@@ -6,6 +5,33 @@ import random
 import musdb
 import torch
 import tqdm
+import torchaudio
+
+
+def load_info(path):
+    # get length of file in samples
+    info = {}
+    si, _ = torchaudio.info(str(path))
+    info['samplerate'] = si.rate
+    info['samples'] = si.length // si.channels
+    info['duration'] = info['samples'] / si.rate
+    return info
+
+
+def load_audio(path, start=0, dur=None):
+    # loads the full track duration
+    if dur is None:
+        sig, rate = torchaudio.load(path)
+        return sig
+        # otherwise loads a random excerpt
+    else:
+        info = load_info(path)
+        num_frames = int(dur * info['samplerate'])
+        offset = int(start * info['samplerate'])
+        sig, rate = torchaudio.load(
+            path, num_frames=num_frames, offset=offset
+        )
+        return sig
 
 
 class Compose(object):
@@ -839,6 +865,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument('--target', type=str, default='vocals')
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--audio-backend', type=str, default="soundfile",
+                        help='Set torchaudio backend (`sox` or `soundfile`')
 
     # I/O Parameters
     parser.add_argument(
@@ -849,25 +878,18 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=16)
 
     args, _ = parser.parse_known_args()
-    train_dataset, valid_dataset, args = load_datasets(parser, args)
+    torchaudio.set_audio_backend(args.audio_backend)
 
+    train_dataset, valid_dataset, args = load_datasets(parser, args)
+    print("Audio Backend: ", torchaudio.get_audio_backend())
     # Iterate over training dataset
     total_training_duration = 0
     for k in tqdm.tqdm(range(len(train_dataset))):
         x, y = train_dataset[k]
         total_training_duration += x.shape[1] / train_dataset.sample_rate
         if args.save:
-            import soundfile as sf
-            sf.write(
-                "test/" + str(k) + 'x.wav',
-                x.detach().numpy().T,
-                44100,
-            )
-            sf.write(
-                "test/" + str(k) + 'y.wav',
-                y.detach().numpy().T,
-                44100,
-            )
+            torchaudio.save("test/" + str(k) + 'x.wav', x.T, 44100)
+            torchaudio.save("test/" + str(k) + 'y.wav', y.T, 44100)
 
     print("Total training duration (h): ", total_training_duration / 3600)
     print("Number of train samples: ", len(train_dataset))

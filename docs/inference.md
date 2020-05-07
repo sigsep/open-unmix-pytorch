@@ -1,6 +1,5 @@
 # Performing separation
 
-
 ## Interfacing using the command line
 
 The primary interface to separate files is the command line. To separate a mixture file into the four stems you can just run
@@ -9,8 +8,9 @@ The primary interface to separate files is the command line. To separate a mixtu
 python test.py input_file.wav
 ```
 
-Note that we support all files that can be read by pysoundfile (wav, flac and ogg files).
-The separation can be controlled with additional parameters that influence the performance of the separation. 
+Note that we support all files that can be read by torchaudio, depending on the set backend (either `soundfile` (libsndfile) or `sox`).
+For training, we set the default to `soundfile` as it is faster than `sox`. However for inference users might prefer `mp3` decoding capabilities.
+The separation can be controlled with additional parameters that influence the performance of the separation.
 
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
@@ -21,7 +21,8 @@ The separation can be controlled with additional parameters that influence the p
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether (and thus makes separation significantly faster) More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
 | `--residual`           |               computes a residual target, for custom separation scenarios when not all targets are available (at the expense of slightly less performance). E.g vocal/accompaniment can be performed with `--targets vocals --residual`.                                   | not set          |
 | `--softmask`       | if activated, then the initial estimates for the sources will be obtained through a ratio mask of the mixture STFT, and not by using the default behavior of reconstructing waveforms by using the mixture phase.  | not set            |
-| `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
+| `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`                   |
+| `--audio-backend <str>`         | choose audio loading backend, either `sox` or `soundfile` | `soundfile` for training, `sox` for inference |
 
 ## Interfacing from python
 

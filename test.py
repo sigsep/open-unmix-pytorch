@@ -1,12 +1,12 @@
 import torch
 import numpy as np
 import argparse
-import soundfile as sf
+import data
 import norbert
 import json
 from pathlib import Path
 import scipy.signal
-import resampy
+import torchaudio
 import model
 import utils
 import warnings
@@ -93,7 +93,7 @@ def separate(
 
     Parameters
     ----------
-    audio: np.ndarray [shape=(nb_samples, nb_channels, nb_timesteps)]
+    audio: torch tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
         mixture audio
 
     targets: list of str
@@ -131,7 +131,7 @@ def separate(
 
     """
     # convert numpy audio to torch
-    audio_torch = torch.tensor(audio.T[None, ...]).float().to(device)
+    audio_torch = torch.as_tensor(audio.T[None, ...]).float().to(device)
 
     source_names = []
     V = []
@@ -234,40 +234,41 @@ def test_main(
 
     for input_file in input_files:
         # handling an input audio path
-        info = sf.info(input_file)
-        start = int(start * info.samplerate)
+        info = data.load_info(input_file)
         # check if dur is none
-        if duration > 0:
-            # stop in soundfile is calc in samples, not seconds
-            stop = start + int(duration * info.samplerate)
-        else:
+        if info['duration'] <= 0:
             # set to None for reading complete file
-            stop = None
+            duration = None
+        else:
+            duration = info['duration']
 
-        audio, rate = sf.read(
+        audio = data.load_audio(
             input_file,
-            always_2d=True,
             start=start,
-            stop=stop
+            dur=duration
         )
-
-        if audio.shape[1] > 2:
+        if audio.shape[0] > 2:
             warnings.warn(
                 'Channel count > 2! '
                 'Only the first two channels will be processed!')
-            audio = audio[:, :2]
+            audio = audio[:2]
 
-        if rate != samplerate:
+        if info['samplerate'] != samplerate:
             # resample to model samplerate if needed
-            audio = resampy.resample(audio, rate, samplerate, axis=0)
+            resampler = torchaudio.transforms.Resample(
+                info['samplerate'],
+                samplerate,
+                resampling_method='sinc_interpolation'
+            )
+            audio = resampler(audio)
 
         if audio.shape[1] == 1:
             # if we have mono, let's duplicate it
             # as the input of OpenUnmix is always stereo
-            audio = np.repeat(audio, 2, axis=1)
+            audio = torch.repeat_interleave(audio, 2, dim=1)
 
         estimates = separate(
-            audio,
+            audio.T,
             targets=targets,
             model_name=model,
             niter=niter,
@@ -293,9 +294,9 @@ def test_main(
         output_path.mkdir(exist_ok=True, parents=True)
 
         for target, estimate in estimates.items():
-            sf.write(
+            torchaudio.save(
                 str(output_path / Path(target).with_suffix('.wav')),
-                estimate,
+                torch.tensor(estimate.T),
                 samplerate
             )
 
@@ -357,8 +358,17 @@ if __name__ == '__main__':
         help='disables CUDA inference'
     )
 
+    parser.add_argument(
+        '--audio-backend',
+        type=str,
+        default="sox",
+        help='Set torchaudio backend '
+             '(`sox` or `soundfile`), defaults to `sox`')
+
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
+
+    torchaudio.set_audio_backend(args.audio_backend)
 
     test_main(
         input_files=args.input, samplerate=args.samplerate,
