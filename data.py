@@ -1,4 +1,3 @@
-from utils import load_audio, load_info
 from pathlib import Path
 import torch.utils.data
 import argparse
@@ -7,6 +6,32 @@ import musdb
 import torch
 import tqdm
 import torchaudio
+
+
+def load_info(path):
+    # get length of file in samples
+    info = {}
+    si, _ = torchaudio.info(str(path))
+    info['samplerate'] = si.rate
+    info['samples'] = si.length // si.channels
+    info['duration'] = info['samples'] / si.rate
+    return info
+
+
+def load_audio(path, start=0, dur=None):
+    # loads the full track duration
+    if dur is None:
+        sig, rate = torchaudio.load(path)
+        return sig
+        # otherwise loads a random excerpt
+    else:
+        info = load_info(path)
+        num_frames = int(dur * info['samplerate'])
+        offset = int(start * info['samplerate'])
+        sig, rate = torchaudio.load(
+            path, num_frames=num_frames, offset=offset
+        )
+        return sig
 
 
 class Compose(object):
