@@ -3,6 +3,7 @@ import argparse
 import soundfile as sf
 from pathlib import Path
 from filtering import Separator
+import utils
 
 
 def inference_args(parser, remaining_args):
@@ -36,9 +37,9 @@ def inference_args(parser, remaining_args):
     )
 
     inf_parser.add_argument(
-        '--residual-model',
+        '--residual',
         action='store_true',
-        help='create a model for the residual'
+        help='build a source for the mix minus estimated targets'
     )
     return inf_parser.parse_args()
 
@@ -46,7 +47,7 @@ def inference_args(parser, remaining_args):
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(
-        description='OSU Inference',
+        description='UMX Inference',
         add_help=False
     )
 
@@ -94,16 +95,21 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    gradient = False
+    print('testing gradients:', gradient)
+    if gradient:
+        torch.autograd.set_detect_anomaly(True)
+
     # create the Separator object
     separator = Separator(targets=args.targets,
                           model_name=args.model,
                           niter=args.niter,
                           softmask=args.softmask,
                           alpha=args.alpha,
-                          residual_model=args.residual_model,
+                          build_residual=args.residual,
                           device=device,
-                          batch_size=400, training=False,
-                          smart_input_management=True)
+                          batch_size=100, preload=True)
+    separator.freeze()
 
     # loop over the files
     for input_file in args.input:
@@ -112,18 +118,19 @@ if __name__ == '__main__':
 
         # convert numpy audio to torch
         audio_torch = torch.tensor(audio).to(device)
-        audio_torch.requires_grad = False
+        audio_torch = utils.as_stereo_batch(audio)
+
+        audio_torch.requires_grad = gradient
 
         # getting the separated signals
         estimates, model_rate = separator(audio_torch, rate)
 
-        # loss = torch.abs(estimates['vocals']).sum()
-        #loss.backward()
-
-        # import ipdb; ipdb.set_trace()
+        if gradient:
+            loss = torch.abs(estimates['vocals']).sum()
+            loss.backward()
 
         estimates = {
-            key: estimates[key].detach().cpu().numpy()
+            key: estimates[key][0].detach().cpu().numpy()
             for key in estimates}
 
         if not args.outdir:

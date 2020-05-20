@@ -190,3 +190,52 @@ class EarlyStopping(object):
             self.is_better = lambda a, best: a < best - min_delta
         if mode == 'max':
             self.is_better = lambda a, best: a > best + min_delta
+
+def as_stereo_batch(audio):
+    """
+    From an input tensor/ndarray, convert it to a tensor of shape
+    shape=(nb_samples, nb_channels, nb_timesteps). This includes:
+    -  conversion to pytorch
+    -  if input is 1D, adding the samples and channels dimensions.
+    -  if input is 2D
+        o and the smallest dimension is 1 or 2, adding the samples one.
+        o and all dimensions are > 2, assuming the smallest is the samples
+          one, and adding the channel one
+    - at the end, if the number of channels is greater than the number
+      of time steps, swap those two.
+
+    Parameters
+    ----------
+    audio: pytorch.Tensor or numpy.ndarray
+
+    Returns
+    -------
+    audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)] 
+    """
+    # convert to torch tensor
+    audio = torch.as_tensor(audio)
+    # shape management
+    shape = torch.tensor(audio.shape)
+    if len(shape) == 1:
+        # assuming only time dimension is provided.
+        audio = audio[None, None, ...]
+    elif len(shape) == 2:
+        if shape.min() <= 2:
+            # assuming sample dimension is missing
+            audio = audio[None, ...]
+        else:
+            # assuming channel dimension is missing
+            audio = audio[:, None, ...]
+    if audio.shape[1] > audio.shape[2]:
+        # swapping channel and time
+        audio = audio.transpose(1, 2)
+    if audio.shape[1] > 2:
+        warnings.warn(
+            'Channel count > 2!. Only the first two channels '
+            'will be processed!')
+        audio = audio[..., :2]
+    audio = audio.float()
+    if audio.shape[1] == 1:
+        # if we have mono, we duplicate it to get stereo
+        audio = audio.expand(-1, 2, -1)
+    return audio

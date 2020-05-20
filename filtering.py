@@ -24,6 +24,28 @@ def _norm(x):
     """
     return torch.abs(x[..., 0])**2 + torch.abs(x[..., 1])**2
 
+def _mul_add(a, b, out):
+    """Element-wise multiplication of two complex Tensors described
+    through their real and imaginary parts.
+    The result is added to the `out` tensor"""
+
+    # check `out` and allocate it if needed
+    target_shape = torch.Size([
+        max(sa, sb) for (sa, sb) in zip(a.shape, b.shape)])
+    if out is None or out.shape != target_shape:
+        out = torch.zeros(target_shape, dtype=a.dtype, device=a.device)
+    if out is a:
+        real_a = a[..., 0]
+        out[..., 0] = out[..., 0] + (
+            real_a * b[..., 0] - a[..., 1] * b[..., 1])
+        out[..., 1] = out[..., 1] + (
+            real_a * b[..., 1] + a[..., 1] * b[..., 0])
+    else:
+        out[..., 0] = out[..., 0] + (
+            a[..., 0] * b[..., 0] - a[..., 1] * b[..., 1])
+        out[..., 1] = out[..., 1] + (
+            a[..., 0] * b[..., 1] + a[..., 1] * b[..., 0])
+    return out
 
 def _mul(a, b, out=None):
     """Element-wise multiplication of two complex Tensors described
@@ -84,6 +106,7 @@ def _invert(M, out=None):
         inverses of M
     """
     nb_channels = M.shape[-2]
+
     if out is None or out.shape != M.shape:
         out = torch.empty_like(M)
 
@@ -92,13 +115,14 @@ def _invert(M, out=None):
         out = _inv(M, out)
     elif nb_channels == 2:
         # two channels case: analytical expression
-        temp = torch.zeros_like(M[..., 0, 0, :])
+
         # first compute the determinent
-        invDet = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
-        invDet = invDet - _mul(M[..., 0, 1, :], M[..., 1, 0, :], temp)
+        det = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
+        det = det - _mul(M[..., 0, 1, :], M[..., 1, 0, :])
         # invert it
-        # invDet = _inv(invDet, invDet)
-        invDet = _inv(invDet, None) # don't reuse the same variable, for gradient tracing
+        invDet = _inv(det)
+
+        # then fill out the matrix with the inverse
         out[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :], out[..., 0, 0, :])
         out[..., 1, 0, :] = _mul(-invDet, M[..., 1, 0, :], out[..., 1, 0, :])
         out[..., 0, 1, :] = _mul(-invDet, M[..., 0, 1, :], out[..., 0, 1, :])
@@ -109,79 +133,6 @@ def _invert(M, out=None):
 
 
 # Now define the signal-processing low-level functions used by the Separator
-
-
-def residual_model(v, x, alpha=1, autoscale=True):
-    r"""Compute a model for the residual based on spectral subtraction.
-
-    The method consists in two steps:
-
-    * The provided spectrograms are summed up to obtain the *input* model for
-      the mixture. This *input* model is scaled frequency-wise to best
-      fit with the actual observed mixture spectrogram.
-
-    * The residual model is obtained through spectral subtraction of the
-      input model from the mixture spectrogram, with flooring to 0.
-
-    Parameters
-    ----------
-    v: torch.Tensor [shape=(nb_samples, nb_frames, nb_bins,
-                            {1, nb_channels}, nb_sources)]
-        Estimated spectrograms for the sources
-
-    x: torch.Tensor [shape=(nb_samples, nb_frames, nb_bins, nb_channels, 2)]
-        complex mixtures
-
-    alpha: float [scalar]
-        exponent for the spectrograms `v`. For instance, if `alpha==1`,
-        then `v` must be homogoneous to magnitudes, and if `alpha==2`, `v`
-        must homogeneous to squared magnitudes.
-
-    Returns
-    -------
-    v: torch.Tensor [shape=(nb_samples, nb_frames, nb_bins,
-                            nb_channels, nb_sources+1)]
-        Spectrograms of the sources, with an appended one for the residual.
-
-    Note
-    ----
-    It is not mandatory to input multichannel spectrograms. However, the
-    output spectrograms *will* be multichannel.
-
-    Warning
-    -------
-    You must be careful to set `alpha` as the exponent that corresponds to `v`.
-    In other words, *you must have*: ``torch.abs(x)**alpha`` homogeneous to
-    `v`.
-    """
-    # to avoid dividing by zero
-    eps = torch.tensor(torch.finfo(v.dtype).eps, device=v.device,
-                       dtype=v.dtype)
-    # spectrogram for the mixture
-    vx = torch.max(eps, torch.sqrt(_norm(x))**alpha)
-
-    # compute the total model as provided
-    v_total = torch.sum(v, dim=-1)
-
-    if autoscale:
-        # quick trick to scale the provided spectrograms to fit the mixture
-        nb_frames = x.shape[1]
-        gain = 0
-        weights = eps
-        for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                             batch_size=200):
-            gain = gain + torch.sum(vx[t] * v_total[t], dim=1, keepdim=True)
-            weights = weights + torch.sum(v_total[t]**2, dim=1, keepdim=True)
-        gain = gain / weights
-        v = v * gain[..., None]
-        # compute the total model as provided
-        v_total = torch.sum(v, dim=-1)
-
-    # residual is difference between the observation and the model
-    vr = torch.relu(vx - v_total)
-    v = torch.cat((v, vr[..., None]), dim=-1)
-    return v
-
 
 def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     r"""Expectation maximization algorithm, for refining source separation
@@ -295,25 +246,33 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     (nb_frames, nb_bins, nb_channels) = x.shape[:-1]
     nb_sources = y.shape[-1]
 
-    # allocate the spatial covariance matrices and PSD
-    R = torch.zeros((nb_bins, nb_channels, nb_channels, 2, nb_sources),
-                    dtype=x.dtype, device=y.device)
-    v = torch.zeros((nb_frames, nb_bins, nb_sources),
-                    dtype=x.dtype, device=y.device)
-
     if verbose:
         print('Number of iterations: ', iterations)
 
-    regularization = torch.cat((torch.eye(2)[..., None],
-                                torch.zeros((2, 2, 1))),
-                               dim=2).to(x.dtype).to(x.device)
+    regularization = torch.cat(
+        (
+            torch.eye(2, dtype=x.dtype, device=x.device)[..., None],
+            torch.zeros((2, 2, 1), dtype=x.dtype, device=x.device)
+        ),
+        dim=2
+    )
     regularization = torch.sqrt(eps)*(
-                        regularization[None, None, ...].expand(
-                            (-1, nb_bins, -1, -1, -1)))
+        regularization[None, None, ...].expand(
+                            (-1, nb_bins, -1, -1, -1))
+    )
 
-    def maybe_clone(tensor):
-        print('cloning: ', x.requires_grad or y.requires_grad)
-        return tensor.clone().detach().requires_grad_(True) if x.requires_grad or y.requires_grad else tensor
+    # allocate the spatial covariance matrices
+    R = [
+        torch.zeros(
+            (nb_bins, nb_channels, nb_channels, 2),
+            dtype=x.dtype, device=x.device
+        )
+        for j in range(nb_sources)
+    ]
+    weight = torch.zeros(
+        (nb_bins,),
+        dtype=x.dtype, device=x.device
+    )
 
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
@@ -321,35 +280,65 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         if verbose:
             print('EM, iteration', (it+1))
 
-        for j in range(nb_sources):
-            # update the spectrogram model for source j
-            v[..., j], R[..., j] = get_local_gaussian_model(
-                maybe_clone(y[..., j]), eps)
+        # update the spectrograms
+        v = torch.mean(
+            torch.abs(y[..., 0, :])**2 + torch.abs(y[..., 1, :])**2,
+            dim=-2
+        )
 
-        inv_Cxx = None
+        for j in range(nb_sources):
+            R[j][...] = 0
+            weight[...] = eps
+            for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
+                                                batch_size=200):
+                R[j] = R[j] + torch.sum(
+                    _covariance(y[t, ..., j]),
+                    dim=0
+                )
+                weight = weight + torch.sum(v[t, ..., j], dim=0)
+            R[j] = R[j] / weight[..., None, None, None]
+            weight = torch.zeros_like(weight)
+
+        # cloning y if we track gradient, because we're going to update it
+        if y.requires_grad:
+            y = y.clone()
+
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
                                              batch_size=200):
-            Cxx = get_mix_model(
-                maybe_clone(v[t, ...]),
-                maybe_clone(R)
-            )
-            Cxx = Cxx + regularization
-            inv_Cxx = _invert(Cxx, inv_Cxx)
+            y[t,...] = 0
+            Cxx = regularization
+            for j in range(nb_sources):
+                Cxx = Cxx + (
+                    v[t, ..., j, None, None, None]
+                    * R[j][None, ...].clone()
+                )
 
+            inv_Cxx = _invert(Cxx)
+            
             # separate the sources
             for j in range(nb_sources):
-                y[t, ..., j] = apply_filter(
-                    x[t, ...],
-                    wiener_gain(
-                        maybe_clone(v[t, ..., j]),
-                        maybe_clone(R[..., j]),
-                        maybe_clone(inv_Cxx)
+                gain = torch.zeros_like(inv_Cxx)
+                # computes multichannel Wiener gain as v_j R_j inv_Cxx
+                for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
+                    gain[..., i1, i2, :] = _mul_add(
+                            R[j][None, :, i1, i3, :].clone(),
+                            inv_Cxx[..., i3, i2, :],
+                            gain[..., i1, i2, :]
                     )
-                )
+                gain = gain * v[t, ..., None, None, None, j]
+
+                # apply it to the mixture
+                for i in range(nb_channels):
+                    y[t, ..., j] = _mul_add(
+                        gain[..., i, :],
+                        x[t, ..., i, None, :],
+                        y[t, ..., j]
+                    )
+
     return y, v, R
 
 
-def wiener(v, x, iterations=1, use_softmask=True, build_accompaniment=False, eps=None):
+def wiener(v, x, iterations=1, use_softmask=True, build_residual=False, eps=None):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -407,7 +396,8 @@ def wiener(v, x, iterations=1, use_softmask=True, build_accompaniment=False, eps
 
         * if `True`, a softmasking strategy will be used as described in
           :func:`softmask`.
-    build_accompaniment: boolean
+
+    build_residual: boolean
         if `True`, an additional target is created, which is
         equal to the mixture minus the estimated targets, before application of
         expectation maximization
@@ -456,7 +446,7 @@ def wiener(v, x, iterations=1, use_softmask=True, build_accompaniment=False, eps
         y[..., 0, :] = v * torch.cos(angle)
         y[..., 1, :] = v * torch.sin(angle)
 
-    if build_accompaniment:
+    if build_residual:
         # if required, adding an additional target as the mix minus
         # available targets
         y = torch.cat(
@@ -477,7 +467,7 @@ def wiener(v, x, iterations=1, use_softmask=True, build_accompaniment=False, eps
     # call expectation maximization
     y = expectation_maximization(y, x, iterations, eps=eps)[0]
 
-    # scale estimates
+    # scale estimates up again
     y = y * max_abs
     return y
 
@@ -526,106 +516,6 @@ def softmask(v, x, eps=None):
     )[..., None, :]
 
 
-def wiener_gain(v_j, R_j, inv_Cxx):
-    """
-    Compute the wiener gain for separating one source, given all parameters.
-    It is the matrix applied to the mix to get the posterior mean of the source
-    as in [1]_
-
-    References
-    ----------
-    .. [1] N.Q. Duong and E. Vincent and R.Gribonval. "Under-determined
-        reverberant audio source separation using a full-rank spatial
-        covariance model." IEEE Transactions on Audio, Speech, and Language
-        Processing 18.7 (2010): 1830-1840.
-
-    Parameters
-    ----------
-    v_j: torch.Tensor [shape=(nb_frames, nb_bins)]
-        power spectral density of the target source.
-
-    R_j: torch.Tensor [shape=(nb_bins, nb_channels, nb_channels, 2)]
-        spatial covariance matrix of the target source
-
-    inv_Cxx: torch.Tensor
-             [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
-        inverse of the mixture covariance matrices
-
-    Returns
-    -------
-
-    G: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
-        wiener filtering matrices, to apply to the mix, e.g. through
-        :func:`apply_filter` to get the target source estimate.
-
-    """
-    nb_channels = R_j.shape[1]
-
-    # computes multichannel Wiener gain as v_j R_j inv_Cxx
-    G = torch.zeros_like(inv_Cxx)
-    temp = torch.zeros_like(G[..., 0, 0, :])
-    for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
-        G[..., i1, i2, :] = (G[..., i1, i2, :]
-                             + _mul(R_j[None, :, i1, i3, :].clone(),
-                                    inv_Cxx[..., i3, i2, :], temp))
-    G = G * v_j[..., None, None, None]
-    return G
-
-
-def apply_filter(x, W):
-    """
-    Applies a filter on the mixture. Just corresponds to a matrix
-    multiplication.
-
-    Parameters
-    ----------
-    x: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)]
-        STFT of the signal on which to apply the filter.
-
-    W: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
-        filtering matrices, as returned, e.g. by :func:`wiener_gain`
-
-    Returns
-    -------
-    y_hat: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)]
-        filtered signal
-    """
-    nb_channels = W.shape[-2]
-
-    # apply the filter
-    y_hat = torch.zeros_like(x)
-    temp = torch.zeros_like(W[..., 0, :])
-    for i in range(nb_channels):
-        y_hat = y_hat + _mul(W[..., i, :], x[..., i, None, :], temp)
-    return y_hat
-
-
-def get_mix_model(v, R):
-    """
-    Compute the model covariance of a mixture based on local Gaussian models.
-    simply adds up all the v[..., j] * R[..., j]
-
-    Parameters
-    ----------
-    v: torch.Tensor [shape=(nb_frames, nb_bins, nb_sources)]
-        Power spectral densities for the sources
-
-    R: torch.Tensor [shape=(nb_bins, nb_channels, nb_channels, 2, nb_sources)]
-        Spatial covariance matrices of all sources
-
-    Returns
-    -------
-    Cxx: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
-        Covariance matrix for the mixture
-    """
-    nb_channels = R.shape[1]
-    (nb_frames, nb_bins, nb_sources) = v.shape
-    Cxx = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
-                      dtype=R.dtype, device=v.device)
-    for j in range(nb_sources):
-        Cxx = Cxx + v[..., j, None, None, None] * R[None, ..., j]
-    return Cxx
-
 
 def _covariance(y_j):
     """
@@ -645,59 +535,14 @@ def _covariance(y_j):
     Cj = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
                      dtype=y_j.dtype,
                      device=y_j.device)
-    temp = torch.zeros_like(y_j[..., 0, :])
     for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
-        Cj[..., i1, i2, :] = (Cj[..., i1, i2, :]
-                              + _mul(y_j[..., i1, :],
-                                     _conj(y_j[..., i2, :]), temp))
+        Cj[..., i1, i2, :] = _mul_add(
+            y_j[..., i1, :],
+            _conj(y_j[..., i2, :]),
+            Cj[..., i1, i2, :]
+        )
     return Cj
 
-
-def get_local_gaussian_model(y_j, eps=1.):
-    r"""
-    Compute the local Gaussian model [1]_ for a source given the complex STFT.
-    First get the power spectral densities, and then the spatial covariance
-    matrix, as done in [1]_, [2]_
-
-    References
-    ----------
-    .. [1] N.Q. Duong and E. Vincent and R.Gribonval. "Under-determined
-        reverberant audio source separation using a full-rank spatial
-        covariance model." IEEE Transactions on Audio, Speech, and Language
-        Processing 18.7 (2010): 1830-1840.
-
-    .. [2] A. Liutkus and R. Badeau and G. Richard. "Low bitrate informed
-        source separation of realistic mixtures." 2013 IEEE International
-        Conference on Acoustics, Speech and Signal Processing. IEEE, 2013.
-
-    Parameters
-    ----------
-    y_j: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)]
-          complex stft of the source.
-    eps: float [scalar]
-        regularization term
-
-    Returns
-    -------
-    v_j: torch.Tensor [shape=(nb_frames, nb_bins)]
-        power spectral density of the source
-    R_J: torch.Tensor [shape=(nb_bins, nb_channels, nb_channels, 2)]
-        Spatial covariance matrix of the source
-
-    """
-    v_j = torch.mean(_norm(y_j), dim=2)
-
-    # updates the spatial covariance matrix
-    (nb_frames, nb_bins, nb_channels) = y_j.shape[:-1]
-    R_j = torch.zeros((nb_bins, nb_channels, nb_channels, 2),
-                      dtype=y_j.dtype, device=y_j.device)
-    weight = eps
-    for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                         batch_size=200):
-        R_j = R_j + torch.sum(_covariance(y_j[t, ...]), dim=0)
-        weight = weight + torch.sum(v_j[t, ...], dim=0)
-    R_j = R_j / weight[..., None, None, None]
-    return v_j, R_j
 
 # now we are ready to define the actual Separator Module
 
@@ -732,7 +577,7 @@ class Separator(nn.Module):
     alpha: float
         changes the exponent to use for building ratio masks, defaults to 1.0
 
-    build_accompaniment: boolean
+    build_residual: boolean
         adds an additional residual target, obtained by subtracting the estimated
         sources from the mixture, before any potential EM post-processing.
         If only one model is present, this additional target is called `accompaniment`.
@@ -756,7 +601,7 @@ class Separator(nn.Module):
         The device on which to create the separator
     """
     def __init__(self, targets, model_name='umxhq',
-                 niter=1, softmask=False, alpha=1.0, build_accompaniment=False,
+                 niter=1, softmask=False, alpha=1.0, build_residual=False,
                  batch_size=None, preload=False, device='cpu'):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
@@ -771,7 +616,7 @@ class Separator(nn.Module):
         self.niter = niter
         self.alpha = alpha
         self.softmask = softmask
-        self.build_accompaniment = build_accompaniment
+        self.build_residual = build_residual
         self.batch_size = batch_size
 
         # loading all models in the case of training
@@ -880,7 +725,7 @@ class Separator(nn.Module):
 
         # create an additional target if we need to build the accompaniment
         targets = self.targets
-        if self.build_accompaniment:
+        if self.build_residual:
             targets += (['residual'] if nb_sources > 1
                         else ['accompaniment'])
             nb_sources += 1
@@ -891,13 +736,12 @@ class Separator(nn.Module):
         frames_loader = ([torch.arange(nb_frames), ] if self.batch_size is None
                          else DataLoader(torch.arange(nb_frames),
                                          batch_size=self.batch_size))
-        for t in frames_loader:
-            for sample in range(nb_samples):
+        for sample in range(nb_samples):
+            for t in frames_loader:            
                 Y[sample, t] = wiener(V[sample, t], X[sample, t],
                                       self.niter, use_softmask=self.softmask,
-                                      build_accompaniment=self.build_accompaniment
+                                      build_residual=self.build_residual
                                       ).to(torch.float32)
-
         estimates = {}
 
         # getting to (nb_samples, channel, fft_size, n_frames, 2, nb_sources)
