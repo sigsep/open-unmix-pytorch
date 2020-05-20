@@ -724,7 +724,7 @@ class Separator(nn.Module):
         X = X.permute(0, 3, 2, 1, 4)
 
         # create an additional target if we need to build the accompaniment
-        targets = self.targets
+        targets = list(self.targets)
         if self.build_residual:
             targets += (['residual'] if nb_sources > 1
                         else ['accompaniment'])
