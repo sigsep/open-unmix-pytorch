@@ -8,6 +8,7 @@ from filtering import Separator
 from pathlib import Path
 import torch
 import tqdm
+import utils
 
 
 def separate_and_evaluate(
@@ -28,18 +29,20 @@ def separate_and_evaluate(
                           niter=niter,
                           softmask=softmask,
                           alpha=alpha,
-                          residual_model=False,
+                          build_residual=len(targets)==1,
                           device=device,
-                          batch_size=400, training=False,
-                          smart_input_management=True)
-
-    estimates, rate = separator(audio=track.audio, rate=track.rate)
+                          batch_size=400, preload=False)
+    audio = utils.as_stereo_batch(track.audio)
+    estimates, rate = separator(audio=audio, rate=track.rate)
+    for key in estimates:
+        estimates[key] = estimates[key][0].numpy()
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 
     scores = museval.eval_mus_track(
         track, estimates, output_dir=eval_dir
     )
+    print(track,'\n',scores)
     return scores
 
 
