@@ -5,7 +5,8 @@ import itertools
 import warnings
 import model
 import utils
-
+import torchaudio
+from torchaudio.functional import istft
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
@@ -96,7 +97,8 @@ def _invert(M, out=None):
         invDet = _mul(M[..., 0, 0, :], M[..., 1, 1, :])
         invDet = invDet - _mul(M[..., 0, 1, :], M[..., 1, 0, :], temp)
         # invert it
-        invDet = _inv(invDet, invDet)
+        # invDet = _inv(invDet, invDet)
+        invDet = _inv(invDet, None) # don't reuse the same variable, for gradient tracing
         out[..., 0, 0, :] = _mul(invDet, M[..., 1, 1, :], out[..., 0, 0, :])
         out[..., 1, 0, :] = _mul(-invDet, M[..., 1, 0, :], out[..., 1, 0, :])
         out[..., 0, 1, :] = _mul(-invDet, M[..., 0, 1, :], out[..., 0, 1, :])
@@ -308,6 +310,11 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     regularization = torch.sqrt(eps)*(
                         regularization[None, None, ...].expand(
                             (-1, nb_bins, -1, -1, -1)))
+
+    def maybe_clone(tensor):
+        print('cloning: ', x.requires_grad or y.requires_grad)
+        return tensor.clone().detach().requires_grad_(True) if x.requires_grad or y.requires_grad else tensor
+
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
@@ -316,25 +323,33 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
         for j in range(nb_sources):
             # update the spectrogram model for source j
-
-            v[..., j], R[..., j] = get_local_gaussian_model(y[..., j], eps)
+            v[..., j], R[..., j] = get_local_gaussian_model(
+                maybe_clone(y[..., j]), eps)
 
         inv_Cxx = None
         for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
                                              batch_size=200):
-            Cxx = get_mix_model(v[t, ...], R)
+            Cxx = get_mix_model(
+                maybe_clone(v[t, ...]),
+                maybe_clone(R)
+            )
             Cxx = Cxx + regularization
             inv_Cxx = _invert(Cxx, inv_Cxx)
 
             # separate the sources
             for j in range(nb_sources):
-                W_j = wiener_gain(v[t, ..., j], R[..., j], inv_Cxx)
-                y[t, ..., j] = apply_filter(x[t, ...], W_j)
-
+                y[t, ..., j] = apply_filter(
+                    x[t, ...],
+                    wiener_gain(
+                        maybe_clone(v[t, ..., j]),
+                        maybe_clone(R[..., j]),
+                        maybe_clone(inv_Cxx)
+                    )
+                )
     return y, v, R
 
 
-def wiener(v, x, iterations=1, use_softmask=True, eps=None):
+def wiener(v, x, iterations=1, use_softmask=True, build_accompaniment=False, eps=None):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -392,7 +407,10 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
 
         * if `True`, a softmasking strategy will be used as described in
           :func:`softmask`.
-
+    build_accompaniment: boolean
+        if `True`, an additional target is created, which is
+        equal to the mixture minus the estimated targets, before application of
+        expectation maximization
     eps: {None, float}
         Epsilon value to use for computing the separations. This is used
         whenever division with a model energy is performed, i.e. when
@@ -437,6 +455,15 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
                         device=x.device)
         y[..., 0, :] = v * torch.cos(angle)
         y[..., 1, :] = v * torch.sin(angle)
+
+    if build_accompaniment:
+        # if required, adding an additional target as the mix minus
+        # available targets
+        y = torch.cat(
+            [y, x[..., None] - y.sum(dim=-1, keepdim=True)],
+            dim=-1
+        )
+
     if not iterations:
         return y
 
@@ -446,7 +473,11 @@ def wiener(v, x, iterations=1, use_softmask=True, eps=None):
                         torch.sqrt(_norm(x)).max()/10.)
     x = x / max_abs
     y = y / max_abs
+
+    # call expectation maximization
     y = expectation_maximization(y, x, iterations, eps=eps)[0]
+
+    # scale estimates
     y = y * max_abs
     return y
 
@@ -535,7 +566,7 @@ def wiener_gain(v_j, R_j, inv_Cxx):
     temp = torch.zeros_like(G[..., 0, 0, :])
     for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
         G[..., i1, i2, :] = (G[..., i1, i2, :]
-                             + _mul(R_j[None, :, i1, i3, :],
+                             + _mul(R_j[None, :, i1, i3, :].clone(),
                                     inv_Cxx[..., i3, i2, :], temp))
     G = G * v_j[..., None, None, None]
     return G
@@ -688,10 +719,12 @@ class Separator(nn.Module):
 
     niter: int
          Number of EM steps for refining initial estimates in a
-         post-processing stage, defaults to 1.
+         post-processing stage. Zeroed if only one target is estimated. 
+         defaults to 1. 
 
     softmask: boolean
-        if activated, then the initial estimates for the sources will
+        if activated and strictly more than one models are available,
+        then the initial estimates for the sources will
         be obtained through a ratio mask of the mixture STFT, and not
         by using the default behavior of reconstructing waveforms
         by using the mixture phase, defaults to False
@@ -699,9 +732,12 @@ class Separator(nn.Module):
     alpha: float
         changes the exponent to use for building ratio masks, defaults to 1.0
 
-    residual_model: boolean
-        computes a residual target, for custom separation scenarios
-        when not all targets are available, defaults to False
+    build_accompaniment: boolean
+        adds an additional residual target, obtained by subtracting the estimated
+        sources from the mixture, before any potential EM post-processing.
+        If only one model is present, this additional target is called `accompaniment`.
+        Otherwise, it is called `residual`.
+        Defaults to False
 
     batch_size: {None | int}
         The size of the batches (number of frames) on which to apply filtering
@@ -710,55 +746,36 @@ class Separator(nn.Module):
         None means not batching but using the whole signal. It comes at the
         price of a much larger memory usage.
 
-    training: boolean
+    preload: boolean
         if True, all models will be loaded right from the constructor, so that
         they will be available for back propagation and training.
-        If false, the models will only be loaded when required, saving RAM
-        usage.
+        If false, the models will only be loaded on the fly when required, saving RAM
+        usage, but preventing backpropagation.
 
     device: {torch device | 'cpu'|'cuda'}
         The device on which to create the separator
-
-    smart_input_management: boolean
-        whether or not to try smart management of the shapes and type of the
-        audio input. This includes:
-        -  conversion to pytorch
-        -  if input is 1D, adding the samples and channels dimensions.
-        -  if input is 2D
-            o and the smallest dimension is 1 or 2, adding the samples one.
-            o and all dimensions are > 2, assuming the smallest is the samples
-              one, and adding the channel one
-        - at he end, if the number of channels is greater than the number
-          of time steps, swap those two.
-
-        if the samples dimension is added, then it is removed from the output.
     """
     def __init__(self, targets, model_name='umxhq',
-                 niter=1, softmask=False, alpha=1.0, residual_model=False,
-                 batch_size=None, training=False, device='cpu',
-                 smart_input_management='True'):
+                 niter=1, softmask=False, alpha=1.0, build_accompaniment=False,
+                 batch_size=None, preload=False, device='cpu'):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
             raise Exception('The Separator class only works when torchaudio '
                             'is available.')
-        if training and niter:
-            raise Exception('Separator: Training mode is incompatible with '
-                            'using the EM  algorithm (niter>0).')
 
         # saving parameters
         self.device = device
         self.targets = targets
         self.model_name = model_name
-        self.training = training
+        self.preload = preload
         self.niter = niter
         self.alpha = alpha
         self.softmask = softmask
-        self.residual_model = residual_model
+        self.build_accompaniment = build_accompaniment
         self.batch_size = batch_size
-        self.smart_input_management = smart_input_management
 
         # loading all models in the case of training
-        if self.training:
+        if self.preload:
             self.target_models = nn.ModuleList([
                 model.load_model(
                     target=target,
@@ -766,10 +783,12 @@ class Separator(nn.Module):
                     device=self.device
                 ) for target in self.targets
             ])
-            for target_model in self.target_models:
-                target_model.train()
         else:
             self.target_models = None
+
+    def freeze(self):
+        for target_model in self.target_models:
+            target_model.freeze()
 
     def forward(self, audio, rate):
         """
@@ -785,72 +804,40 @@ class Separator(nn.Module):
 
         Returns
         -------
-        estimates: `dict` [`str`, `torch.Tensor`]
+        estimates: `dict` [`str`, `torch.Tensor`
+                                  shape(nb_samples, nb_channels, nb_timesteps)]
             dictionary of all restimates as performed by the separation model.
             Note that there may be an additional source in case
-            a residual source is added. If the input audio is 2D, then the
-            first dimension (sample) is removed also from the input.
-
-            Note however, that the last two dimensions are
-            (channel, time steps) in all cases.
+            a residual source is added.
         model_rate: int
             the new sampling rate, desired by the open-unmix model
             """
-        if not utils._torchaudio_available():
-            raise Exception('Torchaudio must be available to use the'
-                            'Separator.')
-        import torchaudio
-        from torchaudio.functional import istft
+        if audio.requires_grad and not self.preload:
+            raise Exception(
+                "For computing gradients, the Separator must be used with pre-loading"
+            )
 
-        # shape management
-        remove_samples_dim = False
-        convert_to_numpy = False
-        if self.smart_input_management:
-            shape = torch.tensor(audio.shape)
-            if not isinstance(audio, torch.Tensor):
-                audio = torch.tensor(audio, device=self.device,
-                                     requires_grad=False)
-                convert_to_numpy = True
-            if len(shape) == 1:
-                audio = audio[None, None, ...]
-                remove_samples_dim = True
-            elif len(shape) == 2:
-                if shape.min() <= 2:
-                    audio = audio[None, ...]
-                    remove_samples_dim = True
-                else:
-                    audio = audio[:, None, ...]
-            if audio.shape[1] > audio.shape[2]:
-                audio = audio.transpose(1, 2)
-            if audio.shape[1] > 2:
-                warnings.warn(
-                    'Channel count > 2!. Only the first two channels '
-                    'will be processed!')
-                audio = audio[..., :2]
-        audio = audio.float()
-        if audio.shape[1] == 1:
-            # if we have mono, we duplicate it
-            # as the input of OpenUnmix is always stereo
-            audio = audio.expand(-1, 2, -1)
-
+        # initializing spectrograms variable
         V = None
 
         nb_sources = len(self.targets)
         nb_samples = audio.shape[0]
 
         for j, target in enumerate(self.targets):
-            # if the models have not been pre-loaded, load it now
-            if not self.training:
+            if not self.preload:
+                # if the models have not been pre-loaded, load it now
                 unmix_target = model.load_model(
                     target=target,
                     model_name=self.model_name,
                     device=self.device
                 )
+                # we don't record gradient in that case
                 unmix_target.freeze()
             else:
                 unmix_target = self.target_models[j]
-            model_rate = unmix_target.sample_rate.item()
 
+            # handle possibly different sample rates
+            model_rate = unmix_target.sample_rate.item()
             if rate != model_rate:
                 # we have to resample to model samplerate if needed
                 # this makes sure we resample input only once
@@ -858,13 +845,11 @@ class Separator(nn.Module):
                 resampler = torchaudio.transforms.Resample(
                     orig_freq=rate,
                     new_freq=model_rate).to(self.device)
-                # Until torchaudio has not merged the PR
-                # https://github.com/pytorch/audio/pull/277 , There is a need
-                # to do the resampling on cpu
-                audio = torch.cat(
-                    [resampler(audio[sample])[None, ...].cpu()
+                audio = resampler(audio)
+                """audio = torch.cat(
+                    [resampler(audio[sample])[None, ...]
                      for sample in range(nb_samples)],
-                    dim=0).to(self.device)
+                    dim=0)"""
                 rate = model_rate
 
             # apply current model to get the source spectrogram
@@ -893,12 +878,9 @@ class Separator(nn.Module):
         # into filtering methods
         X = X.permute(0, 3, 2, 1, 4)
 
-        # create an additional target if residual modeling is selected, or
-        # if only one target is provided
+        # create an additional target if we need to build the accompaniment
         targets = self.targets
-        if self.residual_model or nb_sources == 1:
-            V = residual_model(V, X, alpha=self.alpha if self.softmask else 1,
-                               autoscale=False)
+        if self.build_accompaniment:
             targets += (['residual'] if nb_sources > 1
                         else ['accompaniment'])
             nb_sources += 1
@@ -912,7 +894,8 @@ class Separator(nn.Module):
         for t in frames_loader:
             for sample in range(nb_samples):
                 Y[sample, t] = wiener(V[sample, t], X[sample, t],
-                                      self.niter, use_softmask=self.softmask
+                                      self.niter, use_softmask=self.softmask,
+                                      build_accompaniment=self.build_accompaniment
                                       ).to(torch.float32)
 
         estimates = {}
@@ -933,9 +916,5 @@ class Separator(nn.Module):
                     pad_mode='reflect', length=audio.shape[-1]
                 ).transpose(0, 1)[None, ...]
                 for sample in range(nb_samples)], dim=0)
-            if remove_samples_dim:
-                estimates[name] = estimates[name][0]
-            if convert_to_numpy:
-                estimates[name] = estimates[name].detach().cpu().numpy()
 
         return estimates, model_rate

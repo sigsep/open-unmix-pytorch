@@ -1,4 +1,4 @@
-name: open-unmix-pytorch-osx
+name: umx-osx
 
 channels:
   - conda-forge
@@ -8,15 +8,14 @@ dependencies:
   - python=3.7.3
   - numpy=1.16
   - scipy=1.3
-  - pytorch=1.2.0
+  - pytorch=1.3.1
   - tqdm=4.32
   - scikit-learn=0.21
   - ffmpeg
   - resampy
-  - torchaudio=0.3.0
   - pip
   - pip:
     - musdb==0.3.1
-    - norbert==0.2.0
+    - norbert>=0.2.0
     - museval==0.3.0
     - gitpython
