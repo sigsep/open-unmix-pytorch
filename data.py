@@ -13,7 +13,10 @@ def load_info(path):
     info = {}
     si, _ = torchaudio.info(str(path))
     info['samplerate'] = si.rate
-    info['samples'] = si.length // si.channels
+    if torchaudio.get_audio_backend() == "sox":
+        info['samples'] = si.length // si.channels
+    else:
+        info['samples'] = si.length
     info['duration'] = info['samples'] / si.rate
     return info
 
@@ -398,6 +401,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             # select a random track for each source
             source_path = random.choice(self.source_tracks[source])
             if self.random_chunks:
+                # for each source, select a random chunk
                 duration = load_info(source_path)['duration']
                 start = random.uniform(0, duration - self.seq_duration)
             else:
@@ -491,6 +495,8 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.interferer_files = interferer_files
         self.source_files = self.interferer_files + [self.target_file]
         self.tracks = list(self.get_tracks())
+        if not len(self.tracks):
+            raise RuntimeError("No tracks found")
 
     def __getitem__(self, index):
         # first, get target track
@@ -543,7 +549,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
             if track_path.is_dir():
                 source_paths = [track_path / s for s in self.source_files]
                 if not all(sp.exists() for sp in source_paths):
-                    print("exclude track ", track_path)
+                    print("Exclude track ", track_path)
                     continue
 
                 if self.seq_duration is not None:
@@ -556,7 +562,10 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
                             'min_duration': min_duration
                         })
                 else:
-                    yield({'path': track_path, 'min_duration': None})
+                    yield({
+                        'path': track_path,
+                        'min_duration': None
+                    })
 
 
 class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
