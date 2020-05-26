@@ -7,6 +7,7 @@ import model
 import utils
 import torchaudio
 from torchaudio.functional import istft
+import json
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
@@ -338,7 +339,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     return y, v, R
 
 
-def wiener(v, x, iterations=1, use_softmask=True, build_residual=False, eps=None):
+def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -397,10 +398,11 @@ def wiener(v, x, iterations=1, use_softmask=True, build_residual=False, eps=None
         * if `True`, a softmasking strategy will be used as described in
           :func:`softmask`.
 
-    build_residual: boolean
-        if `True`, an additional target is created, which is
-        equal to the mixture minus the estimated targets, before application of
+    residual: str or None
+        if not None, an additional target is created, which is
+        equal to the mixture minus the other targets, before application of
         expectation maximization
+
     eps: {None, float}
         Epsilon value to use for computing the separations. This is used
         whenever division with a model energy is performed, i.e. when
@@ -446,7 +448,7 @@ def wiener(v, x, iterations=1, use_softmask=True, build_residual=False, eps=None
         y[..., 0, :] = v * torch.cos(angle)
         y[..., 1, :] = v * torch.sin(angle)
 
-    if build_residual:
+    if residual is not None:
         # if required, adding an additional target as the mix minus
         # available targets
         y = torch.cat(
@@ -577,12 +579,11 @@ class Separator(nn.Module):
     alpha: float
         changes the exponent to use for building ratio masks, defaults to 1.0
 
-    build_residual: boolean
-        adds an additional residual target, obtained by subtracting the estimated
-        sources from the mixture, before any potential EM post-processing.
-        If only one model is present, this additional target is called `accompaniment`.
-        Otherwise, it is called `residual`.
-        Defaults to False
+    residual: str or None
+        adds an additional residual target with provided name, obtained by
+        subtracting the other estimated targets from the mixture, before any
+        potential EM post-processing.
+        Defaults to None
 
     batch_size: {None | int}
         The size of the batches (number of frames) on which to apply filtering
@@ -601,7 +602,8 @@ class Separator(nn.Module):
         The device on which to create the separator
     """
     def __init__(self, targets, model_name='umxhq',
-                 niter=1, softmask=False, alpha=1.0, build_residual=False,
+                 niter=1, softmask=False, alpha=1.0,
+                 residual=None, out=None,
                  batch_size=None, preload=False, device='cpu'):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
@@ -616,7 +618,8 @@ class Separator(nn.Module):
         self.niter = niter
         self.alpha = alpha
         self.softmask = softmask
-        self.build_residual = build_residual
+        self.residual = residual
+        self.out = None if out is None else json.loads(out)
         self.batch_size = batch_size
 
         # loading all models in the case of training
@@ -723,12 +726,16 @@ class Separator(nn.Module):
         # into filtering methods
         X = X.permute(0, 3, 2, 1, 4)
 
-        # create an additional target if we need to build the accompaniment
+        # create an additional target if we need to build a residual
         targets = list(self.targets)
-        if self.build_residual:
-            targets += (['residual'] if nb_sources > 1
-                        else ['accompaniment'])
+        if self.residual is not None:
+            targets += [self.residual]
             nb_sources += 1
+
+        if len(targets) == 1 and self.niter > 0:
+            raise Exception('Cannot use EM if only one target is estimated.'
+                            'Provide two targets or create an additional '
+                            'one with `--residual`')
 
         nb_frames = V.shape[1]
         Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float32,
@@ -740,7 +747,7 @@ class Separator(nn.Module):
             for t in frames_loader:            
                 Y[sample, t] = wiener(V[sample, t], X[sample, t],
                                       self.niter, use_softmask=self.softmask,
-                                      build_residual=self.build_residual
+                                      residual=self.residual
                                       ).to(torch.float32)
         estimates = {}
 
@@ -761,4 +768,11 @@ class Separator(nn.Module):
                 ).transpose(0, 1)[None, ...]
                 for sample in range(nb_samples)], dim=0)
 
+        if self.out is not None:
+            new_estimates = {}
+            for key in self.out:
+                new_estimates[key] = 0
+                for target in self.out[key]:
+                    new_estimates[key] = new_estimates[key] + estimates[target]
+            estimates = new_estimates
         return estimates, model_rate

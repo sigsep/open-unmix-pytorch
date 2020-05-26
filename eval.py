@@ -29,7 +29,8 @@ def separate_and_evaluate(
                           niter=niter,
                           softmask=softmask,
                           alpha=alpha,
-                          build_residual=len(targets)==1,
+                          residual=args.residual,
+                          out=args.out,
                           device=device,
                           batch_size=400, preload=False)
     audio = utils.as_stereo_batch(track.audio)

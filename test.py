@@ -38,8 +38,21 @@ def inference_args(parser, remaining_args):
 
     inf_parser.add_argument(
         '--residual',
-        action='store_true',
-        help='build a source for the mix minus estimated targets'
+        type=str,
+        default=None,
+        help='if provided, build a source with given name for the mix '\
+             'minus all estimated targets'
+    )
+
+    inf_parser.add_argument(
+        '--out',
+        type=str,
+        default=None,
+        help='if provided, must be a string containing a valid expression for '
+             'a dictionary, with keys the output target names, and values '
+             'a list of targets that are used to build it. For instance: '
+             '\'{\"vocals\":[\"vocals\"], \'accompaniment\':[\"drums\",'
+             '\"bass\",\"other\"]}\''
     )
     return inf_parser.parse_args()
 
@@ -106,7 +119,8 @@ if __name__ == '__main__':
                           niter=args.niter,
                           softmask=args.softmask,
                           alpha=args.alpha,
-                          build_residual=args.residual,
+                          residual=args.residual,
+                          out=args.out,
                           device=device,
                           batch_size=100, preload=True)
     separator.freeze()
