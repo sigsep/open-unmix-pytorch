@@ -5,8 +5,6 @@ import itertools
 import warnings
 import model
 import utils
-import torchaudio
-from torchaudio.functional import istft
 import json
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
@@ -281,17 +279,22 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         if verbose:
             print('EM, iteration', (it+1))
 
-        # update the spectrograms
+        # update the PSD as the average spectrogram over channels
         v = torch.mean(
             torch.abs(y[..., 0, :])**2 + torch.abs(y[..., 1, :])**2,
             dim=-2
         )
 
+        # update spatial covariance matrices (weighted update)
+        batch_size=200
         for j in range(nb_sources):
             R[j][...] = 0
             weight[...] = eps
-            for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                                batch_size=200):
+            pos=0
+            while pos < nb_frames:
+                t = torch.arange(pos, min(nb_frames, pos+batch_size))
+                pos = t[-1] + 1
+
                 R[j] = R[j] + torch.sum(
                     _covariance(y[t, ..., j]),
                     dim=0
@@ -304,9 +307,14 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         if y.requires_grad:
             y = y.clone()
 
-        for t in torch.utils.data.DataLoader(torch.arange(nb_frames),
-                                             batch_size=200):
+        pos=0
+        while pos < nb_frames:
+            t = torch.arange(pos, min(nb_frames, pos+batch_size))
+            pos = t[-1] + 1
+
             y[t,...] = 0
+
+            # compute mix covariance matrix
             Cxx = regularization
             for j in range(nb_sources):
                 Cxx = Cxx + (
@@ -314,11 +322,15 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
                     * R[j][None, ...].clone()
                 )
 
+            # invert it
             inv_Cxx = _invert(Cxx)
             
             # separate the sources
             for j in range(nb_sources):
+
+                # create a wiener gain for this source
                 gain = torch.zeros_like(inv_Cxx)
+
                 # computes multichannel Wiener gain as v_j R_j inv_Cxx
                 for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
                     gain[..., i1, i2, :] = _mul_add(
@@ -339,7 +351,8 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     return y, v, R
 
 
-def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
+def wiener(targets_spectrograms, mix_stft,
+           iterations=1, use_softmask=True, residual=None, eps=None):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -379,13 +392,14 @@ def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
     Parameters
     ----------
 
-    v: torch.Tensor [shape=(nb_frames, nb_bins, {1,nb_channels}, nb_sources)]
+    targets_spectrograms: torch.Tensor
+                          [shape=(nb_frames, nb_bins, {1,nb_channels}, nb_sources)]
         spectrograms of the sources. This is a nonnegative tensor that is
         usually the output of the actual separation method of the user. The
         spectrograms may be mono, but they need to be 4-dimensional in all
         cases.
 
-    x: torch.Tensor [complex, shape=(nb_frames, nb_bins, nb_channels, 2)]
+    mix_stft: torch.Tensor [complex, shape=(nb_frames, nb_bins, nb_channels, 2)]
         STFT of the mixture signal.
 
     iterations: int [scalar]
@@ -423,9 +437,7 @@ def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
 
     * Be careful that you need *magnitude spectrogram estimates* for the
       case `softmask==False`.
-    * We recommand to use `softmask=False` only if your spectrogram model is
-      pretty good, e.g. when the output of a deep neural net. In the case
-      it is not so great, opt for an initial softmasking strategy.
+    * `softmask=False` is recommended
     * The epsilon value will have a huge impact on performance. If it's large,
       only the parts of the signal with a significant energy will be kept in
       the sources. This epsilon then directly controls the energy of the
@@ -439,20 +451,22 @@ def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
 
     """
     if use_softmask:
-        y = softmask(v, x, eps=eps)
+        y = softmask(targets_spectrograms, mix_stft, eps=eps)
     else:
-        angle = torch.atan2(x[..., 1], x[..., 0])[..., None]
-        nb_sources = v.shape[-1]
-        y = torch.zeros(x.shape + (nb_sources,), dtype=x.dtype,
-                        device=x.device)
-        y[..., 0, :] = v * torch.cos(angle)
-        y[..., 1, :] = v * torch.sin(angle)
+        # first estimates are obtained by just multiplying with mix phase
+        # we tacitly assume that we have magnitude estimates.
+        angle = torch.atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
+        nb_sources = targets_spectrograms.shape[-1]
+        y = torch.zeros(mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype,
+                        device=mix_stft.device)
+        y[..., 0, :] = targets_spectrograms * torch.cos(angle)
+        y[..., 1, :] = targets_spectrograms * torch.sin(angle)
 
     if residual is not None:
         # if required, adding an additional target as the mix minus
         # available targets
         y = torch.cat(
-            [y, x[..., None] - y.sum(dim=-1, keepdim=True)],
+            [y, mix_stft[..., None] - y.sum(dim=-1, keepdim=True)],
             dim=-1
         )
 
@@ -461,13 +475,13 @@ def wiener(v, x, iterations=1, use_softmask=True, residual=None, eps=None):
 
     # we need to refine the estimates. Scales down the estimates for
     # numerical stability
-    max_abs = torch.max(torch.tensor(1., dtype=x.dtype, device=x.device),
-                        torch.sqrt(_norm(x)).max()/10.)
-    x = x / max_abs
+    max_abs = torch.max(torch.tensor(1., dtype=mix_stft.dtype, device=mix_stft.device),
+                        torch.sqrt(_norm(mix_stft)).max()/10.)
+    mix_stft = mix_stft / max_abs
     y = y / max_abs
 
     # call expectation maximization
-    y = expectation_maximization(y, x, iterations, eps=eps)[0]
+    y = expectation_maximization(y, mix_stft, iterations, eps=eps)[0]
 
     # scale estimates up again
     y = y * max_abs
@@ -544,235 +558,3 @@ def _covariance(y_j):
             Cj[..., i1, i2, :]
         )
     return Cj
-
-
-# now we are ready to define the actual Separator Module
-
-
-class Separator(nn.Module):
-    """
-    Separator class to encapsulate all the stereo filtering
-    as a torch Module, to enable end-to-end learning.
-
-    Parameters
-    ----------
-    targets: list of str
-        a list of the separation targets.
-        Note that for each target a separate model is expected
-        to be loaded.
-
-    model_name: str
-        name of torchhub model or path to model folder, defaults to `umxhq`
-
-    niter: int
-         Number of EM steps for refining initial estimates in a
-         post-processing stage. Zeroed if only one target is estimated. 
-         defaults to 1. 
-
-    softmask: boolean
-        if activated and strictly more than one models are available,
-        then the initial estimates for the sources will
-        be obtained through a ratio mask of the mixture STFT, and not
-        by using the default behavior of reconstructing waveforms
-        by using the mixture phase, defaults to False
-
-    alpha: float
-        changes the exponent to use for building ratio masks, defaults to 1.0
-
-    residual: str or None
-        adds an additional residual target with provided name, obtained by
-        subtracting the other estimated targets from the mixture, before any
-        potential EM post-processing.
-        Defaults to None
-
-    batch_size: {None | int}
-        The size of the batches (number of frames) on which to apply filtering
-        independently. This means assuming time varying stereo models and
-        localization of sources.
-        None means not batching but using the whole signal. It comes at the
-        price of a much larger memory usage.
-
-    preload: boolean
-        if True, all models will be loaded right from the constructor, so that
-        they will be available for back propagation and training.
-        If false, the models will only be loaded on the fly when required, saving RAM
-        usage, but preventing backpropagation.
-
-    device: {torch device | 'cpu'|'cuda'}
-        The device on which to create the separator
-    """
-    def __init__(self, targets, model_name='umxhq',
-                 niter=1, softmask=False, alpha=1.0,
-                 residual=None, out=None,
-                 batch_size=None, preload=False, device='cpu'):
-        super(Separator, self).__init__()
-        if not utils._torchaudio_available():
-            raise Exception('The Separator class only works when torchaudio '
-                            'is available.')
-
-        # saving parameters
-        self.device = device
-        self.targets = targets
-        self.model_name = model_name
-        self.preload = preload
-        self.niter = niter
-        self.alpha = alpha
-        self.softmask = softmask
-        self.residual = residual
-        self.out = None if out is None else json.loads(out)
-        self.batch_size = batch_size
-
-        # loading all models in the case of training
-        if self.preload:
-            self.target_models = nn.ModuleList([
-                model.load_model(
-                    target=target,
-                    model_name=self.model_name,
-                    device=self.device
-                ) for target in self.targets
-            ])
-        else:
-            self.target_models = None
-
-    def freeze(self):
-        for target_model in self.target_models:
-            target_model.freeze()
-
-    def forward(self, audio, rate):
-        """
-        Performing the separation on audio input
-
-        Parameters
-        ----------
-        audio: torch.Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
-        mixture audio
-
-        rate: int
-        sampling rate of the audio.
-
-        Returns
-        -------
-        estimates: `dict` [`str`, `torch.Tensor`
-                                  shape(nb_samples, nb_channels, nb_timesteps)]
-            dictionary of all restimates as performed by the separation model.
-            Note that there may be an additional source in case
-            a residual source is added.
-        model_rate: int
-            the new sampling rate, desired by the open-unmix model
-            """
-        if audio.requires_grad and not self.preload:
-            raise Exception(
-                "For computing gradients, the Separator must be used with pre-loading"
-            )
-
-        # initializing spectrograms variable
-        V = None
-
-        nb_sources = len(self.targets)
-        nb_samples = audio.shape[0]
-
-        for j, target in enumerate(self.targets):
-            if not self.preload:
-                # if the models have not been pre-loaded, load it now
-                unmix_target = model.load_model(
-                    target=target,
-                    model_name=self.model_name,
-                    device=self.device
-                )
-                # we don't record gradient in that case
-                unmix_target.freeze()
-            else:
-                unmix_target = self.target_models[j]
-
-            # handle possibly different sample rates
-            model_rate = unmix_target.sample_rate.item()
-            if rate != model_rate:
-                # we have to resample to model samplerate if needed
-                # this makes sure we resample input only once
-                model_rate = unmix_target.sample_rate.item()
-                resampler = torchaudio.transforms.Resample(
-                    orig_freq=rate,
-                    new_freq=model_rate).to(self.device)
-                audio = resampler(audio)
-                """audio = torch.cat(
-                    [resampler(audio[sample])[None, ...]
-                     for sample in range(nb_samples)],
-                    dim=0)"""
-                rate = model_rate
-
-            # apply current model to get the source spectrogram
-            Vj = unmix_target(audio)
-
-            if self.softmask:
-                # only exponentiate the model if we use softmask
-                Vj = Vj**self.alpha
-
-            # output is nb_frames, nb_samples, nb_channels, nb_bins
-            if V is None:
-                V = torch.zeros(Vj.shape + (nb_sources,), dtype=torch.float64,
-                                device=Vj.device)
-            V[..., j] = Vj
-
-        # transposing it as
-        # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
-        V = V.permute(1, 0, 3, 2, 4).to(torch.float64)
-
-        # getting the STFT of mix:
-        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        X = unmix_target.stft(audio).to(torch.float64)
-
-        # rearranging it into:
-        # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
-        # into filtering methods
-        X = X.permute(0, 3, 2, 1, 4)
-
-        # create an additional target if we need to build a residual
-        targets = list(self.targets)
-        if self.residual is not None:
-            targets += [self.residual]
-            nb_sources += 1
-
-        if len(targets) == 1 and self.niter > 0:
-            raise Exception('Cannot use EM if only one target is estimated.'
-                            'Provide two targets or create an additional '
-                            'one with `--residual`')
-
-        nb_frames = V.shape[1]
-        Y = torch.zeros(X.shape + (nb_sources, ), dtype=torch.float32,
-                        device=X.device)
-        frames_loader = ([torch.arange(nb_frames), ] if self.batch_size is None
-                         else DataLoader(torch.arange(nb_frames),
-                                         batch_size=self.batch_size))
-        for sample in range(nb_samples):
-            for t in frames_loader:            
-                Y[sample, t] = wiener(V[sample, t], X[sample, t],
-                                      self.niter, use_softmask=self.softmask,
-                                      residual=self.residual
-                                      ).to(torch.float32)
-        estimates = {}
-
-        # getting to (nb_samples, channel, fft_size, n_frames, 2, nb_sources)
-        Y = Y.permute(0, 3, 2, 1, 4, 5)
-
-        # Now performing the inverse STFTs
-        for j, name in enumerate(targets):
-            estimates[name] = torch.cat([
-                istft(
-                    Y[sample, ..., j],
-                    n_fft=unmix_target.stft.n_fft,
-                    hop_length=unmix_target.stft.n_hop,
-                    window=unmix_target.stft.window,
-                    center=unmix_target.stft.center,
-                    normalized=False, onesided=True,
-                    pad_mode='reflect', length=audio.shape[-1]
-                ).transpose(0, 1)[None, ...]
-                for sample in range(nb_samples)], dim=0)
-
-        if self.out is not None:
-            new_estimates = {}
-            for key in self.out:
-                new_estimates[key] = 0
-                for target in self.out[key]:
-                    new_estimates[key] = new_estimates[key] + estimates[target]
-            estimates = new_estimates
-        return estimates, model_rate

@@ -7,7 +7,9 @@ import json
 import model
 from pathlib import Path
 from contextlib import redirect_stderr
+from filtering import wiener
 import io
+from torchaudio.functional import istft
 
 
 class NoOp(nn.Module):
@@ -90,11 +92,15 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-def load_model(target, model_name='umxhq', device='cpu'):
+def load_model(targets, model_name='umxhq', device='cpu'):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
     """
+    if isinstance(targets, str):
+        targets = [targets]
+
+
     model_path = Path(model_name).expanduser()
     if not model_path.exists():
         # model path does not exist, use hubconf model
@@ -102,47 +108,51 @@ def load_model(target, model_name='umxhq', device='cpu'):
             # disable progress bar
             err = io.StringIO()
             with redirect_stderr(err):
-                return torch.hub.load(
-                    'sigsep/open-unmix-pytorch',
-                    model_name,
-                    target=target,
-                    device=device,
-                    pretrained=True
-                )
+                return {
+                    target:torch.hub.load(
+                        'sigsep/open-unmix-pytorch',
+                        model_name,
+                        target=target,
+                        device=device,
+                        pretrained=True
+                    )
+                    for target in targets}
             print(err.getvalue())
         except AttributeError:
             raise NameError('Model does not exist on torchhub')
             # assume model is a path to a local model_name direcotry
     else:
-        # load model from disk
-        with open(Path(model_path, target + '.json'), 'r') as stream:
-            results = json.load(stream)
+        models = {}
+        for target in targets:
+            # load model from disk
+            with open(Path(model_path, target + '.json'), 'r') as stream:
+                results = json.load(stream)
 
-        target_model_path = next(Path(model_path).glob("%s*.pth" % target))
-        state = torch.load(
-            target_model_path,
-            map_location=device
-        )
+            target_model_path = next(Path(model_path).glob("%s*.pth" % target))
+            state = torch.load(
+                target_model_path,
+                map_location=device
+            )
 
-        max_bin = utils.bandwidth_to_max_bin(
-            state['sample_rate'],
-            results['args']['nfft'],
-            results['args']['bandwidth']
-        )
+            max_bin = utils.bandwidth_to_max_bin(
+                state['sample_rate'],
+                results['args']['nfft'],
+                results['args']['bandwidth']
+            )
 
-        unmix = model.OpenUnmix(
-            n_fft=results['args']['nfft'],
-            n_hop=results['args']['nhop'],
-            nb_channels=results['args']['nb_channels'],
-            hidden_size=results['args']['hidden_size'],
-            max_bin=max_bin
-        )
+            models[target] = model.OpenUnmix(
+                n_fft=results['args']['nfft'],
+                n_hop=results['args']['nhop'],
+                nb_channels=results['args']['nb_channels'],
+                hidden_size=results['args']['hidden_size'],
+                max_bin=max_bin
+            )
 
-        unmix.load_state_dict(state)
-        unmix.stft.center = True
-        unmix.eval()
-        unmix.to(device)
-        return unmix
+            models[target].load_state_dict(state)
+            models[target].stft.center = True
+            models[target].eval()
+            models[target].to(device)
+        return models
 
 
 class OpenUnmix(nn.Module):
@@ -305,3 +315,175 @@ class OpenUnmix(nn.Module):
         x = F.relu(x) * mix
 
         return x
+
+
+class Separator(nn.Module):
+    """
+    Separator class to encapsulate all the stereo filtering
+    as a torch Module, to enable end-to-end learning.
+
+    Parameters
+    ----------
+    targets: dictionary of target models {target: model}
+        the spectrogram models to be used by the Separator. Each model
+        may for instance be loaded with the `model.load_models` function
+
+    niter: int
+         Number of EM steps for refining initial estimates in a
+         post-processing stage. Zeroed if only one target is estimated. 
+         defaults to 1. 
+
+    residual: str or None
+        adds an additional residual target with provided name, obtained by
+        subtracting the other estimated targets from the mixture, before any
+        potential EM post-processing.
+        Defaults to None
+
+    batch_size: {None | int}
+        The size of the batches (number of frames) on which to apply filtering
+        independently. This means assuming time varying stereo models and
+        localization of sources.
+        None means not batching but using the whole signal. It comes at the
+        price of a much larger memory usage.
+    """
+    def __init__(self, targets,
+                 niter=1, softmask=False, 
+                 residual=None, out=None,
+                 batch_size=None):
+        super(Separator, self).__init__()
+        if not utils._torchaudio_available():
+            raise Exception('The Separator class only works when torchaudio '
+                            'is available.')
+
+        # saving parameters
+        self.niter = niter
+        self.residual = residual
+        self.out = None if out is None else json.loads(out)
+        self.batch_size = batch_size
+
+        # registering the targets models
+        self.targets = nn.ModuleDict(targets)
+        self.sample_rate = next(iter(self.targets.values())).sample_rate
+
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+
+    def forward(self, audio):
+        """
+        Performing the separation on audio input
+
+        Parameters
+        ----------
+        audio: torch.Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
+        mixture audio
+
+        rate: int
+        sampling rate of the audio.
+
+        Returns
+        -------
+        estimates: `dict` [`str`: `torch.Tensor`
+                                  shape(nb_samples, nb_channels, nb_timesteps)]
+            dictionary of all restimates as performed by the separation model.
+        model_rate: int
+            the new sampling rate, desired by the open-unmix model
+            """
+        if audio.requires_grad and not self.preload:
+            raise Exception(
+                "For computing gradients, the Separator must be used with pre-loading"
+            )
+
+        # initializing spectrograms variable
+        spectrograms = None
+
+        nb_sources = len(self.targets)
+        nb_samples = audio.shape[0]
+
+        for j, target in enumerate(self.targets):
+            unmix_target = self.targets[target]
+
+            # apply current model to get the source spectrogram
+            target_spectrogram = unmix_target(audio)
+
+            # output is nb_frames, nb_samples, nb_channels, nb_bins
+            if spectrograms is None:
+                spectrograms = torch.zeros(
+                    target_spectrogram.shape + (nb_sources,),
+                    dtype=torch.float64,
+                    device=target_spectrogram.device
+                )
+            spectrograms[..., j] = target_spectrogram
+
+        # transposing it as
+        # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
+        spectrograms = spectrograms.permute(1, 0, 3, 2, 4).to(torch.float64)
+
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        mix_stft = unmix_target.stft(audio).to(torch.float64)
+
+        # rearranging it into:
+        # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
+        # into filtering methods
+        mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
+
+        # create an additional target if we need to build a residual
+        targets = list(self.targets.keys())
+        if self.residual is not None:
+            targets += [self.residual]
+            nb_sources += 1
+
+        if len(targets) == 1 and self.niter > 0:
+            raise Exception('Cannot use EM if only one target is estimated.'
+                            'Provide two targets or create an additional '
+                            'one with `--residual`')
+
+        nb_frames = spectrograms.shape[1]
+        targets_stft = torch.zeros(
+            mix_stft.shape + (nb_sources, ),
+            dtype=torch.float32,
+            device=mix_stft.device
+        )
+        for sample in range(nb_samples):
+            pos=0
+            while pos < nb_frames:
+                t = torch.arange(
+                    pos, min(nb_frames, pos+self.batch_size)
+                )
+                pos = t[-1] + 1
+
+                targets_stft[sample, t] = wiener(
+                    spectrograms[sample, t], mix_stft[sample, t],
+                    self.niter, use_softmask=False,
+                    residual=self.residual
+                ).to(torch.float32)
+        estimates = {}
+
+        # getting to (nb_samples, channel, fft_size, n_frames, 2, nb_sources)
+        targets_stft = targets_stft.permute(0, 3, 2, 1, 4, 5)
+
+        # Now performing the inverse STFTs
+        for j, name in enumerate(targets):
+            estimates[name] = torch.cat([
+                istft(
+                    targets_stft[sample, ..., j],
+                    n_fft=unmix_target.stft.n_fft,
+                    hop_length=unmix_target.stft.n_hop,
+                    window=unmix_target.stft.window,
+                    center=unmix_target.stft.center,
+                    normalized=False, onesided=True,
+                    pad_mode='reflect', length=audio.shape[-1]
+                ).transpose(0, 1)[None, ...]
+                for sample in range(nb_samples)], dim=0)
+
+        if self.out is not None:
+            new_estimates = {}
+            for key in self.out:
+                new_estimates[key] = 0
+                for target in self.out[key]:
+                    new_estimates[key] = new_estimates[key] + estimates[target]
+            estimates = new_estimates
+        return estimates
