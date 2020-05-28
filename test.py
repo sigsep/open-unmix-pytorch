@@ -2,7 +2,8 @@ import torch
 import argparse
 import soundfile as sf
 from pathlib import Path
-from filtering import Separator
+import model
+from model import Separator
 import utils
 
 
@@ -15,25 +16,10 @@ def inference_args(parser, remaining_args):
     )
 
     inf_parser.add_argument(
-        '--softmask',
-        dest='softmask',
-        action='store_true',
-        help=('if enabled, will initialize separation with softmask.'
-              'otherwise, will use mixture phase with spectrogram')
-    )
-
-    inf_parser.add_argument(
         '--niter',
         type=int,
         default=1,
         help='number of iterations for refining results.'
-    )
-
-    inf_parser.add_argument(
-        '--alpha',
-        type=int,
-        default=1,
-        help='exponent in case of softmask separation'
     )
 
     inf_parser.add_argument(
@@ -114,15 +100,15 @@ if __name__ == '__main__':
         torch.autograd.set_detect_anomaly(True)
 
     # create the Separator object
-    separator = Separator(targets=args.targets,
-                          model_name=args.model,
+    targets = model.load_model(
+        targets=args.targets,
+        model_name=args.model
+    ) 
+    separator = Separator(targets=targets,
                           niter=args.niter,
-                          softmask=args.softmask,
-                          alpha=args.alpha,
                           residual=args.residual,
                           out=args.out,
-                          device=device,
-                          batch_size=100, preload=True)
+                          batch_size=10).to(device)
     separator.freeze()
 
     # loop over the files
@@ -132,12 +118,12 @@ if __name__ == '__main__':
 
         # convert numpy audio to torch
         audio_torch = torch.tensor(audio).to(device)
-        audio_torch = utils.as_stereo_batch(audio)
+        audio_torch = utils.preprocess(audio, rate, separator.sample_rate)
 
         audio_torch.requires_grad = gradient
 
         # getting the separated signals
-        estimates, model_rate = separator(audio_torch, rate)
+        estimates = separator(audio_torch)
 
         if gradient:
             loss = torch.abs(estimates['vocals']).sum()
@@ -162,5 +148,5 @@ if __name__ == '__main__':
             sf.write(
                 outdir / Path(target).with_suffix('.wav'),
                 estimate,
-                model_rate
+                separator.sample_rate
             )

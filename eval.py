@@ -4,7 +4,7 @@ import museval
 import test
 import multiprocessing
 import functools
-from filtering import Separator
+from model import load_model, Separator
 from pathlib import Path
 import torch
 import tqdm
@@ -16,25 +16,25 @@ def separate_and_evaluate(
     targets,
     model_name,
     niter,
-    alpha,
-    softmask,
     output_dir,
     eval_dir,
     device='cpu'
 ):
-
     # create the Separator object
+    targets = load_model(
+        targets=targets,
+        model_name=model_name
+    ) 
     separator = Separator(targets=targets,
-                          model_name=model_name,
                           niter=niter,
-                          softmask=softmask,
-                          alpha=alpha,
                           residual=args.residual,
                           out=args.out,
-                          device=device,
-                          batch_size=400, preload=False)
-    audio = utils.as_stereo_batch(track.audio)
-    estimates, rate = separator(audio=audio, rate=track.rate)
+                          batch_size=400).to(device)
+    separator.freeze()
+
+    audio = utils.preprocess(track.audio, track.rate, separator.sample_rate)
+
+    estimates = separator(audio)
     for key in estimates:
         estimates[key] = estimates[key][0].numpy()
     if output_dir:
@@ -136,8 +136,6 @@ if __name__ == '__main__':
                     targets=args.targets,
                     model_name=args.model,
                     niter=args.niter,
-                    alpha=args.alpha,
-                    softmask=args.softmask,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
                     device=device
@@ -159,8 +157,6 @@ if __name__ == '__main__':
                 targets=args.targets,
                 model_name=args.model,
                 niter=args.niter,
-                alpha=args.alpha,
-                softmask=args.softmask,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
                 device=device
