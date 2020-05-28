@@ -2,6 +2,7 @@ import shutil
 import torch
 import os
 import numpy as np
+import torchaudio
 
 
 def _sndfile_available():
@@ -191,11 +192,12 @@ class EarlyStopping(object):
         if mode == 'max':
             self.is_better = lambda a, best: a > best + min_delta
 
-def as_stereo_batch(audio):
+
+def preprocess(audio, rate=None, model_rate=None):
     """
     From an input tensor/ndarray, convert it to a tensor of shape
     shape=(nb_samples, nb_channels, nb_timesteps). This includes:
-    -  conversion to pytorch
+    -  conversion to pytorch Tensor
     -  if input is 1D, adding the samples and channels dimensions.
     -  if input is 2D
         o and the smallest dimension is 1 or 2, adding the samples one.
@@ -203,11 +205,15 @@ def as_stereo_batch(audio):
           one, and adding the channel one
     - at the end, if the number of channels is greater than the number
       of time steps, swap those two.
+    - resampling to target rate if necessary
 
     Parameters
     ----------
     audio: pytorch.Tensor or numpy.ndarray
-
+    rate: int
+        sample rate for the audio
+    model_rate: int
+        sample rate for the model
     Returns
     -------
     audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)] 
@@ -238,4 +244,12 @@ def as_stereo_batch(audio):
     if audio.shape[1] == 1:
         # if we have mono, we duplicate it to get stereo
         audio = audio.expand(-1, 2, -1)
+
+    if rate != model_rate:
+        # we have to resample to model samplerate if needed
+        # this makes sure we resample input only once
+        resampler = torchaudio.transforms.Resample(
+            orig_freq=rate,
+            new_freq=model_rate).to(audio.device)
+        audio = resampler(audio)
     return audio
