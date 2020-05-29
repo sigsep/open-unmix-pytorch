@@ -339,6 +339,12 @@ class Separator(nn.Module):
         potential EM post-processing.
         Defaults to None
 
+    out: str or None
+        if provided, must be a string containing a valid expression for
+        a dictionary, with keys the output target names, and values
+        a list of targets that are used to build it. For instance:
+        '{"vocals":["vocals"], "accompaniment":["drums","bass","other"]}'
+
     batch_size: {None | int}
         The size of the batches (number of frames) on which to apply filtering
         independently. This means assuming time varying stereo models and
@@ -383,16 +389,12 @@ class Separator(nn.Module):
         audio: torch.Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
         mixture audio
 
-        rate: int
-        sampling rate of the audio.
-
         Returns
         -------
         estimates: `dict` [`str`: `torch.Tensor`
                                   shape(nb_samples, nb_channels, nb_timesteps)]
             dictionary of all restimates as performed by the separation model.
-        model_rate: int
-            the new sampling rate, desired by the open-unmix model
+
             """
 
         # initializing spectrograms variable
