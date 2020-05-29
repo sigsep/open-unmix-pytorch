@@ -1,7 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
-import itertools
 import warnings
 import model
 import utils
@@ -332,7 +331,8 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
                 gain = torch.zeros_like(inv_Cxx)
 
                 # computes multichannel Wiener gain as v_j R_j inv_Cxx
-                for (i1, i2, i3) in itertools.product(*(range(nb_channels),)*3):
+                for (i1, i2, i3) in torch.cartesian_prod(
+                                        *(torch.arange(nb_channels),)*3):
                     gain[..., i1, i2, :] = _mul_add(
                             R[j][None, :, i1, i3, :].clone(),
                             inv_Cxx[..., i3, i2, :],
@@ -551,7 +551,7 @@ def _covariance(y_j):
     Cj = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
                      dtype=y_j.dtype,
                      device=y_j.device)
-    for (i1, i2) in itertools.product(*(range(nb_channels),)*2):
+    for (i1, i2) in torch.cartesian_prod(*(torch.arange(nb_channels),)*2):
         Cj[..., i1, i2, :] = _mul_add(
             y_j[..., i1, :],
             _conj(y_j[..., i2, :]),
