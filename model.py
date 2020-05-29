@@ -215,7 +215,7 @@ class OpenUnmix(nn.Module):
             num_layers=nb_layers,
             bidirectional=not unidirectional,
             batch_first=False,
-            dropout=0.4,
+            dropout=0.4 if nb_layers > 1 else 0,
         )
 
         self.fc2 = Linear(
@@ -363,6 +363,9 @@ class Separator(nn.Module):
 
         # registering the targets models
         self.targets = nn.ModuleDict(targets)
+
+        # get the sample_rate as the sample_rate of the first model
+        # (tacitly assume it's the same for all targets)
         self.sample_rate = next(iter(self.targets.values())).sample_rate
 
     def freeze(self):
@@ -391,10 +394,6 @@ class Separator(nn.Module):
         model_rate: int
             the new sampling rate, desired by the open-unmix model
             """
-        if audio.requires_grad and not self.preload:
-            raise Exception(
-                "For computing gradients, the Separator must be used with pre-loading"
-            )
 
         # initializing spectrograms variable
         spectrograms = None
@@ -410,11 +409,13 @@ class Separator(nn.Module):
 
             # output is nb_frames, nb_samples, nb_channels, nb_bins
             if spectrograms is None:
+                # allocate the spectrograms variable
                 spectrograms = torch.zeros(
                     target_spectrogram.shape + (nb_sources,),
                     dtype=torch.float64,
                     device=target_spectrogram.device
                 )
+
             spectrograms[..., j] = target_spectrogram
 
         # transposing it as
@@ -449,10 +450,9 @@ class Separator(nn.Module):
         )
         for sample in range(nb_samples):
             pos=0
+            batch_size = self.batch_size if self.batch_size else nb_frames
             while pos < nb_frames:
-                t = torch.arange(
-                    pos, min(nb_frames, pos+self.batch_size)
-                )
+                t = torch.arange(pos, min(nb_frames, pos+batch_size))
                 pos = t[-1] + 1
 
                 targets_stft[sample, t] = wiener(

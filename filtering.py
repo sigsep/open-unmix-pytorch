@@ -290,6 +290,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
             R[j][...] = 0
             weight[...] = eps
             pos=0
+            batch_size = batch_size if batch_size else nb_frames
             while pos < nb_frames:
                 t = torch.arange(pos, min(nb_frames, pos+batch_size))
                 pos = t[-1] + 1
