@@ -31,8 +31,8 @@ def test_estimate_and_evaluate(mus):
         targets=['vocals', 'drums', 'bass', 'other'],
         model_name='umx',
         niter=1,
-        alpha=1,
-        softmask=False,
+        residual=None,
+        out=None,
         output_dir=None,
         eval_dir=None,
         device='cpu'

@@ -4,6 +4,17 @@ import torch
 import model
 import test
 
+def istft(X, rate=44100, n_fft=4096, n_hopsize=1024,
+          center=False):
+    from torchaudio.functional import istft
+    return istft(
+        X,
+        n_fft=n_fft,
+        hop_length=n_hopsize,
+        window=torch.hann_window(n_fft),
+        center=center,
+        normalized=False, onesided=True,
+        pad_mode='reflect')
 
 @pytest.fixture(params=[4096, 4096*10])
 def nb_timesteps(request):
@@ -39,7 +50,8 @@ def test_stft(audio, nb_channels, nfft, hop):
     unmix = model.OpenUnmix(nb_channels=nb_channels)
     unmix.stft.center = True
     X = unmix.stft(audio)
-    X = X.detach().numpy()
-    X_complex_np = X[..., 0] + X[..., 1]*1j
-    out = test.istft(X_complex_np)
-    assert np.sqrt(np.mean((audio.detach().numpy() - out)**2)) < 1e-6
+    X = X.detach()
+    out = istft(X, center=unmix.stft.center)
+    assert np.sqrt(
+        np.mean((audio.detach().numpy() - out.detach().numpy())**2)
+    ) < 1e-6

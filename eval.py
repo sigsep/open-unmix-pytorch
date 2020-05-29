@@ -18,6 +18,8 @@ def separate_and_evaluate(
     niter,
     output_dir,
     eval_dir,
+    residual,
+    out,
     device='cpu'
 ):
     # create the Separator object
@@ -27,8 +29,8 @@ def separate_and_evaluate(
     ) 
     separator = Separator(targets=targets,
                           niter=niter,
-                          residual=args.residual,
-                          out=args.out,
+                          residual=residual,
+                          out=out,
                           batch_size=400).to(device)
     separator.freeze()
 
@@ -136,6 +138,8 @@ if __name__ == '__main__':
                     targets=args.targets,
                     model_name=args.model,
                     niter=args.niter,
+                    residual=args.residual,
+                    out=args.out,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
                     device=device
@@ -157,6 +161,8 @@ if __name__ == '__main__':
                 targets=args.targets,
                 model_name=args.model,
                 niter=args.niter,
+                residual=args.residual,
+                out=args.out,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
                 device=device
