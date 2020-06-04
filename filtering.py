@@ -9,6 +9,7 @@ import json
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
 
+
 def _norm(x):
     r"""Computes the norm value of a torch Tensor, assuming that it
     comes as real and imaginary part in its last dimension.
@@ -21,6 +22,7 @@ def _norm(x):
     torch Tensor, with shape as x excluding the last dimension.
     """
     return torch.abs(x[..., 0])**2 + torch.abs(x[..., 1])**2
+
 
 def _mul_add(a, b, out):
     """Element-wise multiplication of two complex Tensors described
@@ -44,6 +46,7 @@ def _mul_add(a, b, out):
         out[..., 1] = out[..., 1] + (
             a[..., 0] * b[..., 1] + a[..., 1] * b[..., 0])
     return out
+
 
 def _mul(a, b, out=None):
     """Element-wise multiplication of two complex Tensors described
@@ -132,7 +135,7 @@ def _invert(M, out=None):
 
 # Now define the signal-processing low-level functions used by the Separator
 
-def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
+def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size=200):
     r"""Expectation maximization algorithm, for refining source separation
     estimates.
 
@@ -237,8 +240,10 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     """
     # to avoid dividing by zero
     if eps is None:
-        eps = torch.tensor(torch.finfo(x.dtype).eps,
-                           dtype=x.dtype, device=x.device)
+        eps = torch.as_tensor(
+            torch.finfo(x.dtype).eps,
+            dtype=x.dtype, device=x.device
+        )
 
     # dimensions
     (nb_frames, nb_bins, nb_channels) = x.shape[:-1]
@@ -285,11 +290,10 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         )
 
         # update spatial covariance matrices (weighted update)
-        batch_size=200
         for j in range(nb_sources):
             R[j][...] = 0
             weight[...] = eps
-            pos=0
+            pos = 0
             batch_size = batch_size if batch_size else nb_frames
             while pos < nb_frames:
                 t = torch.arange(pos, min(nb_frames, pos+batch_size))
@@ -307,12 +311,12 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
         if y.requires_grad:
             y = y.clone()
 
-        pos=0
+        pos = 0
         while pos < nb_frames:
             t = torch.arange(pos, min(nb_frames, pos+batch_size))
             pos = t[-1] + 1
 
-            y[t,...] = 0
+            y[t, ...] = 0
 
             # compute mix covariance matrix
             Cxx = regularization
@@ -324,7 +328,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
 
             # invert it
             inv_Cxx = _invert(Cxx)
-            
+
             # separate the sources
             for j in range(nb_sources):
 
@@ -352,8 +356,15 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None):
     return y, v, R
 
 
-def wiener(targets_spectrograms, mix_stft,
-           iterations=1, use_softmask=True, residual=None, eps=None):
+def wiener(
+    targets_spectrograms,
+    mix_stft,
+    iterations=1,
+    use_softmask=True,
+    residual=None,
+    eps=None,
+    scale_factor=10.0
+):
     """Wiener-based separation for multichannel audio.
 
     The method uses the (possibly multichannel) spectrograms `v` of the
@@ -476,8 +487,11 @@ def wiener(targets_spectrograms, mix_stft,
 
     # we need to refine the estimates. Scales down the estimates for
     # numerical stability
-    max_abs = torch.max(torch.tensor(1., dtype=mix_stft.dtype, device=mix_stft.device),
-                        torch.sqrt(_norm(mix_stft)).max()/10.)
+    max_abs = torch.max(
+        torch.as_tensor(1., dtype=mix_stft.dtype, device=mix_stft.device),
+        torch.sqrt(_norm(mix_stft)).max()/scale_factor
+    )
+
     mix_stft = mix_stft / max_abs
     y = y / max_abs
 
@@ -531,7 +545,6 @@ def softmask(v, x, eps=None):
     return x[..., None] * (
         v / (eps + torch.sum(v, dim=-1, keepdim=True).to(x.dtype))
     )[..., None, :]
-
 
 
 def _covariance(y_j):

@@ -221,7 +221,7 @@ def preprocess(audio, rate=None, model_rate=None):
     # convert to torch tensor
     audio = torch.as_tensor(audio)
     # shape management
-    shape = torch.tensor(audio.shape)
+    shape = torch.as_tensor(audio.shape)
     if len(shape) == 1:
         # assuming only time dimension is provided.
         audio = audio[None, None, ...]

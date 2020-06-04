@@ -740,7 +740,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
                     0, track.duration - self.seq_duration
                 )
                 # load source audio and apply time domain source_augmentations
-                audio = torch.tensor(
+                audio = torch.as_tensor(
                     track.sources[source].audio.T,
                     dtype=self.dtype
                 )
@@ -764,11 +764,11 @@ class MUSDBDataset(torch.utils.data.Dataset):
         # pre-mixed musdb track
         else:
             # get the non-linear source mix straight from musdb
-            x = torch.tensor(
+            x = torch.as_tensor(
                 track.audio.T,
                 dtype=self.dtype
             )
-            y = torch.tensor(
+            y = torch.as_tensor(
                 track.targets[self.target].audio.T,
                 dtype=self.dtype
             )
