@@ -100,7 +100,6 @@ def load_model(targets, model_name='umxhq', device='cpu'):
     if isinstance(targets, str):
         targets = [targets]
 
-
     model_path = Path(model_name).expanduser()
     if not model_path.exists():
         # model path does not exist, use hubconf model
@@ -109,7 +108,7 @@ def load_model(targets, model_name='umxhq', device='cpu'):
             err = io.StringIO()
             with redirect_stderr(err):
                 return {
-                    target:torch.hub.load(
+                    target: torch.hub.load(
                         'sigsep/open-unmix-pytorch',
                         model_name,
                         target=target,
@@ -330,8 +329,8 @@ class Separator(nn.Module):
 
     niter: int
          Number of EM steps for refining initial estimates in a
-         post-processing stage. Zeroed if only one target is estimated. 
-         defaults to 1. 
+         post-processing stage. Zeroed if only one target is estimated.
+         defaults to 1.
 
     residual: str or None
         adds an additional residual target with provided name, obtained by
@@ -352,10 +351,15 @@ class Separator(nn.Module):
         None means not batching but using the whole signal. It comes at the
         price of a much larger memory usage.
     """
-    def __init__(self, targets,
-                 niter=1, softmask=False, 
-                 residual=None, out=None,
-                 batch_size=None):
+    def __init__(
+        self,
+        targets,
+        niter=1,
+        softmask=False,
+        residual=None,
+        out=None,
+        batch_size=None
+    ):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
             raise Exception('The Separator class only works when torchaudio '
@@ -451,7 +455,7 @@ class Separator(nn.Module):
             device=mix_stft.device
         )
         for sample in range(nb_samples):
-            pos=0
+            pos = 0
             batch_size = self.batch_size if self.batch_size else nb_frames
             while pos < nb_frames:
                 t = torch.arange(pos, min(nb_frames, pos+batch_size))
@@ -476,8 +480,10 @@ class Separator(nn.Module):
                     hop_length=unmix_target.stft.n_hop,
                     window=unmix_target.stft.window,
                     center=unmix_target.stft.center,
-                    normalized=False, onesided=True,
-                    pad_mode='reflect', length=audio.shape[-1]
+                    normalized=False,
+                    onesided=True,
+                    pad_mode='reflect',
+                    length=audio.shape[-1]
                 ).transpose(0, 1)[None, ...]
                 for sample in range(nb_samples)], dim=0)
 
