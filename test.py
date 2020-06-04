@@ -26,8 +26,8 @@ def inference_args(parser, remaining_args):
         '--residual',
         type=str,
         default=None,
-        help='if provided, build a source with given name for the mix '\
-             'minus all estimated targets'
+        help='if provided, build a source with given name'
+             'for the mix minus all estimated targets'
     )
 
     inf_parser.add_argument(
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     targets = model.load_model(
         targets=args.targets,
         model_name=args.model
-    ) 
+    )
     separator = Separator(targets=targets,
                           niter=args.niter,
                           residual=args.residual,
