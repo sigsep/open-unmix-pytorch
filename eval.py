@@ -26,7 +26,7 @@ def separate_and_evaluate(
     targets = load_model(
         targets=targets,
         model_name=model_name
-    ) 
+    )
     separator = Separator(targets=targets,
                           niter=niter,
                           residual=residual,
@@ -45,7 +45,7 @@ def separate_and_evaluate(
     scores = museval.eval_mus_track(
         track, estimates, output_dir=eval_dir
     )
-    print(track,'\n',scores)
+    print(track, '\n', scores)
     return scores
 
 
