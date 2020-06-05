@@ -202,7 +202,6 @@ def load_datasets(parser, args):
             'root': args.root,
             'is_wav': args.is_wav,
             'subsets': 'train',
-            'target': args.target,
             'download': args.root is None,
             'seed': args.seed
         }
@@ -641,7 +640,6 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
 class MUSDBDataset(torch.utils.data.Dataset):
     def __init__(
         self,
-        target='vocals',
         root=None,
         download=False,
         is_wav=False,
@@ -698,7 +696,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         random.seed(seed)
         self.is_wav = is_wav
         self.seq_duration = seq_duration
-        self.target = target
         self.subsets = subsets
         self.split = split
         self.samples_per_track = samples_per_track
@@ -717,7 +714,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         audio_sources = []
-        target_ind = None
 
         # select track
         track = self.mus.tracks[index // self.samples_per_track]
@@ -725,10 +721,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
         # at training time we assemble a custom mix
         if self.split == 'train' and self.seq_duration:
             for k, source in enumerate(self.mus.setup['sources']):
-                # memorize index of target source
-                if source == self.target:
-                    target_ind = k
-
                 # select a random track
                 if self.random_track_mix:
                     track = random.choice(self.mus.tracks)
@@ -748,32 +740,10 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 audio_sources.append(audio)
 
             # create stem tensor of shape (source, channel, samples)
-            stems = torch.stack(audio_sources, dim=0)
-            # # apply linear mix over source index=0
-            x = stems.sum(0)
-            # get the target stem
-            if target_ind is not None:
-                y = stems[target_ind]
-            # assuming vocal/accompaniment scenario if target!=source
-            else:
-                vocind = list(self.mus.setup['sources'].keys()).index('vocals')
-                # apply time domain subtraction
-                y = x - stems[vocind]
+            audio_sources = torch.stack(audio_sources, dim=0)
+            audio_mix = audio_sources.sum(0)
 
-        # for validation and test, we deterministically yield the full
-        # pre-mixed musdb track
-        else:
-            # get the non-linear source mix straight from musdb
-            x = torch.as_tensor(
-                track.audio.T,
-                dtype=self.dtype
-            )
-            y = torch.as_tensor(
-                track.targets[self.target].audio.T,
-                dtype=self.dtype
-            )
-
-        return x, y
+        return audio_mix, audio_sources
 
     def __len__(self):
         return len(self.mus.tracks) * self.samples_per_track
@@ -800,7 +770,7 @@ if __name__ == "__main__":
         help=('write out a fixed dataset of samples')
     )
 
-    parser.add_argument('--target', type=str, default='vocals')
+    parser.add_argument('--seed', type=int, default=42)
 
     # I/O Parameters
     parser.add_argument(

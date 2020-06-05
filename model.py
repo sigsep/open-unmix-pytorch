@@ -25,7 +25,7 @@ class STFT(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        center=False
+        center=True
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -189,7 +189,7 @@ class OpenUnmix(nn.Module):
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        self.register_buffer('sample_rate', torch.tensor(sample_rate))
+        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
 
         if input_is_spectrogram:
             self.transform = NoOp()
@@ -217,8 +217,9 @@ class OpenUnmix(nn.Module):
             dropout=0.4 if nb_layers > 1 else 0,
         )
 
+        fc2_hiddensize = hidden_size * 2
         self.fc2 = Linear(
-            in_features=hidden_size*2,
+            in_features=fc2_hiddensize,
             out_features=hidden_size,
             bias=False
         )
@@ -357,18 +358,13 @@ class Separator(nn.Module):
         niter=1,
         softmask=False,
         residual=None,
-        out=None,
         batch_size=None
     ):
         super(Separator, self).__init__()
-        if not utils._torchaudio_available():
-            raise Exception('The Separator class only works when torchaudio '
-                            'is available.')
 
         # saving parameters
         self.niter = niter
         self.residual = residual
-        self.out = None if out is None else json.loads(out)
         self.batch_size = batch_size
 
         # registering the targets models
@@ -419,7 +415,6 @@ class Separator(nn.Module):
                 # allocate the spectrograms variable
                 spectrograms = torch.zeros(
                     target_spectrogram.shape + (nb_sources,),
-                    dtype=torch.float64,
                     device=target_spectrogram.device
                 )
 
@@ -427,12 +422,11 @@ class Separator(nn.Module):
 
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
-        spectrograms = spectrograms.permute(1, 0, 3, 2, 4).to(torch.float64)
+        spectrograms = spectrograms.permute(1, 0, 3, 2, 4)
 
         # getting the STFT of mix:
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = unmix_target.stft(audio).to(torch.float64)
-
+        mix_stft = unmix_target.stft(audio)
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
         # into filtering methods
@@ -452,7 +446,6 @@ class Separator(nn.Module):
         nb_frames = spectrograms.shape[1]
         targets_stft = torch.zeros(
             mix_stft.shape + (nb_sources, ),
-            dtype=torch.float32,
             device=mix_stft.device
         )
         for sample in range(nb_samples):
@@ -466,33 +459,23 @@ class Separator(nn.Module):
                     spectrograms[sample, t], mix_stft[sample, t],
                     self.niter, use_softmask=False,
                     residual=self.residual
-                ).to(torch.float32)
+                )
         estimates = {}
 
-        # getting to (nb_samples, channel, fft_size, n_frames, 2, nb_sources)
-        targets_stft = targets_stft.permute(0, 3, 2, 1, 4, 5)
+        # getting to (nb_samples, nb_sources, channel, fft_size, n_frames, 2)
+        targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
 
         # Now performing the inverse STFTs
-        for j, name in enumerate(targets):
-            estimates[name] = torch.cat([
-                istft(
-                    targets_stft[sample, ..., j],
-                    n_fft=unmix_target.stft.n_fft,
-                    hop_length=unmix_target.stft.n_hop,
-                    window=unmix_target.stft.window,
-                    center=unmix_target.stft.center,
-                    normalized=False,
-                    onesided=True,
-                    pad_mode='reflect',
-                    length=audio.shape[-1]
-                ).transpose(0, 1)[None, ...]
-                for sample in range(nb_samples)], dim=0)
+        estimates = istft(
+            targets_stft,
+            n_fft=unmix_target.stft.n_fft,
+            hop_length=unmix_target.stft.n_hop,
+            window=unmix_target.stft.window,
+            center=unmix_target.stft.center,
+            normalized=False,
+            onesided=True,
+            pad_mode='reflect',
+            length=audio.shape[-1]
+        )
 
-        if self.out is not None:
-            new_estimates = {}
-            for key in self.out:
-                new_estimates[key] = 0
-                for target in self.out[key]:
-                    new_estimates[key] = new_estimates[key] + estimates[target]
-            estimates = new_estimates
         return estimates

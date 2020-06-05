@@ -20,18 +20,21 @@ tqdm.monitor_interval = 0
 
 def train(args, unmix, device, train_sampler, optimizer):
     losses = utils.AverageMeter()
+    criterion = torch.nn.MSELoss()
     unmix.train()
     pbar = tqdm.tqdm(train_sampler, disable=args.quiet)
     for x, y in pbar:
         pbar.set_description("Training batch")
-        x, y = x.to(device), y.to(device)
+        x = x.to(device)
+        y = y.to(device)
         optimizer.zero_grad()
-        Y_hat = unmix(x)
-        Y = unmix.transform(y)
-        loss = torch.nn.functional.mse_loss(Y_hat, Y)
+        y_hats = unmix(x)
+        # probably do something smarter here: SI-SDR?
+        loss = criterion(y_hats, y)
         loss.backward()
         optimizer.step()
-        losses.update(loss.item(), Y.size(1))
+        losses.update(loss.item())
+        print(losses.avg)
     return losses.avg
 
 
@@ -81,6 +84,8 @@ def main():
 
     # which target do we want to train?
     parser.add_argument('--target', type=str, default='vocals',
+                        help='target source (will be passed to the dataset)')
+    parser.add_argument('--targets', type=str, default=['vocals', 'drums', 'bass', 'other'],
                         help='target source (will be passed to the dataset)')
 
     # Dataset paramaters
@@ -168,26 +173,27 @@ def main():
         **dataloader_kwargs
     )
 
-    if args.model:
-        scaler_mean = None
-        scaler_std = None
-    else:
-        scaler_mean, scaler_std = get_statistics(args, train_dataset)
+    scaler_mean = None
+    scaler_std = None
 
     max_bin = utils.bandwidth_to_max_bin(
         train_dataset.sample_rate, args.nfft, args.bandwidth
     )
 
-    unmix = model.OpenUnmix(
-        input_mean=scaler_mean,
-        input_scale=scaler_std,
-        nb_channels=args.nb_channels,
-        hidden_size=args.hidden_size,
-        n_fft=args.nfft,
-        n_hop=args.nhop,
-        max_bin=max_bin,
-        sample_rate=train_dataset.sample_rate
-    ).to(device)
+    targets = {}
+    for target in ['vocals', 'drums', 'bass', 'other']:
+        targets[target] = model.OpenUnmix(
+            input_mean=scaler_mean,
+            input_scale=scaler_std,
+            nb_channels=args.nb_channels,
+            hidden_size=args.hidden_size,
+            n_fft=args.nfft,
+            n_hop=args.nhop,
+            max_bin=max_bin,
+            sample_rate=train_dataset.sample_rate
+        ).to(device)
+
+    unmix = model.Separator(niter=0, targets=targets).to(device)
 
     optimizer = torch.optim.Adam(
         unmix.parameters(),

@@ -107,8 +107,8 @@ if __name__ == '__main__':
     separator = Separator(targets=targets,
                           niter=args.niter,
                           residual=args.residual,
-                          out=args.out,
                           batch_size=10).to(device)
+
     separator.freeze()
 
     # loop over the files
