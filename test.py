@@ -117,7 +117,7 @@ if __name__ == '__main__':
         audio, rate = sf.read(input_file, always_2d=True)
 
         # convert numpy audio to torch
-        audio_torch = torch.tensor(audio).to(device)
+        audio_torch = torch.as_tensor(audio).to(device)
         audio_torch = utils.preprocess(audio, rate, separator.sample_rate)
 
         audio_torch.requires_grad = gradient
