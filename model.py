@@ -25,7 +25,7 @@ class STFT(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        center=False
+        center=True
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -474,19 +474,23 @@ class Separator(nn.Module):
 
         # Now performing the inverse STFTs
         for j, name in enumerate(targets):
-            estimates[name] = torch.cat([
-                istft(
-                    targets_stft[sample, ..., j],
-                    n_fft=unmix_target.stft.n_fft,
-                    hop_length=unmix_target.stft.n_hop,
-                    window=unmix_target.stft.window,
-                    center=unmix_target.stft.center,
-                    normalized=False,
-                    onesided=True,
-                    pad_mode='reflect',
-                    length=audio.shape[-1]
-                ).transpose(0, 1)[None, ...]
-                for sample in range(nb_samples)], dim=0)
+            estimates[name] = torch.cat(
+                [
+                    istft(
+                        targets_stft[sample, ..., j],
+                        n_fft=unmix_target.stft.n_fft,
+                        hop_length=unmix_target.stft.n_hop,
+                        window=unmix_target.stft.window,
+                        center=True,
+                        normalized=False,
+                        onesided=True,
+                        pad_mode='reflect',
+                        length=audio.shape[-1]
+                    ).transpose(0, 1)[None, ...]
+                    for sample in range(nb_samples)
+                ],
+                dim=0
+            )
 
         if self.out is not None:
             new_estimates = {}

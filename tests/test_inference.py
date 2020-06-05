@@ -11,7 +11,7 @@ def istft(
     rate=44100,
     n_fft=4096,
     n_hopsize=1024,
-    center=False
+    center=True
 ):
     return torchaudio.functional.istft(
         X,
