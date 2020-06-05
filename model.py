@@ -373,7 +373,8 @@ class Separator(nn.Module):
 
         # registering the targets models
         self.targets = nn.ModuleDict(targets)
-
+        # adding till https://github.com/pytorch/pytorch/issues/38963
+        self.nb_targets = len(self.targets)
         # get the sample_rate as the sample_rate of the first model
         # (tacitly assume it's the same for all targets)
         self.sample_rate = next(iter(self.targets.values())).sample_rate
@@ -404,7 +405,7 @@ class Separator(nn.Module):
         # initializing spectrograms variable
         spectrograms = None
 
-        nb_sources = len(self.targets)
+        nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
         for j, target in enumerate(self.targets):
