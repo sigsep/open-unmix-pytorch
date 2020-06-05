@@ -4,7 +4,7 @@ import museval
 import test
 import multiprocessing
 import functools
-from model import load_model, Separator
+from model import load_models, Separator
 from pathlib import Path
 import torch
 import tqdm
@@ -23,7 +23,7 @@ def separate_and_evaluate(
     device='cpu'
 ):
     # create the Separator object
-    targets = load_model(
+    targets = load_models(
         targets=targets,
         model_name=model_name
     )

@@ -100,7 +100,7 @@ if __name__ == '__main__':
         torch.autograd.set_detect_anomaly(True)
 
     # create the Separator object
-    targets = model.load_model(
+    targets = model.load_models(
         targets=args.targets,
         model_name=args.model
     )

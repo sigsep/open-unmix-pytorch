@@ -92,7 +92,7 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-def load_model(targets, model_name='umxhq', device='cpu'):
+def load_models(targets, model_name='umxhq', device='cpu'):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
