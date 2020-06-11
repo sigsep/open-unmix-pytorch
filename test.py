@@ -5,6 +5,7 @@ from pathlib import Path
 import model
 from model import Separator
 import utils
+import json
 
 
 def inference_args(parser, remaining_args):
@@ -104,10 +105,14 @@ if __name__ == '__main__':
         targets=args.targets,
         model_name=args.model
     )
+
+    # parsing the output dict
+    out = None if args.out is None else json.loads(args.out)
+
     separator = Separator(targets=targets,
                           niter=args.niter,
                           residual=args.residual,
-                          out=args.out,
+                          out=out,
                           wiener_win_len=300).to(device)
     separator.freeze()
 

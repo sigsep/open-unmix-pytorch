@@ -339,14 +339,13 @@ class Separator(nn.Module):
         potential EM post-processing.
         Defaults to None
 
-    out: str or None
-        if provided, must be a string containing a valid expression for
-        a dictionary, with keys the output target names, and values
-        a list of targets that are used to build it. For instance:
-        '{"vocals":["vocals"], "accompaniment":["drums","bass","other"]}'
+    out: None or dict
+        if provided, must be a dictionary, with keys the output target names,
+        and values a list of targets that are used to build it. For instance:
+        {"vocals":["vocals"], "accompaniment":["drums","bass","other"]}
 
     wiener_win_len: {None | int}
-        The size of the batches (number of frames) on which to apply filtering
+        The size of the excerpts (number of frames) on which to apply filtering
         independently. This means assuming time varying stereo models and
         localization of sources.
         None means not batching but using the whole signal. It comes at the
@@ -369,7 +368,7 @@ class Separator(nn.Module):
         # saving parameters
         self.niter = niter
         self.residual = residual
-        self.out = None if out is None else json.loads(out)
+        self.out = out
         self.wiener_win_len = wiener_win_len
 
         # registering the targets models

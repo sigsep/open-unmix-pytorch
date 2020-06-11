@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 import tqdm
 import utils
+import json
 
 
 def separate_and_evaluate(
@@ -128,6 +129,8 @@ if __name__ == '__main__':
         subsets=args.subset,
         is_wav=args.is_wav
     )
+    out = None if args.out is None else json.loads(args.out)
+
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = museval.EvalStore()
@@ -139,7 +142,7 @@ if __name__ == '__main__':
                     model_name=args.model,
                     niter=args.niter,
                     residual=args.residual,
-                    out=args.out,
+                    out=out,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
                     device=device
@@ -162,7 +165,7 @@ if __name__ == '__main__':
                 model_name=args.model,
                 niter=args.niter,
                 residual=args.residual,
-                out=args.out,
+                out=out,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
                 device=device
