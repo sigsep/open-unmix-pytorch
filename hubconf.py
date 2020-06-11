@@ -132,7 +132,7 @@ def separator(
     """
     from model import Separator
 
-    assert model_name in ['umx', 'umxhq'], 'model_name must be either '
+    assert model_name in ['umx', 'umxhq'], 'model_name must be either '\
                                            '`umx` or `umxhq`'
     load_fn = umx if model_name=='umx' else umxhq 
 
