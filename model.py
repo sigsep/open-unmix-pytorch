@@ -262,6 +262,7 @@ class OpenUnmix(nn.Module):
         # at test time
         for p in self.parameters():
             p.requires_grad = False
+        self.eval()
 
     def forward(self, x):
         # check for waveform or spectrogram
@@ -384,6 +385,7 @@ class Separator(nn.Module):
         # at test time
         for p in self.parameters():
             p.requires_grad = False
+        self.eval()
 
     def forward(self, audio):
         """
