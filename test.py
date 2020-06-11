@@ -108,7 +108,7 @@ if __name__ == '__main__':
                           niter=args.niter,
                           residual=args.residual,
                           out=args.out,
-                          batch_size=10).to(device)
+                          wiener_win_len=300).to(device)
     separator.freeze()
 
     # loop over the files

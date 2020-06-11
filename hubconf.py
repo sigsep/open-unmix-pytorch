@@ -146,7 +146,7 @@ def separator(
                           niter=1,
                           residual=residual,
                           out=None,
-                          batch_size=400).to(device)
+                          wiener_win_len=400).to(device)
     separator.freeze()
 
     return separator

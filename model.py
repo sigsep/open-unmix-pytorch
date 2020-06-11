@@ -345,7 +345,7 @@ class Separator(nn.Module):
         a list of targets that are used to build it. For instance:
         '{"vocals":["vocals"], "accompaniment":["drums","bass","other"]}'
 
-    batch_size: {None | int}
+    wiener_win_len: {None | int}
         The size of the batches (number of frames) on which to apply filtering
         independently. This means assuming time varying stereo models and
         localization of sources.
@@ -359,7 +359,7 @@ class Separator(nn.Module):
         softmask=False,
         residual=None,
         out=None,
-        batch_size=None
+        wiener_win_len=None
     ):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
@@ -370,7 +370,7 @@ class Separator(nn.Module):
         self.niter = niter
         self.residual = residual
         self.out = None if out is None else json.loads(out)
-        self.batch_size = batch_size
+        self.wiener_win_len = wiener_win_len
 
         # registering the targets models
         self.targets = nn.ModuleDict(targets)
@@ -459,9 +459,9 @@ class Separator(nn.Module):
         )
         for sample in range(nb_samples):
             pos = 0
-            batch_size = self.batch_size if self.batch_size else nb_frames
+            wiener_win_len = self.wiener_win_len if self.wiener_win_len else nb_frames
             while pos < nb_frames:
-                t = torch.arange(pos, min(nb_frames, pos+batch_size))
+                t = torch.arange(pos, min(nb_frames, pos+wiener_win_len))
                 pos = t[-1] + 1
 
                 targets_stft[sample, t] = wiener(

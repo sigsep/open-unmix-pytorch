@@ -31,7 +31,7 @@ def separate_and_evaluate(
                           niter=niter,
                           residual=residual,
                           out=out,
-                          batch_size=400).to(device)
+                          wiener_win_len=400).to(device)
     separator.freeze()
 
     audio = utils.preprocess(track.audio, track.rate, separator.sample_rate)
