@@ -16,7 +16,7 @@ class TestModels(JitTestCase):
 
         separator = model.Separator(targets={'test': umx}).eval().to(device)
 
-        # disabble tracing for now as there are too many dynamic parts
+        # disable tracing for now as there are too many dynamic parts
         # self.checkTrace(separator, (example,), export_import=check_export_import)
 
         # instead test scripting
