@@ -354,7 +354,7 @@ class Separator(nn.Module):
     def __init__(
         self,
         targets,
-        niter=1,
+        niter=0,
         softmask=False,
         residual=None,
         out=None,
