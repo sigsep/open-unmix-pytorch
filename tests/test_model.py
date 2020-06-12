@@ -3,7 +3,7 @@ import model
 import torch
 
 
-@pytest.fixture(params=[4096, 44100, 54321])
+@pytest.fixture(params=[4096, 55555])
 def nb_timesteps(request):
     return int(request.param)
 
@@ -28,12 +28,7 @@ def unidirectional(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 2])
-def nb_layers(request):
-    return request.param
-
-
-@pytest.fixture(params=[32, 512])
+@pytest.fixture(params=[32])
 def hidden_size(request):
     return request.param
 
@@ -52,7 +47,6 @@ def test_shape(
     audio,
     nb_channels,
     unidirectional,
-    nb_layers,
     hidden_size,
     n_fft,
     n_hop
@@ -63,7 +57,7 @@ def test_shape(
         nb_channels=nb_channels,
         input_is_spectrogram=True,
         unidirectional=unidirectional,
-        nb_layers=nb_layers,
+        nb_layers=1,  # speed up training
         hidden_size=hidden_size
     )
     unmix.eval()
