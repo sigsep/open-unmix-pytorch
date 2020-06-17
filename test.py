@@ -95,11 +95,6 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    gradient = False
-    print('testing gradients:', gradient)
-    if gradient:
-        torch.autograd.set_detect_anomaly(True)
-
     # create the Separator object
     targets = model.load_models(
         targets=args.targets,
@@ -125,14 +120,8 @@ if __name__ == '__main__':
         audio_torch = torch.as_tensor(audio).to(device)
         audio_torch = utils.preprocess(audio, rate, separator.sample_rate)
 
-        audio_torch.requires_grad = gradient
-
         # getting the separated signals
         estimates = separator(audio_torch)
-
-        if gradient:
-            loss = torch.abs(estimates['vocals']).sum()
-            loss.backward()
 
         estimates = {
             key: estimates[key][0].detach().cpu().numpy()
