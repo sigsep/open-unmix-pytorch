@@ -112,9 +112,13 @@ def umx(
 
 def separator(
     targets=['vocals', 'drums', 'bass', 'other'],
-    model_name='umxhq', pretrained=True,
-    residual=False, niter=1,
-    device='cpu', *args, **kwargs
+    model_name='umxhq',
+    pretrained=True,
+    residual=False,
+    niter=1,
+    wiener_win_len=300,
+    device='cpu',
+    *args, **kwargs
 ):
     """
     Create a complete Separator exploiting 2-channel/stereo BiLSTM UMX with
@@ -127,26 +131,29 @@ def separator(
                        activate the `residual=True` option.
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
         residual (bool): if True, a "garbage" target is created
-        niter (int): the number of postprocessing iterations to reduce interferences
+        niter (int): the number of postproc. iterations to reduce interferences
         device (str): selects device to be used for inference
     """
     from model import Separator
 
-    assert model_name in ['umx', 'umxhq'], "model_name must be `umx` or `umxhq`"
-    load_fn = umx if model_name=='umx' else umxhq 
+    assert model_name in ['umx', 'umxhq'], \
+        "model_name must be `umx` or `umxhq`"
+
+    load_fn = umx if model_name == 'umx' else umxhq
 
     # load targets models
     targets_models = {
-        target:load_fn(target, device, pretrained, *args, **kwargs)
+        target: load_fn(target, device, pretrained, *args, **kwargs)
         for target in targets
     }
 
     # create the separator
-    separator = Separator(targets=targets_models,
-                          niter=1,
-                          residual=residual,
-                          out=None,
-                          wiener_win_len=400).to(device)
+    separator = Separator(
+        targets=targets_models,
+        niter=1,
+        residual=residual,
+        out=None,
+        wiener_win_len=wiener_win_len).to(device)
     separator.freeze()
 
     return separator
