@@ -28,6 +28,7 @@ def separate_and_evaluate(
         targets=targets,
         model_name=model_name
     )
+
     separator = Separator(
         targets=targets,
         niter=niter,
@@ -43,7 +44,7 @@ def separate_and_evaluate(
     estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
 
     for key in estimates:
-        estimates[key] = estimates[key][0].detach().numpy()
+        estimates[key] = estimates[key][0].detach().numpy().T
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 
