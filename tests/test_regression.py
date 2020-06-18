@@ -32,10 +32,11 @@ def test_estimate_and_evaluate(mus):
         model_name='umx',
         niter=1,
         residual=None,
-        out=None,
+        aggregate_dict=None,
         output_dir=None,
         eval_dir=None,
-        device='cpu'
+        device='cpu',
+        wiener_win_len=None
     )
 
     assert scores.validate() is None

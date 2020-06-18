@@ -21,7 +21,8 @@ def separate_and_evaluate(
     eval_dir,
     residual,
     aggregate_dict,
-    device='cpu'
+    device='cpu',
+    wiener_win_len=300
 ):
     # create the Separator object
     targets = load_models(
@@ -33,7 +34,7 @@ def separate_and_evaluate(
         targets=targets,
         niter=niter,
         residual=residual,
-        wiener_win_len=400
+        wiener_win_len=wiener_win_len
     ).to(device)
 
     separator.freeze()
