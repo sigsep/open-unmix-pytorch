@@ -39,7 +39,7 @@ def inference_args(parser, remaining_args):
     )
 
     inf_parser.add_argument(
-        '--out',
+        '--aggregate',
         type=str,
         default=None,
         help='if provided, must be a string containing a valid expression for '
@@ -109,7 +109,9 @@ if __name__ == '__main__':
     )
 
     # parsing the output dict
-    out = None if args.out is None else json.loads(args.out)
+    aggregate_dict = None if args.aggregate is None else json.loads(
+        args.aggregate
+    )
 
     separator = Separator(
         targets=targets,
@@ -128,7 +130,7 @@ if __name__ == '__main__':
 
         # getting the separated signals
         estimates = separator(audio)
-        estimates = separator.to_dict(estimates, aggregate_dict=out)
+        estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
 
         if not args.outdir:
             model_path = Path(args.model)
@@ -142,7 +144,6 @@ if __name__ == '__main__':
 
         # write out estimates
         for target, estimate in estimates.items():
-            print(type(estimate))
             torchaudio.save(
                  str(outdir / Path(target).with_suffix('.wav')),
                  torch.squeeze(estimate),

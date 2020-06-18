@@ -20,7 +20,7 @@ def separate_and_evaluate(
     output_dir,
     eval_dir,
     residual,
-    out,
+    aggregate_dict,
     device='cpu'
 ):
     # create the Separator object
@@ -28,18 +28,22 @@ def separate_and_evaluate(
         targets=targets,
         model_name=model_name
     )
-    separator = Separator(targets=targets,
-                          niter=niter,
-                          residual=residual,
-                          out=out,
-                          wiener_win_len=400).to(device)
+    separator = Separator(
+        targets=targets,
+        niter=niter,
+        residual=residual,
+        wiener_win_len=400
+    ).to(device)
+
     separator.freeze()
 
     audio = utils.preprocess(track.audio, track.rate, separator.sample_rate)
 
     estimates = separator(audio)
+    estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
+
     for key in estimates:
-        estimates[key] = estimates[key][0].numpy()
+        estimates[key] = estimates[key][0].detach().numpy()
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 
@@ -129,7 +133,9 @@ if __name__ == '__main__':
         subsets=args.subset,
         is_wav=args.is_wav
     )
-    out = None if args.out is None else json.loads(args.out)
+    aggregate_dict = None if args.aggregate is None else json.loads(
+        args.aggregate
+    )
 
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
@@ -142,7 +148,7 @@ if __name__ == '__main__':
                     model_name=args.model,
                     niter=args.niter,
                     residual=args.residual,
-                    out=out,
+                    aggregate_dict=aggregate_dict,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
                     device=device
@@ -165,7 +171,7 @@ if __name__ == '__main__':
                 model_name=args.model,
                 niter=args.niter,
                 residual=args.residual,
-                out=out,
+                aggregate_dict=aggregate_dict,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
                 device=device
