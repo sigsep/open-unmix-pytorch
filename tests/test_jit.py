@@ -14,12 +14,14 @@ class TestModels(JitTestCase):
         umx = model.OpenUnmix().eval().to(device)
         self.checkTrace(umx, (example,), export_import=check_export_import)
 
-        separator = model.Separator(targets={'test': umx}).eval().to(device)
+        separator = model.Separator(
+            targets={'source_1': umx, 'source_2': umx}, niter=1
+        ).eval().to(device)
 
-        # disable tracing for now as there are too many dynamic parts
-        # self.checkTrace(separator, (example,), export_import=check_export_import)
+        # disable tracing check for now as there are too many dynamic parts
+        # self.checkTrace(separator, (example,), export_import=False)
 
-        # instead test scripting
+        # test scripting of the separator
         torch.jit.script(separator)
 
     def test_umx(self):
