@@ -10,6 +10,7 @@ from contextlib import redirect_stderr
 from filtering import wiener
 import io
 from torchaudio.functional import istft
+from typing import Optional
 
 
 class NoOp(nn.Module):
@@ -189,7 +190,7 @@ class OpenUnmix(nn.Module):
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        self.register_buffer('sample_rate', torch.tensor(sample_rate))
+        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
 
         if input_is_spectrogram:
             self.transform = NoOp()
@@ -217,8 +218,9 @@ class OpenUnmix(nn.Module):
             dropout=0.4 if nb_layers > 1 else 0,
         )
 
+        fc2_hiddensize = hidden_size * 2
         self.fc2 = Linear(
-            in_features=hidden_size*2,
+            in_features=fc2_hiddensize,
             out_features=hidden_size,
             bias=False
         )
@@ -339,11 +341,6 @@ class Separator(nn.Module):
         potential EM post-processing.
         Defaults to None
 
-    out: None or dict
-        if provided, must be a dictionary, with keys the output target names,
-        and values a list of targets that are used to build it. For instance:
-        {"vocals":["vocals"], "accompaniment":["drums","bass","other"]}
-
     wiener_win_len: {None | int}
         The size of the excerpts (number of frames) on which to apply filtering
         independently. This means assuming time varying stereo models and
@@ -353,12 +350,12 @@ class Separator(nn.Module):
     """
     def __init__(
         self,
-        targets,
-        niter=0,
-        softmask=False,
-        residual=None,
-        out=None,
-        wiener_win_len=None
+        targets: dict,
+        niter: int = 0,
+        softmask: bool = False,
+        residual: Optional[str] = None,
+        wiener_win_len: Optional[int] = 300,
+        sample_rate: int = 44100
     ):
         super(Separator, self).__init__()
         if not utils._torchaudio_available():
@@ -368,7 +365,6 @@ class Separator(nn.Module):
         # saving parameters
         self.niter = niter
         self.residual = residual
-        self.out = out
         self.wiener_win_len = wiener_win_len
 
         # registering the targets models
@@ -377,7 +373,7 @@ class Separator(nn.Module):
         self.nb_targets = len(self.targets)
         # get the sample_rate as the sample_rate of the first model
         # (tacitly assume it's the same for all targets)
-        self.sample_rate = next(iter(self.targets.values())).sample_rate
+        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
 
     def freeze(self):
         # set all parameters as not requiring gradient, more RAM-efficient
@@ -393,15 +389,13 @@ class Separator(nn.Module):
         Parameters
         ----------
         audio: torch.Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
-        mixture audio
+                mixture audio
 
         Returns
         -------
-        estimates: `dict` [`str`: `torch.Tensor`
-                                  shape(nb_samples, nb_channels, nb_timesteps)]
-            dictionary of all restimates as performed by the separation model.
-
-            """
+        estimates: `torch.Tensor`
+                   shape(nb_samples, nb_targets, nb_channels, nb_timesteps)
+        """
 
         # initializing spectrograms variable
         spectrograms = None
@@ -409,18 +403,17 @@ class Separator(nn.Module):
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
-        for j, target in enumerate(self.targets):
-            unmix_target = self.targets[target]
+        for j, (target_name, target_module) in enumerate(self.targets.items()):
 
             # apply current model to get the source spectrogram
-            target_spectrogram = unmix_target(audio)
+            target_spectrogram = target_module(audio)
 
             # output is nb_frames, nb_samples, nb_channels, nb_bins
             if spectrograms is None:
                 # allocate the spectrograms variable
                 spectrograms = torch.zeros(
                     target_spectrogram.shape + (nb_sources,),
-                    dtype=torch.float64,
+                    dtype=audio.dtype,
                     device=target_spectrogram.device
                 )
 
@@ -428,11 +421,11 @@ class Separator(nn.Module):
 
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
-        spectrograms = spectrograms.permute(1, 0, 3, 2, 4).to(torch.float64)
+        spectrograms = spectrograms.permute(1, 0, 3, 2, 4)
 
         # getting the STFT of mix:
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = unmix_target.stft(audio).to(torch.float64)
+        mix_stft = target_module.stft(audio)
 
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
@@ -440,7 +433,7 @@ class Separator(nn.Module):
         mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
 
         # create an additional target if we need to build a residual
-        targets = list(self.targets.keys())
+        targets = self.targets.keys()
         if self.residual is not None:
             targets += [self.residual]
             nb_sources += 1
@@ -452,52 +445,58 @@ class Separator(nn.Module):
 
         nb_frames = spectrograms.shape[1]
         targets_stft = torch.zeros(
-            mix_stft.shape + (nb_sources, ),
-            dtype=torch.float32,
+            mix_stft.shape + (nb_sources,),
+            dtype=audio.dtype,
             device=mix_stft.device
         )
         for sample in range(nb_samples):
             pos = 0
-            wiener_win_len = self.wiener_win_len if self.wiener_win_len else nb_frames
+            if self.wiener_win_len:
+                wiener_win_len = self.wiener_win_len
+            else:
+                wiener_win_len = nb_frames
             while pos < nb_frames:
                 t = torch.arange(pos, min(nb_frames, pos+wiener_win_len))
                 pos = t[-1] + 1
 
                 targets_stft[sample, t] = wiener(
-                    spectrograms[sample, t], mix_stft[sample, t],
-                    self.niter, use_softmask=False,
+                    spectrograms[sample, t],
+                    mix_stft[sample, t],
+                    self.niter,
+                    use_softmask=False,
                     residual=self.residual
-                ).to(torch.float32)
-        estimates = {}
+                )
 
-        # getting to (nb_samples, channel, fft_size, n_frames, 2, nb_sources)
-        targets_stft = targets_stft.permute(0, 3, 2, 1, 4, 5)
+        # getting to (nb_samples, nb_targets, channel, fft_size, n_frames, 2)
+        targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
 
-        # Now performing the inverse STFTs
-        for j, name in enumerate(targets):
-            estimates[name] = torch.cat(
-                [
-                    istft(
-                        targets_stft[sample, ..., j],
-                        n_fft=unmix_target.stft.n_fft,
-                        hop_length=unmix_target.stft.n_hop,
-                        window=unmix_target.stft.window,
-                        center=True,
-                        normalized=False,
-                        onesided=True,
-                        pad_mode='reflect',
-                        length=audio.shape[-1]
-                    ).transpose(0, 1)[None, ...]
-                    for sample in range(nb_samples)
-                ],
-                dim=0
-            )
+        # inverse STFTs
+        estimates = istft(
+            targets_stft,
+            n_fft=target_module.stft.n_fft,
+            hop_length=target_module.stft.n_hop,
+            window=target_module.stft.window,
+            center=target_module.stft.center,
+            normalized=False,
+            onesided=True,
+            pad_mode='reflect',
+            length=audio.shape[-1]
+        )
 
-        if self.out is not None:
-            new_estimates = {}
-            for key in self.out:
-                new_estimates[key] = 0
-                for target in self.out[key]:
-                    new_estimates[key] = new_estimates[key] + estimates[target]
-            estimates = new_estimates
+        # returning (nb_samples, nb_targets, nb_channels, nb_timesteps)
         return estimates
+
+    def to_dict(self, estimates, aggregate_dict=None):
+        estimates_dict = {}
+        for k, target in enumerate(self.targets):
+            estimates_dict[target] = estimates[:, k, ...]
+
+        if aggregate_dict is not None:
+            new_estimates = {}
+            for key in aggregate_dict:
+                new_estimates[key] = 0.0
+                for target in aggregate_dict[key]:
+                    new_estimates[key] = new_estimates[key] + \
+                        estimates_dict[target]
+            estimates_dict = new_estimates
+        return estimates_dict

@@ -5,6 +5,7 @@ import warnings
 import model
 import utils
 import json
+from typing import Optional
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
@@ -48,7 +49,7 @@ def _mul_add(a, b, out):
     return out
 
 
-def _mul(a, b, out=None):
+def _mul(a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None):
     """Element-wise multiplication of two complex Tensors described
     through their real and imaginary parts
     can work in place in case out is a only"""
@@ -66,7 +67,7 @@ def _mul(a, b, out=None):
     return out
 
 
-def _inv(z, out=None):
+def _inv(z: torch.Tensor, out: Optional[torch.Tensor] = None):
     """Element-wise multiplicative inverse of a Tensor with complex
     entries described through their real and imaginary parts.
     can work in place in case out is z"""
@@ -78,7 +79,7 @@ def _inv(z, out=None):
     return out
 
 
-def _conj(z, out=None):
+def _conj(z, out: Optional[torch.Tensor] = None):
     """Element-wise complex conjugate of a Tensor with complex entries
     described through their real and imaginary parts.
     can work in place in case out is z"""
@@ -89,7 +90,7 @@ def _conj(z, out=None):
     return out
 
 
-def _invert(M, out=None):
+def _invert(M: torch.Tensor, out: Optional[torch.Tensor] = None):
     """
     Invert 1x1 or 2x2 matrices
 
@@ -135,7 +136,13 @@ def _invert(M, out=None):
 
 # Now define the signal-processing low-level functions used by the Separator
 
-def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size=200):
+def expectation_maximization(
+    y: torch.Tensor,
+    x: torch.Tensor,
+    iterations: int = 2,
+    eps: float = 1e-07,
+    batch_size: int = 200
+):
     r"""Expectation maximization algorithm, for refining source separation
     estimates.
 
@@ -192,12 +199,8 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
     iterations: int [scalar]
         number of iterations for the EM algorithm.
 
-    verbose: boolean
-        display some information if True
-
     eps: float or None [scalar]
         The epsilon value to use for regularization and filters.
-        If None,  the default will use the epsilon of torch.real(x) dtype.
 
     Returns
     -------
@@ -238,19 +241,9 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
         with ``x.to(torch.float64)``.
 
     """
-    # to avoid dividing by zero
-    if eps is None:
-        eps = torch.as_tensor(
-            torch.finfo(x.dtype).eps,
-            dtype=x.dtype, device=x.device
-        )
-
     # dimensions
     (nb_frames, nb_bins, nb_channels) = x.shape[:-1]
     nb_sources = y.shape[-1]
-
-    if verbose:
-        print('Number of iterations: ', iterations)
 
     regularization = torch.cat(
         (
@@ -259,7 +252,7 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
         ),
         dim=2
     )
-    regularization = torch.sqrt(eps)*(
+    regularization = torch.sqrt(torch.as_tensor(eps))*(
         regularization[None, None, ...].expand(
                             (-1, nb_bins, -1, -1, -1))
     )
@@ -272,16 +265,19 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
         )
         for j in range(nb_sources)
     ]
-    weight = torch.zeros(
+    weight: torch.Tensor = torch.zeros(
         (nb_bins,),
         dtype=x.dtype, device=x.device
     )
 
+    v: torch.Tensor = torch.zeros(
+        (nb_frames, nb_bins, nb_sources),
+        dtype=x.dtype,
+        device=x.device
+    )
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
-        if verbose:
-            print('EM, iteration', (it+1))
 
         # update the PSD as the average spectrogram over channels
         v = torch.mean(
@@ -293,11 +289,11 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
         for j in range(nb_sources):
             R[j][...] = 0
             weight[...] = eps
-            pos = 0
+            pos: int = 0
             batch_size = batch_size if batch_size else nb_frames
             while pos < nb_frames:
                 t = torch.arange(pos, min(nb_frames, pos+batch_size))
-                pos = t[-1] + 1
+                pos = int(t[-1]) + 1
 
                 R[j] = R[j] + torch.sum(
                     _covariance(y[t, ..., j]),
@@ -314,9 +310,9 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
         pos = 0
         while pos < nb_frames:
             t = torch.arange(pos, min(nb_frames, pos+batch_size))
-            pos = t[-1] + 1
+            pos = int(t[-1]) + 1
 
-            y[t, ...] = 0
+            y[t, ...] = torch.tensor([0.0])
 
             # compute mix covariance matrix
             Cxx = regularization
@@ -336,12 +332,16 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
                 gain = torch.zeros_like(inv_Cxx)
 
                 # computes multichannel Wiener gain as v_j R_j inv_Cxx
-                for (i1, i2, i3) in torch.cartesian_prod(
-                                        *(torch.arange(nb_channels),)*3):
-                    gain[..., i1, i2, :] = _mul_add(
-                            R[j][None, :, i1, i3, :].clone(),
-                            inv_Cxx[..., i3, i2, :],
-                            gain[..., i1, i2, :]
+                indices = torch.cartesian_prod(
+                    torch.arange(nb_channels),
+                    torch.arange(nb_channels),
+                    torch.arange(nb_channels)
+                )
+                for index in indices:
+                    gain[:, :, index[0], index[1], :] = _mul_add(
+                            R[j][None, :, index[0], index[2], :].clone(),
+                            inv_Cxx[:, :, index[2], index[1], :],
+                            gain[:, :, index[0], index[1], :]
                     )
                 gain = gain * v[t, ..., None, None, None, j]
 
@@ -357,13 +357,13 @@ def expectation_maximization(y, x, iterations=2, verbose=0, eps=None, batch_size
 
 
 def wiener(
-    targets_spectrograms,
-    mix_stft,
-    iterations=1,
-    use_softmask=True,
-    residual=None,
-    eps=None,
-    scale_factor=10.0
+    targets_spectrograms: torch.Tensor,
+    mix_stft: torch.Tensor,
+    iterations: int = 1,
+    use_softmask: bool = True,
+    residual: Optional[str] = None,
+    scale_factor: float = 10.0,
+    eps: float = 1e-07
 ):
     """Wiener-based separation for multichannel audio.
 
@@ -429,13 +429,12 @@ def wiener(
         equal to the mixture minus the other targets, before application of
         expectation maximization
 
-    eps: {None, float}
+    eps: {float}
         Epsilon value to use for computing the separations. This is used
         whenever division with a model energy is performed, i.e. when
         softmasking and when iterating the EM.
         It can be understood as the energy of the additional white noise
         that is taken out when separating.
-        If `None`, the default value is taken as `torch.finfo(x.dtype).eps`.
 
     Returns
     -------
@@ -482,7 +481,7 @@ def wiener(
             dim=-1
         )
 
-    if not iterations:
+    if iterations == 0:
         return y
 
     # we need to refine the estimates. Scales down the estimates for
@@ -503,7 +502,13 @@ def wiener(
     return y
 
 
-def softmask(v, x, eps=None):
+# TODO: finfo not supported by Aten: https://github.com/pytorch/pytorch/issues/25661
+# which is why we choose are fixed eps
+def softmask(
+    v: torch.Tensor,
+    x: torch.Tensor,
+    eps: float = 1e-07
+):
     """Separates a mixture with a ratio mask, using the provided sources
     spectrograms estimates. Additionally allows compressing the mask with
     a logit function for soft binarization.
@@ -538,9 +543,6 @@ def softmask(v, x, eps=None):
         estimated sources
 
     """
-    # to avoid dividing by zero
-    if eps is None:
-        eps = torch.finfo(x.dtype).eps
     # create the soft mask as the ratio of the spectrograms with their sum
     return x[..., None] * (
         v / (eps + torch.sum(v, dim=-1, keepdim=True).to(x.dtype))
@@ -565,10 +567,14 @@ def _covariance(y_j):
     Cj = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
                      dtype=y_j.dtype,
                      device=y_j.device)
-    for (i1, i2) in torch.cartesian_prod(*(torch.arange(nb_channels),)*2):
-        Cj[..., i1, i2, :] = _mul_add(
-            y_j[..., i1, :],
-            _conj(y_j[..., i2, :]),
-            Cj[..., i1, i2, :]
+    indices = torch.cartesian_prod(
+        torch.arange(nb_channels),
+        torch.arange(nb_channels)
+    )
+    for index in indices:
+        Cj[:, :, index[0], index[1], :] = _mul_add(
+            y_j[:, :, index[0], :],
+            _conj(y_j[:, :, index[1], :]),
+            Cj[:, :, index[0], index[1], :]
         )
     return Cj
