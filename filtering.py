@@ -11,7 +11,7 @@ from typing import Optional
 # consists in the concatenation of the real and imaginary parts.
 
 
-def _norm(x):
+def _norm(x: torch.Tensor) -> torch.Tensor:
     r"""Computes the norm value of a torch Tensor, assuming that it
     comes as real and imaginary part in its last dimension.
 
@@ -25,7 +25,11 @@ def _norm(x):
     return torch.abs(x[..., 0])**2 + torch.abs(x[..., 1])**2
 
 
-def _mul_add(a, b, out):
+def _mul_add(
+    a: torch.Tensor,
+    b: torch.Tensor,
+    out: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Element-wise multiplication of two complex Tensors described
     through their real and imaginary parts.
     The result is added to the `out` tensor"""
@@ -49,7 +53,11 @@ def _mul_add(a, b, out):
     return out
 
 
-def _mul(a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None):
+def _mul(
+    a: torch.Tensor,
+    b: torch.Tensor,
+    out: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Element-wise multiplication of two complex Tensors described
     through their real and imaginary parts
     can work in place in case out is a only"""
@@ -67,7 +75,10 @@ def _mul(a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None):
     return out
 
 
-def _inv(z: torch.Tensor, out: Optional[torch.Tensor] = None):
+def _inv(
+    z: torch.Tensor,
+    out: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Element-wise multiplicative inverse of a Tensor with complex
     entries described through their real and imaginary parts.
     can work in place in case out is z"""
@@ -79,7 +90,10 @@ def _inv(z: torch.Tensor, out: Optional[torch.Tensor] = None):
     return out
 
 
-def _conj(z, out: Optional[torch.Tensor] = None):
+def _conj(
+    z,
+    out: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """Element-wise complex conjugate of a Tensor with complex entries
     described through their real and imaginary parts.
     can work in place in case out is z"""
@@ -90,7 +104,10 @@ def _conj(z, out: Optional[torch.Tensor] = None):
     return out
 
 
-def _invert(M: torch.Tensor, out: Optional[torch.Tensor] = None):
+def _invert(
+    M: torch.Tensor,
+    out: Optional[torch.Tensor] = None
+) -> torch.Tensor:
     """
     Invert 1x1 or 2x2 matrices
 
@@ -287,8 +304,8 @@ def expectation_maximization(
 
         # update spatial covariance matrices (weighted update)
         for j in range(nb_sources):
-            R[j][...] = 0
-            weight[...] = eps
+            R[j] = torch.tensor([0.0])
+            weight = torch.tensor([eps])
             pos: int = 0
             batch_size = batch_size if batch_size else nb_frames
             while pos < nb_frames:
@@ -405,7 +422,7 @@ def wiener(
     ----------
 
     targets_spectrograms: torch.Tensor
-                          [shape=(nb_frames, nb_bins, {1,nb_channels}, nb_sources)]
+                        [shape=(nb_frames, nb_bins, {1,nb_channels}, nb_sources)]
         spectrograms of the sources. This is a nonnegative tensor that is
         usually the output of the actual separation method of the user. The
         spectrograms may be mono, but they need to be 4-dimensional in all
@@ -503,7 +520,7 @@ def wiener(
 
 
 # TODO: finfo not supported by Aten: https://github.com/pytorch/pytorch/issues/25661
-# which is why we choose are fixed eps
+# therefore eps is fixed
 def softmask(
     v: torch.Tensor,
     x: torch.Tensor,
