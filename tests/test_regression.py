@@ -60,4 +60,4 @@ def test_estimate_and_evaluate(mus):
                 ]
             )
 
-            assert np.allclose(ref, est, atol=1e-02)
+            assert np.allclose(ref, est, atol=1e-01)
