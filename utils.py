@@ -1,8 +1,8 @@
-import shutil
 import torch
 import os
 import numpy as np
 import torchaudio
+import warnings
 
 
 def bandwidth_to_max_bin(rate, n_fft, bandwidth):
@@ -112,7 +112,7 @@ def preprocess(audio, rate=None, model_rate=None):
         sample rate for the model
     Returns
     -------
-    audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)] 
+    audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
     # convert to torch tensor
     audio = torch.as_tensor(audio)
@@ -134,18 +134,23 @@ def preprocess(audio, rate=None, model_rate=None):
     if audio.shape[1] > 2:
         warnings.warn(
             'Channel count > 2!. Only the first two channels '
-            'will be processed!')
+            'will be processed!'
+        )
         audio = audio[..., :2]
+
     audio = audio.float()
+
     if audio.shape[1] == 1:
         # if we have mono, we duplicate it to get stereo
-        audio = audio.expand(-1, 2, -1)
+        audio = torch.repeat_interleave(audio, 2, dim=1)
 
     if rate != model_rate:
         # we have to resample to model samplerate if needed
         # this makes sure we resample input only once
         resampler = torchaudio.transforms.Resample(
             orig_freq=rate,
-            new_freq=model_rate).to(audio.device)
+            new_freq=model_rate,
+            resampling_method='sinc_interpolation'
+        ).to(audio.device)
         audio = resampler(audio)
     return audio
