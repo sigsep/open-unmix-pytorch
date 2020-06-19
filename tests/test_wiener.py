@@ -24,6 +24,16 @@ def nb_sources(request):
     return request.param
 
 
+@pytest.fixture(params=[0, 1, 2])
+def iterations(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def use_softmask(request):
+    return request.param
+
+
 @pytest.fixture
 def target(request, nb_frames, nb_channels, nb_bins, nb_sources):
     return torch.rand((nb_frames, nb_bins, nb_channels, nb_sources))
@@ -34,5 +44,14 @@ def mix(request, nb_frames, nb_channels, nb_bins):
     return torch.rand((nb_frames, nb_bins, nb_channels, 2))
 
 
-def test_wiener_shape(target, mix):
-    output = wiener(target, mix)
+def test_wiener(target, mix, iterations, use_softmask):
+    output = wiener(
+        target,
+        mix,
+        iterations=iterations,
+        use_softmask=use_softmask
+    )
+    # nb_frames, nb_bins, nb_channels, 2, nb_sources
+    assert output.shape[:3] == mix.shape[:3]
+    assert output.shape[3] == 2
+    assert output.shape[4] == target.shape[3]

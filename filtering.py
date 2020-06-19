@@ -422,7 +422,7 @@ def wiener(
     ----------
 
     targets_spectrograms: torch.Tensor
-                        [shape=(nb_frames, nb_bins, {1,nb_channels}, nb_sources)]
+                    [shape=(nb_frames, nb_bins, nb_channels, nb_sources)]
         spectrograms of the sources. This is a nonnegative tensor that is
         usually the output of the actual separation method of the user. The
         spectrograms may be mono, but they need to be 4-dimensional in all
