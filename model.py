@@ -358,9 +358,6 @@ class Separator(nn.Module):
         sample_rate: int = 44100
     ):
         super(Separator, self).__init__()
-        if not utils._torchaudio_available():
-            raise Exception('The Separator class only works when torchaudio '
-                            'is available.')
 
         # saving parameters
         self.niter = niter
