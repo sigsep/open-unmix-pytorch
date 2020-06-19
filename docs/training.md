@@ -53,10 +53,10 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--patience <int>`         | early stopping patience                                                         | `140`            |
 | `--seq-dur <int>`          | Sequence duration in seconds of chunks taken from the dataset. A value of `<=0.0` results in full/variable length               | `6.0`           |
 | `--unidirectional`           | changes the bidirectional LSTM to unidirectional (for real-time applications)  | not set      |
-| `--hidden-size <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--hidden-size <int>`             | Hidden size parameter of dense bottleneck layers  | `512`            |
 | `--nfft <int>`             | STFT FFT window length in samples                                               | `4096`          |
 | `--nhop <int>`             | STFT hop length in samples                                                      | `1024`          |
-| `--lr <float>`             | learning rate                                                                   | `0.0001`        |
+| `--lr <float>`             | learning rate                                                                   | `0.001`        |
 | `--lr-decay-patience <int>`             | learning rate decay patience for plateau scheduler                                                                   | `80`        |
 | `--lr-decay-gamma <float>`             | gamma of learning rate plateau scheduler.  | `0.3`        |
 | `--weight-decay <float>`             | weight decay for regularization                                                                   | `0.00001`        |
@@ -65,6 +65,7 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--nb-workers <int>`      | Number of (parallel) workers for data-loader, can be safely increased for wav files   | `0` |
 | `--quiet`                  | disable print and progress bar during training                                   | not set         |
 | `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--audio-backend <str>`         | choose audio loading backend, either `sox` or `soundfile` | `soundfile` for training, `sox` for inference |
 
 ### Training details of `umxhq`
 
@@ -219,6 +220,7 @@ train/1/vocals.wav -----------------------> output
 |----------|-------------|---------|
 |`--target-file <str>` | file name of target file | `None` |
 |`--silence-missing-targets` | if a target is not among the list of sources it will be filled with zero | not set |
+|`random interferer mixing` | use _random track_ for the inference track to increase generalization of the model. | not set |
 |`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
 |`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
 

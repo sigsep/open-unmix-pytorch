@@ -1,11 +1,11 @@
 import torch
 import argparse
-import torchaudio
+import json
 from pathlib import Path
+import torchaudio
 import model
 from model import Separator
 import utils
-import json
 
 
 def inference_args(parser, remaining_args):
@@ -81,6 +81,20 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--start',
+        type=float,
+        default=0.0,
+        help='Audio chunk start in seconds'
+    )
+
+    parser.add_argument(
+        '--duration',
+        type=float,
+        default=-1.0,
+        help='Audio chunk duration in seconds, negative values load full track'
+    )
+
+    parser.add_argument(
         '--model',
         default='umxhq',
         type=str,
@@ -94,7 +108,12 @@ if __name__ == '__main__':
         help='disables CUDA inference'
     )
 
-    torch.autograd.set_detect_anomaly(True)
+    parser.add_argument(
+        '--audio-backend',
+        type=str,
+        default="sox",
+        help='Set torchaudio backend '
+             '(`sox` or `soundfile`), defaults to `sox`')
 
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)

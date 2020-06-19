@@ -5,14 +5,14 @@ channels:
   - pytorch
 
 dependencies:
-  - python=3.7.3
-  - numpy=1.16
-  - scipy=1.3
+  - python=3.7
+  - numpy=1.18
+  - scipy=1.4
   - pytorch=1.5
-  - tqdm=4.32
-  - scikit-learn=0.21
+  - torchaudio=0.5.0
+  - tqdm
+  - scikit-learn=0.22
   - ffmpeg
-  - resampy
   - pip
   - torchaudio=0.5.0
   - pip:

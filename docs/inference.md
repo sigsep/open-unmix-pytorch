@@ -8,17 +8,21 @@ The primary interface to separate files is the command line. To separate a mixtu
 python test.py input_file.wav
 ```
 
-Note that we support all files that can be read by pysoundfile (wav, flac and ogg files).
+Note that we support all files that can be read by torchaudio, depending on the set backend (either `soundfile` (libsndfile) or `sox`).
+For training, we set the default to `soundfile` as it is faster than `sox`. However for inference users might prefer `mp3` decoding capabilities.
 The separation can be controlled with additional parameters that influence the performance of the separation.
 
 | Command line Argument      | Description                                                                     | Default         |
 |----------------------------|---------------------------------------------------------------------------------|-----------------|
+|`--start <float>`  | set start in seconds to reduce the duration of the audio being loaded | `0.0` |
+|`--duration <float>`  | set duration in seconds to reduce length of the audio being loaded. Negative values will make the full audio being loaded | `-1.0` |
 |`--model <str>`  | path or string of model name to select either a self pre-trained model or a model loaded from `torchhub`.  | |
 | `--targets list(str)`           | Targets to be used for separation. For each target a model file with with same name is required.                                                  | `['vocals', 'drums', 'bass', 'other']`          |
 | `--niter <int>`           | Number of EM steps for refining initial estimates in a post-processing stage. `--niter 0` skips this step altogether (and thus makes separation significantly faster) More iterations can get better interference reduction at the price of more artifacts.                                                  | `1`          |
 | `--residual`           |               computes a residual target, for custom separation scenarios when not all targets are available (at the expense of slightly less performance). E.g vocal/accompaniment can be performed with `--targets vocals --residual`.                                   | not set          |
 | `--softmask`       | if activated, then the initial estimates for the sources will be obtained through a ratio mask of the mixture STFT, and not by using the default behavior of reconstructing waveforms by using the mixture phase.  | not set            |
-| `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`            |
+| `--alpha <float>`         |In case of softmasking, this value changes the exponent to use for building ratio masks. A smaller value usually leads to more interference but better perceptual quality, whereas a larger value leads to less interference but an "overprocessed" sensation.                                                          | `1.0`                   |
+| `--audio-backend <str>`         | choose audio loading backend, either `sox` or `soundfile` | `soundfile` for training, `sox` for inference |
 
 ## Interfacing from python
 
