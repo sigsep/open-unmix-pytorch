@@ -382,7 +382,7 @@ def wiener(
     mix_stft: torch.Tensor,
     iterations: int = 1,
     use_softmask: bool = True,
-    residual: Optional[str] = None,
+    residual: bool = False,
     scale_factor: float = 10.0,
     eps: float = 1e-10
 ):
@@ -445,8 +445,8 @@ def wiener(
         * if `True`, a softmasking strategy will be used as described in
           :func:`softmask`.
 
-    residual: str or None
-        if not None, an additional target is created, which is
+    residual: bool
+        if `True`, an additional target is created, which is
         equal to the mixture minus the other targets, before application of
         expectation maximization
 
@@ -494,7 +494,7 @@ def wiener(
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
 
-    if residual is not None:
+    if residual:
         # if required, adding an additional target as the mix minus
         # available targets
         y = torch.cat(
