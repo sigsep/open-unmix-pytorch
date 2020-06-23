@@ -22,7 +22,7 @@ def separate_and_evaluate(
     residual,
     aggregate_dict,
     device='cpu',
-    wiener_win_len=300
+    wiener_win_len=None
 ):
     # create the Separator object
     targets = load_models(
