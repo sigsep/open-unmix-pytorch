@@ -157,7 +157,7 @@ def expectation_maximization(
     y: torch.Tensor,
     x: torch.Tensor,
     iterations: int = 2,
-    eps: float = 1e-07,
+    eps: float = 1e-10,
     batch_size: int = 200
 ):
     r"""Expectation maximization algorithm, for refining source separation
@@ -264,8 +264,12 @@ def expectation_maximization(
 
     regularization = torch.cat(
         (
-            torch.eye(2, dtype=x.dtype, device=x.device)[..., None],
-            torch.zeros((2, 2, 1), dtype=x.dtype, device=x.device)
+            torch.eye(nb_channels, dtype=x.dtype, device=x.device)[..., None],
+            torch.zeros(
+                (nb_channels, nb_channels, 1),
+                dtype=x.dtype,
+                device=x.device
+            )
         ),
         dim=2
     )
@@ -380,7 +384,7 @@ def wiener(
     use_softmask: bool = True,
     residual: Optional[str] = None,
     scale_factor: float = 10.0,
-    eps: float = 1e-07
+    eps: float = 1e-10
 ):
     """Wiener-based separation for multichannel audio.
 
@@ -524,7 +528,7 @@ def wiener(
 def softmask(
     v: torch.Tensor,
     x: torch.Tensor,
-    eps: float = 1e-07
+    eps: float = 1e-10
 ):
     """Separates a mixture with a ratio mask, using the provided sources
     spectrograms estimates. Additionally allows compressing the mask with
