@@ -105,7 +105,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate, defaults to 1e-3')
     parser.add_argument('--patience', type=int, default=140,
-                        help='maximum number of epochs to train (default: 140)')
+                        help='maximum number of train epochs (default: 140)')
     parser.add_argument('--lr-decay-patience', type=int, default=80,
                         help='lr decay patience for plateau scheduler')
     parser.add_argument('--lr-decay-gamma', type=float, default=0.3,
@@ -120,7 +120,7 @@ def main():
                         help='Sequence duration in seconds'
                         'value of <=0.0 will use full/variable length')
     parser.add_argument('--unidirectional', action='store_true', default=False,
-                        help='Use unidirectional LSTM instead of bidirectional')
+                        help='Use unidirectional LSTM')
     parser.add_argument('--nfft', type=int, default=4096,
                         help='STFT fft size and window size')
     parser.add_argument('--nhop', type=int, default=1024,
@@ -145,7 +145,10 @@ def main():
     torchaudio.set_audio_backend(args.audio_backend)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)
-    dataloader_kwargs = {'num_workers': args.nb_workers, 'pin_memory': True} if use_cuda else {}
+    dataloader_kwargs = {
+        'num_workers': args.nb_workers, 
+        'pin_memory': True
+    } if use_cuda else {}
 
     repo_dir = os.path.abspath(os.path.dirname(__file__))
     repo = Repo(repo_dir)
