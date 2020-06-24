@@ -30,7 +30,7 @@ def iterations(request):
 
 
 @pytest.fixture(params=[True, False])
-def use_softmask(request):
+def softmask(request):
     return request.param
 
 
@@ -49,12 +49,12 @@ def mix(request, nb_frames, nb_channels, nb_bins):
     return torch.rand((nb_frames, nb_bins, nb_channels, 2))
 
 
-def test_wiener(target, mix, iterations, use_softmask, residual):
+def test_wiener(target, mix, iterations, softmask, residual):
     output = wiener(
         target,
         mix,
         iterations=iterations,
-        use_softmask=use_softmask,
+        softmask=softmask,
         residual=residual
     )
     # nb_frames, nb_bins, nb_channels, 2, nb_sources

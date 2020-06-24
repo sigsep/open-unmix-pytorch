@@ -381,23 +381,27 @@ def wiener(
     targets_spectrograms: torch.Tensor,
     mix_stft: torch.Tensor,
     iterations: int = 1,
-    use_softmask: bool = True,
+    softmask: bool = False,
     residual: bool = False,
     scale_factor: float = 10.0,
     eps: float = 1e-10
 ):
     """Wiener-based separation for multichannel audio.
 
-    The method uses the (possibly multichannel) spectrograms `v` of the
-    sources to separate the (complex) Short Term Fourier Transform `x` of the
+    The method uses the (possibly multichannel) spectrograms  of the
+    sources to separate the (complex) Short Term Fourier Transform  of the
     mix. Separation is done in a sequential way by:
 
     * Getting an initial estimate. This can be done in two ways: either by
       directly using the spectrograms with the mixture phase, or
-      by using :func:`softmask`.
+      by using a softmasking strategy. This initial phase is controlled
+      by the `softmask` flag.
+
+    * If required, adding an additional residual target as the mix minus
+      all targets.
 
     * Refinining these initial estimates through a call to
-      :func:`expectation_maximization`.
+      :func:`expectation_maximization` if the number of iterations is nonzero.
 
     This implementation also allows to specify the epsilon value used for
     regularization. It is based on [1]_, [2]_, [3]_, [4]_.
@@ -438,12 +442,15 @@ def wiener(
     iterations: int [scalar]
         number of iterations for the EM algorithm
 
-    use_softmask: boolean
+    softmask: boolean
+        Describes how the initial estimates are obtained.
         * if `False`, then the mixture phase will directly be used with the
           spectrogram as initial estimates.
 
-        * if `True`, a softmasking strategy will be used as described in
-          :func:`softmask`.
+        * if `True`, initial estimates are obtained by multiplying the complex mix
+          element-wise with the ratio of each target spectrogram with the sum
+          of them all. This strategy is better if the model are not really good,
+          and worse otherwise.
 
     residual: bool
         if `True`, an additional target is created, which is
@@ -482,10 +489,20 @@ def wiener(
     :func:`wiener`.
 
     """
-    if use_softmask:
-        y = softmask(targets_spectrograms, mix_stft, eps=eps)
+    if softmask:
+        # if we use softmask, we compute the ratio mask for all targets and
+        # multiply by the mix stft
+        y = mix_stft[..., None] * (
+            targets_spectrograms /
+            (
+                eps + 
+                torch.sum(
+                    targets_spectrograms, dim=-1, keepdim=True
+                ).to(mix_stft.dtype)
+            )
+        )[..., None, :]
     else:
-        # first estimates are obtained by just multiplying with mix phase
+        # otherwise, we just multiply the targets spectrograms with mix phase
         # we tacitly assume that we have magnitude estimates.
         angle = torch.atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
@@ -521,53 +538,6 @@ def wiener(
     # scale estimates up again
     y = y * max_abs
     return y
-
-
-# TODO: finfo not supported by Aten: https://github.com/pytorch/pytorch/issues/25661
-# therefore eps is fixed
-def softmask(
-    v: torch.Tensor,
-    x: torch.Tensor,
-    eps: float = 1e-10
-):
-    """Separates a mixture with a ratio mask, using the provided sources
-    spectrograms estimates. Additionally allows compressing the mask with
-    a logit function for soft binarization.
-    The filter does *not* take multichannel correlations into account.
-
-    The masking strategy can be traced back to the work of N. Wiener in the
-    case of *power* spectrograms [1]_. In the case of *fractional* spectrograms
-    like magnitude, this filter is often referred to a "ratio mask", and
-    has been shown to be the optimal separation procedure under alpha-stable
-    assumptions [2]_.
-
-    References
-    ----------
-    .. [1] N. Wiener,"Extrapolation, Inerpolation, and Smoothing of Stationary
-        Time Series." 1949.
-
-    .. [2] A. Liutkus and R. Badeau. "Generalized Wiener filtering with
-        fractional power spectrograms." 2015 IEEE International Conference on
-        Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2015.
-
-    Parameters
-    ----------
-    v: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, nb_sources)]
-        spectrograms of the sources
-
-    x: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)]
-        mixture signal
-
-    Returns
-    -------
-    torch.Tensor, shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)
-        estimated sources
-
-    """
-    # create the soft mask as the ratio of the spectrograms with their sum
-    return x[..., None] * (
-        v / (eps + torch.sum(v, dim=-1, keepdim=True).to(x.dtype))
-    )[..., None, :]
 
 
 def _covariance(y_j):
