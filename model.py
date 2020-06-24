@@ -335,11 +335,11 @@ class Separator(nn.Module):
          post-processing stage. Zeroed if only one target is estimated.
          defaults to 1.
 
-    residual: str or None
-        adds an additional residual target with provided name, obtained by
+    residual: bool
+        adds an additional residual target, obtained by
         subtracting the other estimated targets from the mixture, before any
         potential EM post-processing.
-        Defaults to None
+        Defaults to False
 
     wiener_win_len: {None | int}
         The size of the excerpts (number of frames) on which to apply filtering
@@ -353,7 +353,7 @@ class Separator(nn.Module):
         targets: dict,
         niter: int = 0,
         softmask: bool = False,
-        residual: Optional[str] = None,
+        residual: bool = False,
         wiener_win_len: Optional[int] = 300,
         sample_rate: int = 44100
     ):
@@ -362,6 +362,7 @@ class Separator(nn.Module):
         # saving parameters
         self.niter = niter
         self.residual = residual
+        self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
         # registering the targets models
@@ -430,12 +431,11 @@ class Separator(nn.Module):
         mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
 
         # create an additional target if we need to build a residual
-        targets = self.targets.keys()
-        if self.residual is not None:
-            targets += [self.residual]
+        if self.residual:
+            # we add an additional target
             nb_sources += 1
 
-        if len(targets) == 1 and self.niter > 0:
+        if nb_sources == 1 and self.niter > 0:
             raise Exception('Cannot use EM if only one target is estimated.'
                             'Provide two targets or create an additional '
                             'one with `--residual`')
@@ -460,7 +460,7 @@ class Separator(nn.Module):
                     spectrograms[sample, t],
                     mix_stft[sample, t],
                     self.niter,
-                    use_softmask=False,
+                    softmask=self.softmask,
                     residual=self.residual
                 )
 
@@ -487,6 +487,10 @@ class Separator(nn.Module):
         estimates_dict = {}
         for k, target in enumerate(self.targets):
             estimates_dict[target] = estimates[:, k, ...]
+
+        # in the case of residual, we added another source
+        if self.residual:
+            estimates_dict['residual'] = estimates[:, -1, ...]
 
         if aggregate_dict is not None:
             new_estimates = {}
