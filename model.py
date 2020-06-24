@@ -431,7 +431,7 @@ class Separator(nn.Module):
         mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
 
         # create an additional target if we need to build a residual
-        if self.residual is not None:
+        if self.residual:
             # we add an additional target
             nb_sources += 1
 
@@ -489,7 +489,7 @@ class Separator(nn.Module):
             estimates_dict[target] = estimates[:, k, ...]
 
         # in the case of residual, we added another source
-        if k  < estimates.shape[1] - 1:
+        if self.residual:
             estimates_dict['residual'] = estimates[:, -1, ...]
 
         if aggregate_dict is not None:
