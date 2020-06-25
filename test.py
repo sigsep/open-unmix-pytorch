@@ -28,7 +28,7 @@ def load_model(target, model_name='umxhq', device='cpu'):
             err = io.StringIO()
             with redirect_stderr(err):
                 return torch.hub.load(
-                    'sigsep/open-unmix-pytorch',
+                    'sigsep/open-unmix-pytorch:add_speech_enhancement_models',
                     model_name,
                     target=target,
                     device=device,
