@@ -6,6 +6,54 @@ import torch.hub
 dependencies = ['torch', 'numpy']
 
 
+def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
+    """
+    Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
+    trained on the 28-speaker version of Voicebank+Demand
+    (Sampling rate: 16kHz)
+
+    Reference:
+        Uhlich, Stefan, & Mitsufuji, Yuki. (2020).
+        Open-Unmix for Speech Enhancement (UMX SE).
+        Zenodo. http://doi.org/10.5281/zenodo.3786908
+    """
+
+    target_urls = {
+        'speech': 'https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth',
+        'noise': 'https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth'
+    }
+
+    from model import OpenUnmix
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(
+        rate=16000,
+        n_fft=1024,
+        bandwidth=16000
+    )
+
+    # load open unmix model
+    unmix = OpenUnmix(
+        n_fft=1024,
+        n_hop=256,
+        nb_channels=1,
+        hidden_size=256,
+        max_bin=max_bin
+    )
+
+    # enable centering of stft to minimize reconstruction error
+    if pretrained:
+        state_dict = torch.hub.load_state_dict_from_url(
+            target_urls[target],
+            map_location=device
+        )
+        unmix.load_state_dict(state_dict)
+        unmix.stft.center = True
+        unmix.eval()
+
+    return unmix.to(device)
+
+
 def umxhq(
     target='vocals', device='cpu', pretrained=True, *args, **kwargs
 ):
