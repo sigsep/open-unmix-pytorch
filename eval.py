@@ -4,9 +4,11 @@ import museval
 import test
 import multiprocessing
 import functools
-from pathlib import Path
+from model import load_models, Separator
 import torch
 import tqdm
+import utils
+import json
 
 
 def separate_and_evaluate(
@@ -14,27 +16,42 @@ def separate_and_evaluate(
     targets,
     model_name,
     niter,
-    alpha,
-    softmask,
     output_dir,
     eval_dir,
-    device='cpu'
+    residual,
+    aggregate_dict,
+    device='cpu',
+    wiener_win_len=None
 ):
-    estimates = test.separate(
-        audio=track.audio,
+    # create the Separator object
+    targets = load_models(
         targets=targets,
-        model_name=model_name,
-        niter=niter,
-        alpha=alpha,
-        softmask=softmask,
-        device=device
+        model_name=model_name
     )
+
+    separator = Separator(
+        targets=targets,
+        niter=niter,
+        residual=residual,
+        wiener_win_len=wiener_win_len
+    ).to(device)
+
+    separator.freeze()
+
+    audio = utils.preprocess(track.audio, track.rate, separator.sample_rate)
+
+    estimates = separator(audio)
+    estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
+
+    for key in estimates:
+        estimates[key] = estimates[key][0].detach().numpy().T
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 
     scores = museval.eval_mus_track(
         track, estimates, output_dir=eval_dir
     )
+    print(track, '\n', scores)
     return scores
 
 
@@ -117,6 +134,10 @@ if __name__ == '__main__':
         subsets=args.subset,
         is_wav=args.is_wav
     )
+    aggregate_dict = None if args.aggregate is None else json.loads(
+        args.aggregate
+    )
+
     if args.cores > 1:
         pool = multiprocessing.Pool(args.cores)
         results = museval.EvalStore()
@@ -127,8 +148,8 @@ if __name__ == '__main__':
                     targets=args.targets,
                     model_name=args.model,
                     niter=args.niter,
-                    alpha=args.alpha,
-                    softmask=args.softmask,
+                    residual=args.residual,
+                    aggregate_dict=aggregate_dict,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
                     device=device
@@ -150,8 +171,8 @@ if __name__ == '__main__':
                 targets=args.targets,
                 model_name=args.model,
                 niter=args.niter,
-                alpha=args.alpha,
-                softmask=args.softmask,
+                residual=args.residual,
+                aggregate_dict=aggregate_dict,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
                 device=device

@@ -8,13 +8,14 @@ dependencies:
   - python=3.7
   - numpy=1.18
   - scipy=1.4
-  - pytorch=1.5.0
+  - pytorch=1.5
   - torchaudio=0.5.0
   - cudatoolkit=10.0
   - scikit-learn=0.22
   - tqdm
   - ffmpeg
   - resampy
+  - torchaudio=0.5.0
   - pip
   - pip:
     - musdb==0.3.1

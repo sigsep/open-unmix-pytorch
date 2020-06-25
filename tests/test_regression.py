@@ -31,11 +31,12 @@ def test_estimate_and_evaluate(mus):
         targets=['vocals', 'drums', 'bass', 'other'],
         model_name='umx',
         niter=1,
-        alpha=1,
-        softmask=False,
+        residual=None,
+        aggregate_dict=None,
         output_dir=None,
         eval_dir=None,
-        device='cpu'
+        device='cpu',
+        wiener_win_len=None
     )
 
     assert scores.validate() is None
@@ -59,4 +60,4 @@ def test_estimate_and_evaluate(mus):
                 ]
             )
 
-            assert np.allclose(ref, est, atol=1e-02)
+            assert np.allclose(ref, est, atol=1e-01)
