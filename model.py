@@ -381,8 +381,7 @@ class Separator(nn.Module):
         self.eval()
 
     def forward(self, audio):
-        """
-        Performing the separation on audio input
+        """Performing the separation on audio input
 
         Parameters
         ----------
@@ -483,7 +482,22 @@ class Separator(nn.Module):
         # returning (nb_samples, nb_targets, nb_channels, nb_timesteps)
         return estimates
 
-    def to_dict(self, estimates, aggregate_dict=None):
+    def to_dict(
+        self,
+        estimates: dict,
+        aggregate_dict: Optional[dict] = None
+    ) -> dict:
+        """Convert estimates as stacked tensor to dictionary
+
+        Parameters
+        ----------
+        estimates:      Dict
+        aggregate_dict: Dict
+
+        Returns
+        -------
+        estimates_dict: Dict
+        """
         estimates_dict = {}
         for k, target in enumerate(self.targets):
             estimates_dict[target] = estimates[:, k, ...]

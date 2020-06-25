@@ -111,12 +111,14 @@ if __name__ == '__main__':
     parser.add_argument(
         '--audio-backend',
         type=str,
-        default="sox",
+        default="soundfile",
         help='Set torchaudio backend '
              '(`sox` or `soundfile`), defaults to `sox`')
 
     args, _ = parser.parse_known_args()
     args = inference_args(parser, args)
+
+    torchaudio.set_audio_backend(args.audio_backend)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
