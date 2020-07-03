@@ -146,7 +146,7 @@ def main():
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)
     dataloader_kwargs = {
-        'num_workers': args.nb_workers, 
+        'num_workers': args.nb_workers,
         'pin_memory': True
     } if use_cuda else {}
 

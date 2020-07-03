@@ -93,7 +93,7 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-def load_models(targets, model_name='umxhq', device='cpu'):
+def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
@@ -114,7 +114,7 @@ def load_models(targets, model_name='umxhq', device='cpu'):
                         model_name,
                         target=target,
                         device=device,
-                        pretrained=True
+                        pretrained=pretrained
                     )
                     for target in targets}
             print(err.getvalue())
@@ -148,9 +148,10 @@ def load_models(targets, model_name='umxhq', device='cpu'):
                 max_bin=max_bin
             )
 
-            models[target].load_state_dict(state)
-            models[target].stft.center = True
-            models[target].eval()
+            if pretrained:
+                models[target].load_state_dict(state)
+                models[target].stft.center = True
+                models[target].eval()
             models[target].to(device)
         return models
 
