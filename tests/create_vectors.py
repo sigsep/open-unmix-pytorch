@@ -5,7 +5,11 @@ import numpy as np
 import utils
 import model
 
-"""script to create spectrogram test vectors for STFT regression tests"""
+"""script to create spectrogram test vectors for STFT regression tests
+
+Test vectors have been created using the `v1.0.0` release tag as this
+was the commit that umx was trained with
+"""
 
 
 def main():
@@ -16,11 +20,14 @@ def main():
     track = [track for track in mus.tracks if track.name == test_track][0]
 
     # convert to torch tensor
-    audio = utils.preprocess(track.audio, track.rate, track.rate)
+    audio = torch.tensor(
+        track.audio.T,
+        dtype=torch.float32
+    )
 
     stft = model.STFT(n_fft=4096, n_hop=1024)
     spec = model.Spectrogram(power=1, mono=False)
-    magnitude_spectrogram = spec(stft(audio))
+    magnitude_spectrogram = spec(stft(audio[None, ...]))
     torch.save(
         magnitude_spectrogram,
         'Al James - Schoolboy Facination.spectrogram.pt'
