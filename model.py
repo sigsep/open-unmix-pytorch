@@ -26,7 +26,7 @@ class STFT(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        center=True
+        center=False
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -51,9 +51,12 @@ class STFT(nn.Module):
         # compute stft with parameters as close as possible scipy settings
         stft_f = torch.stft(
             x,
-            n_fft=self.n_fft, hop_length=self.n_hop,
-            window=self.window, center=self.center,
-            normalized=False, onesided=True,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
             pad_mode='reflect'
         )
 
