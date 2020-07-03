@@ -115,7 +115,7 @@ def preprocess(audio, rate=None, model_rate=None):
     audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
     # convert to torch tensor
-    audio = torch.as_tensor(audio)
+    audio = torch.as_tensor(audio, dtype=torch.float32)
     # shape management
     shape = torch.as_tensor(audio.shape)
     if len(shape) == 1:
@@ -138,13 +138,12 @@ def preprocess(audio, rate=None, model_rate=None):
         )
         audio = audio[..., :2]
 
-    audio = audio.float()
-
     if audio.shape[1] == 1:
         # if we have mono, we duplicate it to get stereo
         audio = torch.repeat_interleave(audio, 2, dim=1)
 
     if rate != model_rate:
+        print('resampling')
         # we have to resample to model samplerate if needed
         # this makes sure we resample input only once
         resampler = torchaudio.transforms.Resample(

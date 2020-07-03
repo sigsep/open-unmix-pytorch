@@ -26,7 +26,7 @@ class STFT(nn.Module):
         self,
         n_fft=4096,
         n_hop=1024,
-        center=True
+        center=False
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -51,9 +51,12 @@ class STFT(nn.Module):
         # compute stft with parameters as close as possible scipy settings
         stft_f = torch.stft(
             x,
-            n_fft=self.n_fft, hop_length=self.n_hop,
-            window=self.window, center=self.center,
-            normalized=False, onesided=True,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
             pad_mode='reflect'
         )
 
@@ -93,7 +96,7 @@ class Spectrogram(nn.Module):
         return stft_f.permute(2, 0, 1, 3)
 
 
-def load_models(targets, model_name='umxhq', device='cpu'):
+def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
@@ -114,7 +117,7 @@ def load_models(targets, model_name='umxhq', device='cpu'):
                         model_name,
                         target=target,
                         device=device,
-                        pretrained=True
+                        pretrained=pretrained
                     )
                     for target in targets}
             print(err.getvalue())
@@ -148,9 +151,10 @@ def load_models(targets, model_name='umxhq', device='cpu'):
                 max_bin=max_bin
             )
 
-            models[target].load_state_dict(state)
-            models[target].stft.center = True
-            models[target].eval()
+            if pretrained:
+                models[target].load_state_dict(state)
+                models[target].stft.center = True
+                models[target].eval()
             models[target].to(device)
         return models
 
@@ -188,7 +192,7 @@ class OpenUnmix(nn.Module):
 
         self.hidden_size = hidden_size
 
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=False)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
         self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
 

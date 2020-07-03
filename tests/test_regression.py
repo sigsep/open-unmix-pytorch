@@ -5,12 +5,21 @@ import simplejson as json
 import museval
 import numpy as np
 import eval
+import model
+import utils
+import torch
+
 
 test_track = 'Al James - Schoolboy Facination'
 
 json_path = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     'data/%s.json' % test_track,
+)
+
+spec_path = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'data/%s.spectrogram.pt' % test_track,
 )
 
 
@@ -61,3 +70,25 @@ def test_estimate_and_evaluate(mus):
             )
 
             assert np.allclose(ref, est, atol=1e-01)
+
+
+def test_spectrogram(mus):
+    """Regression test for spectrogram transform
+
+    Loads pre-computed transform and compare to current spectrogram
+    e.g. this makes sure that the training is reproducible if parameters
+    such as STFT centering would be subject to change.
+    """
+    track = [track for track in mus.tracks if track.name == test_track][0]
+    target = 'vocals'
+    target_model = model.load_models(
+        targets=target,
+        model_name='umx',
+        pretrained=False
+    )[target]
+
+    audio = utils.preprocess(track.audio, track.rate, target_model.sample_rate)
+    ref = torch.load(spec_path)
+    dut = target_model.transform(audio)
+
+    assert torch.allclose(ref, dut, atol=1e-4, rtol=1e-5)
