@@ -14,7 +14,6 @@ dependencies:
   - scikit-learn=0.22
   - ffmpeg
   - pip
-  - torchaudio=0.5.0
   - pip:
     - musdb==0.3.1
     - norbert>=0.2.0
