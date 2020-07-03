@@ -192,7 +192,7 @@ class OpenUnmix(nn.Module):
 
         self.hidden_size = hidden_size
 
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=False)
         self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
         self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
 

@@ -90,4 +90,5 @@ def test_spectrogram(mus):
     audio = utils.preprocess(track.audio, track.rate, target_model.sample_rate)
     ref = torch.load(spec_path)
     dut = target_model.transform(audio)
+
     assert torch.allclose(ref, dut)
