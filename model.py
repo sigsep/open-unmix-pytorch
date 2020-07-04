@@ -7,6 +7,7 @@ import json
 import model
 from filtering import wiener
 from torchaudio.functional import istft
+import torchaudio
 from typing import Optional
 
 
@@ -40,12 +41,12 @@ class STFT(nn.Module):
         Output:(nb_samples, nb_channels, nb_bins, nb_frames, 2)
         """
 
-        nb_samples, nb_channels, nb_timesteps = x.size()
+        shape = x.size()
+        nb_samples, nb_channels, nb_timesteps = shape
 
-        # merge nb_samples and nb_channels for multichannel stft
-        x = x.reshape(nb_samples*nb_channels, -1)
+        # pack batch
+        x = x.view(-1, shape[-1])
 
-        # compute stft with parameters as close as possible scipy settings
         stft_f = torch.stft(
             x,
             n_fft=self.n_fft,
@@ -57,10 +58,8 @@ class STFT(nn.Module):
             pad_mode='reflect'
         )
 
-        # reshape back to channel dimension
-        stft_f = stft_f.contiguous().view(
-            nb_samples, nb_channels, self.n_fft // 2 + 1, -1, 2
-        )
+        # unpack batch
+        stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
         return stft_f
 
 
@@ -85,7 +84,7 @@ class Spectrogram(nn.Module):
         # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
 
-        # downmix in the mag domain
+        # downmix in the mag domain to preserve energy
         if self.mono:
             stft_f = torch.mean(stft_f, 1, keepdim=True)
 
