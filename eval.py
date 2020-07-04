@@ -4,7 +4,7 @@ import museval
 import test
 import multiprocessing
 import functools
-from model import load_models, Separator
+from model import Separator
 import torch
 import tqdm
 import utils
@@ -24,7 +24,7 @@ def separate_and_evaluate(
     wiener_win_len=None
 ):
     # create the Separator object
-    target_models = load_models(
+    target_models = utils.load_models(
         targets=targets,
         model_name=model_name
     )

@@ -81,7 +81,7 @@ def test_spectrogram(mus):
     """
     track = [track for track in mus.tracks if track.name == test_track][0]
     target = 'vocals'
-    target_model = model.load_models(
+    target_model = utils.load_models(
         targets=target,
         model_name='umx',
         pretrained=False

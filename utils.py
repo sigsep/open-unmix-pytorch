@@ -3,6 +3,12 @@ import os
 import numpy as np
 import torchaudio
 import warnings
+from pathlib import Path
+from contextlib import redirect_stderr
+import io
+import json
+
+import model
 
 
 def bandwidth_to_max_bin(rate, n_fft, bandwidth):
@@ -87,6 +93,69 @@ class EarlyStopping(object):
             self.is_better = lambda a, best: a < best - min_delta
         if mode == 'max':
             self.is_better = lambda a, best: a > best + min_delta
+
+
+def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
+    """
+    target model path can be either <target>.pth, or <target>-sha256.pth
+    (as used on torchub)
+    """
+    if isinstance(targets, str):
+        targets = [targets]
+
+    model_path = Path(model_name).expanduser()
+    if not model_path.exists():
+        # model path does not exist, use hubconf model
+        try:
+            # disable progress bar
+            err = io.StringIO()
+            with redirect_stderr(err):
+                return {
+                    target: torch.hub.load(
+                        'sigsep/open-unmix-pytorch',
+                        model_name,
+                        target=target,
+                        device=device,
+                        pretrained=pretrained
+                    )
+                    for target in targets}
+            print(err.getvalue())
+        except AttributeError:
+            raise NameError('Model does not exist on torchhub')
+            # assume model is a path to a local model_name direcotry
+    else:
+        models = {}
+        for target in targets:
+            # load model from disk
+            with open(Path(model_path, target + '.json'), 'r') as stream:
+                results = json.load(stream)
+
+            target_model_path = next(Path(model_path).glob("%s*.pth" % target))
+            state = torch.load(
+                target_model_path,
+                map_location=device
+            )
+
+            max_bin = bandwidth_to_max_bin(
+                state['sample_rate'],
+                results['args']['nfft'],
+                results['args']['bandwidth']
+            )
+
+            models[target] = model.OpenUnmix(
+                n_fft=results['args']['nfft'],
+                n_hop=results['args']['nhop'],
+                nb_channels=results['args']['nb_channels'],
+                hidden_size=results['args']['hidden_size'],
+                max_bin=max_bin
+            )
+
+            if pretrained:
+                models[target].load_state_dict(state)
+                models[target].stft.center = True
+                models[target].eval()
+            models[target].to(device)
+        return models
 
 
 def preprocess(audio, rate=None, model_rate=None):

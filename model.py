@@ -5,10 +5,7 @@ import torch.nn.functional as F
 import utils
 import json
 import model
-from pathlib import Path
-from contextlib import redirect_stderr
 from filtering import wiener
-import io
 from torchaudio.functional import istft
 from typing import Optional
 
@@ -94,69 +91,6 @@ class Spectrogram(nn.Module):
 
         # permute output for LSTM convenience
         return stft_f.permute(2, 0, 1, 3)
-
-
-def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
-    """
-    target model path can be either <target>.pth, or <target>-sha256.pth
-    (as used on torchub)
-    """
-    if isinstance(targets, str):
-        targets = [targets]
-
-    model_path = Path(model_name).expanduser()
-    if not model_path.exists():
-        # model path does not exist, use hubconf model
-        try:
-            # disable progress bar
-            err = io.StringIO()
-            with redirect_stderr(err):
-                return {
-                    target: torch.hub.load(
-                        'sigsep/open-unmix-pytorch',
-                        model_name,
-                        target=target,
-                        device=device,
-                        pretrained=pretrained
-                    )
-                    for target in targets}
-            print(err.getvalue())
-        except AttributeError:
-            raise NameError('Model does not exist on torchhub')
-            # assume model is a path to a local model_name direcotry
-    else:
-        models = {}
-        for target in targets:
-            # load model from disk
-            with open(Path(model_path, target + '.json'), 'r') as stream:
-                results = json.load(stream)
-
-            target_model_path = next(Path(model_path).glob("%s*.pth" % target))
-            state = torch.load(
-                target_model_path,
-                map_location=device
-            )
-
-            max_bin = utils.bandwidth_to_max_bin(
-                state['sample_rate'],
-                results['args']['nfft'],
-                results['args']['bandwidth']
-            )
-
-            models[target] = model.OpenUnmix(
-                n_fft=results['args']['nfft'],
-                n_hop=results['args']['nhop'],
-                nb_channels=results['args']['nb_channels'],
-                hidden_size=results['args']['hidden_size'],
-                max_bin=max_bin
-            )
-
-            if pretrained:
-                models[target].load_state_dict(state)
-                models[target].stft.center = True
-                models[target].eval()
-            models[target].to(device)
-        return models
 
 
 class OpenUnmix(nn.Module):
@@ -332,7 +266,7 @@ class Separator(nn.Module):
     ----------
     targets: dictionary of target models {target: model}
         the spectrogram models to be used by the Separator. Each model
-        may for instance be loaded with the `model.load_models` function
+        may for instance be loaded with the `utils.load_models` function
 
     niter: int
          Number of EM steps for refining initial estimates in a
