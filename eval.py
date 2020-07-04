@@ -24,13 +24,13 @@ def separate_and_evaluate(
     wiener_win_len=None
 ):
     # create the Separator object
-    targets = load_models(
+    target_models = load_models(
         targets=targets,
         model_name=model_name
     )
 
     separator = Separator(
-        targets=targets,
+        target_models=target_models,
         niter=niter,
         residual=residual,
         wiener_win_len=wiener_win_len

@@ -15,7 +15,8 @@ class TestModels(JitTestCase):
         self.checkTrace(umx, (example,), export_import=check_export_import)
 
         separator = model.Separator(
-            targets={'source_1': umx, 'source_2': umx}, niter=1
+            target_models={'source_1': umx, 'source_2': umx},
+            niter=1
         ).eval().to(device)
 
         # disable tracing check for now as there are too many dynamic parts

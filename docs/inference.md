@@ -38,7 +38,7 @@ the constructor for the Separator class takes the following arguments, with sugg
 ```python
 class Separator(nn.Module):
   def __init__(
-    targets,
+    target_models,
     model_name='umxhq',
     niter=1,
     softmask=False,

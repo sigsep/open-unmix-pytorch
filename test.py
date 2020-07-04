@@ -124,7 +124,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # create the Separator object
-    targets = model.load_models(
+    target_models = model.load_models(
         targets=args.targets,
         model_name=args.model
     )
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     )
 
     separator = Separator(
-        targets=targets,
+        target_models=target_models,
         niter=args.niter,
         residual=args.residual,
         wiener_win_len=args.wiener_win_len
@@ -170,3 +170,4 @@ if __name__ == '__main__':
                  torch.squeeze(estimate),
                  separator.sample_rate
             )
+

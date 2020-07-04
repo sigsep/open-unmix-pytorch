@@ -190,14 +190,14 @@ def separator(
     load_fn = umx if model_name == 'umx' else umxhq
 
     # load targets models
-    targets_models = {
+    target_models = {
         target: load_fn(target, device, pretrained, *args, **kwargs)
         for target in targets
     }
 
     # create the separator
     separator = Separator(
-        targets=targets_models,
+        target_models=target_models,
         niter=1,
         residual=residual,
         out=None,

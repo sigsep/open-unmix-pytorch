@@ -354,7 +354,7 @@ class Separator(nn.Module):
     """
     def __init__(
         self,
-        targets: dict,
+        target_models: dict,
         niter: int = 0,
         softmask: bool = False,
         residual: bool = False,
@@ -370,9 +370,9 @@ class Separator(nn.Module):
         self.wiener_win_len = wiener_win_len
 
         # registering the targets models
-        self.targets = nn.ModuleDict(targets)
+        self.target_models = nn.ModuleDict(target_models)
         # adding till https://github.com/pytorch/pytorch/issues/38963
-        self.nb_targets = len(self.targets)
+        self.nb_targets = len(self.target_models)
         # get the sample_rate as the sample_rate of the first model
         # (tacitly assume it's the same for all targets)
         self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
@@ -404,7 +404,9 @@ class Separator(nn.Module):
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
-        for j, (target_name, target_module) in enumerate(self.targets.items()):
+        for j, (target_name, target_module) in enumerate(
+            self.target_models.items()
+        ):
 
             # apply current model to get the source spectrogram
             target_spectrogram = target_module(audio)
@@ -503,7 +505,7 @@ class Separator(nn.Module):
         estimates_dict: Dict
         """
         estimates_dict = {}
-        for k, target in enumerate(self.targets):
+        for k, target in enumerate(self.target_models):
             estimates_dict[target] = estimates[:, k, ...]
 
         # in the case of residual, we added another source
