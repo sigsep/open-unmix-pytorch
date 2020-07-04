@@ -133,6 +133,8 @@ def main():
                         help='set number of channels for model (1, 2)')
     parser.add_argument('--nb-workers', type=int, default=0,
                         help='Number of workers for dataloader.')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='Speed up training init for dev purposes')
 
     # Misc Parameters
     parser.add_argument('--quiet', action='store_true', default=False,
@@ -175,7 +177,7 @@ def main():
         **dataloader_kwargs
     )
 
-    if args.model:
+    if args.model or args.debug:
         scaler_mean = None
         scaler_std = None
     else:
