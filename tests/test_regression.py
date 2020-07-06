@@ -91,4 +91,4 @@ def test_spectrogram(mus):
     ref = torch.load(spec_path)
     dut = target_model.transform(audio)
 
-    assert torch.allclose(ref, dut, atol=1e-4, rtol=1e-5)
+    assert torch.allclose(ref, dut, atol=1e-5, rtol=1e-6)
