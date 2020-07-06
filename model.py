@@ -11,14 +11,6 @@ import torchaudio
 from typing import Optional
 
 
-class NoOp(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-
-
 class STFT(nn.Module):
     def __init__(
         self,
@@ -63,13 +55,13 @@ class STFT(nn.Module):
         return stft_f
 
 
-class Spectrogram(nn.Module):
+class ComplexNorm(nn.Module):
     def __init__(
         self,
         power=1,
         mono=True
     ):
-        super(Spectrogram, self).__init__()
+        super(ComplexNorm, self).__init__()
         self.power = power
         self.mono = mono
 
@@ -96,8 +88,6 @@ class OpenUnmix(nn.Module):
     def __init__(
         self,
         n_fft=4096,
-        n_hop=1024,
-        input_is_spectrogram=False,
         hidden_size=512,
         nb_channels=2,
         sample_rate=44100,
@@ -124,15 +114,6 @@ class OpenUnmix(nn.Module):
             self.nb_bins = self.nb_output_bins
 
         self.hidden_size = hidden_size
-
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=False)
-        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
-
-        if input_is_spectrogram:
-            self.transform = NoOp()
-        else:
-            self.transform = nn.Sequential(self.stft, self.spec)
 
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
@@ -204,10 +185,7 @@ class OpenUnmix(nn.Module):
         self.eval()
 
     def forward(self, x):
-        # check for waveform or spectrogram
-        # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
-        # and reduce feature dimensions, therefore we reshape
-        x = self.transform(x)
+        # get spectrogram shape
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         mix = x.detach().clone()
@@ -292,7 +270,10 @@ class Separator(nn.Module):
         softmask: bool = False,
         residual: bool = False,
         wiener_win_len: Optional[int] = 300,
-        sample_rate: int = 44100
+        sample_rate: int = 44100,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        mono: int = False
     ):
         super(Separator, self).__init__()
 
@@ -301,6 +282,12 @@ class Separator(nn.Module):
         self.residual = residual
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
+
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.spec = torch.nn.Sequential(
+            self.stft,
+            ComplexNorm(power=1, mono=mono)
+        )
 
         # registering the targets models
         self.target_models = nn.ModuleDict(target_models)
@@ -342,7 +329,8 @@ class Separator(nn.Module):
         ):
 
             # apply current model to get the source spectrogram
-            target_spectrogram = target_module(audio)
+            X = self.spec(audio)
+            target_spectrogram = target_module(X)
 
             # output is nb_frames, nb_samples, nb_channels, nb_bins
             if spectrograms is None:
@@ -361,7 +349,7 @@ class Separator(nn.Module):
 
         # getting the STFT of mix:
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = target_module.stft(audio)
+        mix_stft = self.stft(audio)
 
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
