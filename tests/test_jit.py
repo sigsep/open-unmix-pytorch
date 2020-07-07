@@ -7,7 +7,7 @@ class TestModels(JitTestCase):
     @staticmethod
     def _test_umx(self, device, check_export_import=True):
         example = torch.rand(
-            (1, 2, 44100),
+            (66, 1, 2, 4096),
             device=device
         )
         # test model in eval due to non-deterministic behaviour of dropout
