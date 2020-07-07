@@ -34,7 +34,7 @@ def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
 
     # load open unmix model
     unmix = OpenUnmix(
-        nb_bins=1024,
+        nb_bins=1024 // 2 + 1,
         nb_channels=1,
         hidden_size=256,
         max_bin=max_bin
@@ -84,7 +84,7 @@ def umxhq(
 
     # load open unmix model
     unmix = OpenUnmix(
-        nb_bins=4096,
+        nb_bins=4096 // 2 + 1,
         nb_channels=2,
         hidden_size=512,
         max_bin=max_bin
@@ -134,7 +134,7 @@ def umx(
 
     # load open unmix model
     unmix = OpenUnmix(
-        nb_bins=4096,
+        nb_bins=4096 // 2 + 1,
         nb_channels=2,
         hidden_size=512,
         max_bin=max_bin

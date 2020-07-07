@@ -80,15 +80,9 @@ def test_spectrogram(mus):
     such as STFT centering would be subject to change.
     """
     track = [track for track in mus.tracks if track.name == test_track][0]
-    target = 'vocals'
-    target_model = utils.load_target_models(
-        targets=target,
-        model_name='umx',
-        pretrained=False
-    )[target]
-
-    audio = utils.preprocess(track.audio, track.rate, target_model.sample_rate)
+    encoder = torch.nn.Sequential(model.STFT(), model.ComplexNorm())
+    audio = utils.preprocess(track.audio, track.rate, track.rate)
     ref = torch.load(spec_path)
-    dut = target_model.transform(audio)
+    dut = encoder(audio)
 
     assert torch.allclose(ref, dut, atol=1e-4, rtol=1e-5)

@@ -7,7 +7,7 @@ from pathlib import Path
 from contextlib import redirect_stderr
 import io
 import json
-
+import hubconf
 import model
 
 
@@ -113,12 +113,11 @@ def load_target_models(
         # model path does not exist, use hubconf model
         try:
             # disable progress bar
+            hub_loader = getattr(hubconf, model_name)
             err = io.StringIO()
             with redirect_stderr(err):
                 return {
-                    target: torch.hub.load(
-                        'sigsep/open-unmix-pytorch',
-                        model_name,
+                    target: hub_loader(
                         target=target,
                         device=device,
                         pretrained=pretrained
