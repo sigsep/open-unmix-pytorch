@@ -38,6 +38,9 @@ def audio(request, nb_samples, nb_channels, nb_timesteps):
 
 
 def test_stft(audio, nb_channels, nfft, hop):
+    # we should only test for center=True as
+    # False doesn't pass COLA
+    # https://github.com/pytorch/audio/issues/500
     stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
     X = stft(audio)
     X = X.detach()
