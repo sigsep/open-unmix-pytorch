@@ -14,6 +14,7 @@ from git import Repo
 import os
 import copy
 import torchaudio
+from torchaudio.datasets.utils import bg_iterator
 
 tqdm.monitor_interval = 0
 
@@ -173,6 +174,8 @@ def main():
         valid_dataset, batch_size=1,
         **dataloader_kwargs
     )
+    # enable queuing
+    train_sampler = bg_iterator(train_sampler, 4)
 
     encoder = torch.nn.Sequential(
         model.STFT(n_fft=args.nfft, n_hop=args.nhop),
