@@ -6,6 +6,7 @@ import musdb
 import torch
 import tqdm
 import torchaudio
+from torchaudio.datasets.utils import bg_iterator
 
 
 def load_info(path):
@@ -891,14 +892,23 @@ if __name__ == "__main__":
 
     train_dataset, valid_dataset, args = load_datasets(parser, args)
     print("Audio Backend: ", torchaudio.get_audio_backend())
-    # Iterate over training dataset
+
+    # Iterate over training dataset and compute statistics
     total_training_duration = 0
     for k in tqdm.tqdm(range(len(train_dataset))):
         x, y = train_dataset[k]
         total_training_duration += x.shape[1] / train_dataset.sample_rate
         if args.save:
-            torchaudio.save("test/" + str(k) + 'x.wav', x.T, 44100)
-            torchaudio.save("test/" + str(k) + 'y.wav', y.T, 44100)
+            torchaudio.save(
+                "test/" + str(k) + 'x.wav',
+                x.T,
+                train_dataset.sample_rate
+            )
+            torchaudio.save(
+                "test/" + str(k) + 'y.wav',
+                y.T,
+                train_dataset.sample_rate
+            )
 
     print("Total training duration (h): ", total_training_duration / 3600)
     print("Number of train samples: ", len(train_dataset))
@@ -909,8 +919,9 @@ if __name__ == "__main__":
     train_dataset.random_chunks = True
 
     train_sampler = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0,
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4,
     )
 
+    train_sampler = bg_iterator(train_sampler, 4)
     for x, y in tqdm.tqdm(train_sampler):
         pass
