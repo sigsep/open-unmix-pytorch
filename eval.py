@@ -24,7 +24,7 @@ def separate_and_evaluate(
     wiener_win_len=None
 ):
     # create the Separator object
-    target_models = utils.load_models(
+    target_models = utils.load_target_models(
         targets=targets,
         model_name=model_name
     )

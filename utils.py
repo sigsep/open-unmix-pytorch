@@ -95,7 +95,12 @@ class EarlyStopping(object):
             self.is_better = lambda a, best: a > best + min_delta
 
 
-def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
+def load_target_models(
+    targets,
+    model_name='umxhq',
+    device='cpu',
+    pretrained=True
+):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
@@ -136,24 +141,16 @@ def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
                 map_location=device
             )
 
-            max_bin = bandwidth_to_max_bin(
-                state['sample_rate'],
-                results['args']['nfft'],
-                results['args']['bandwidth']
-            )
-
             models[target] = model.OpenUnmix(
-                n_fft=results['args']['nfft'],
-                n_hop=results['args']['nhop'],
+                nb_bins=results['args']['nfft'] // 2 + 1,
                 nb_channels=results['args']['nb_channels'],
                 hidden_size=results['args']['hidden_size'],
-                max_bin=max_bin
+                max_bin=state['input_mean'].shape[0]
             )
 
             if pretrained:
-                models[target].load_state_dict(state)
-                models[target].stft.center = True
-                models[target].eval()
+                models[target].load_state_dict(state, strict=False)
+                models[target].freeze()
             models[target].to(device)
         return models
 

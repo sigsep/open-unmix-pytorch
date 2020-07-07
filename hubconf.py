@@ -34,8 +34,7 @@ def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
 
     # load open unmix model
     unmix = OpenUnmix(
-        n_fft=1024,
-        n_hop=256,
+        nb_bins=1024,
         nb_channels=1,
         hidden_size=256,
         max_bin=max_bin
@@ -47,8 +46,7 @@ def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
             target_urls[target],
             map_location=device
         )
-        unmix.load_state_dict(state_dict)
-        unmix.stft.center = True
+        unmix.load_state_dict(state_dict, strict=False)
         unmix.eval()
 
     return unmix.to(device)
@@ -86,8 +84,7 @@ def umxhq(
 
     # load open unmix model
     unmix = OpenUnmix(
-        n_fft=4096,
-        n_hop=1024,
+        nb_bins=4096,
         nb_channels=2,
         hidden_size=512,
         max_bin=max_bin
@@ -99,8 +96,7 @@ def umxhq(
             target_urls[target],
             map_location=device
         )
-        unmix.load_state_dict(state_dict)
-        unmix.stft.center = True
+        unmix.load_state_dict(state_dict, strict=False)
         unmix.eval()
 
     return unmix.to(device)
@@ -138,8 +134,7 @@ def umx(
 
     # load open unmix model
     unmix = OpenUnmix(
-        n_fft=4096,
-        n_hop=1024,
+        nb_bins=4096,
         nb_channels=2,
         hidden_size=512,
         max_bin=max_bin
@@ -151,8 +146,7 @@ def umx(
             target_urls[target],
             map_location=device
         )
-        unmix.load_state_dict(state_dict)
-        unmix.stft.center = True
+        unmix.load_state_dict(state_dict, strict=False)
         unmix.eval()
 
     return unmix.to(device)
@@ -201,7 +195,8 @@ def separator(
         niter=1,
         residual=residual,
         out=None,
-        wiener_win_len=wiener_win_len).to(device)
+        wiener_win_len=wiener_win_len
+    ).to(device)
     separator.freeze()
 
     return separator

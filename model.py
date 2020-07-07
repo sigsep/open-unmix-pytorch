@@ -59,7 +59,7 @@ class ComplexNorm(nn.Module):
     def __init__(
         self,
         power=1,
-        mono=True
+        mono=False
     ):
         super(ComplexNorm, self).__init__()
         self.power = power
@@ -68,9 +68,9 @@ class ComplexNorm(nn.Module):
     def forward(self, stft_f):
         """
         Input: complex STFT
-            (nb_samples, nb_bins, nb_frames, 2)
+            (nb_samples, nb_channels, nb_bins, nb_frames, 2)
         Output: Power/Mag Spectrogram
-            (nb_frames, nb_samples, nb_channels, nb_bins)
+            (nb_samples, nb_channels, nb_bins, nb_frames)
         """
         stft_f = stft_f.transpose(2, 3)
         # take the magnitude
@@ -82,32 +82,29 @@ class ComplexNorm(nn.Module):
 
         # permute output for LSTM convenience
         return stft_f.permute(2, 0, 1, 3)
+        # return stft_f  # TODO: test batch_first
 
 
 class OpenUnmix(nn.Module):
     def __init__(
         self,
-        n_fft=4096,
-        hidden_size=512,
+        nb_bins=4096,
         nb_channels=2,
-        sample_rate=44100,
+        hidden_size=512,
         nb_layers=3,
         input_mean=None,
         input_scale=None,
-        max_bin=None,
         unidirectional=False,
-        power=1
+        max_bin=None
     ):
         """
-        Input: (nb_samples, nb_channels, nb_timesteps)
-            or (nb_frames, nb_samples, nb_channels, nb_bins)
-        Output: Power/Mag Spectrogram
-                (nb_frames, nb_samples, nb_channels, nb_bins)
+        Input:  (nb_frames, nb_samples, nb_channels, nb_bins)
+        Output: (nb_frames, nb_samples, nb_channels, nb_bins)
         """
 
         super(OpenUnmix, self).__init__()
 
-        self.nb_output_bins = n_fft // 2 + 1
+        self.nb_output_bins = nb_bins
         if max_bin:
             self.nb_bins = max_bin
         else:
@@ -243,7 +240,7 @@ class Separator(nn.Module):
     ----------
     targets: dictionary of target models {target: model}
         the spectrogram models to be used by the Separator. Each model
-        may for instance be loaded with the `utils.load_models` function
+        may for instance be loaded with the `utils.load_target_models` function
 
     niter: int
          Number of EM steps for refining initial estimates in a
@@ -272,8 +269,7 @@ class Separator(nn.Module):
         wiener_win_len: Optional[int] = 300,
         sample_rate: int = 44100,
         n_fft: int = 4096,
-        n_hop: int = 1024,
-        mono: int = False
+        n_hop: int = 1024
     ):
         super(Separator, self).__init__()
 
@@ -284,10 +280,7 @@ class Separator(nn.Module):
         self.wiener_win_len = wiener_win_len
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
-        self.spec = torch.nn.Sequential(
-            self.stft,
-            ComplexNorm(power=1, mono=mono)
-        )
+        self.complexnorm = ComplexNorm(power=1, mono=False)
 
         # registering the targets models
         self.target_models = nn.ModuleDict(target_models)
@@ -324,13 +317,17 @@ class Separator(nn.Module):
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        mix_stft = self.stft(audio)
+        X = self.complexnorm(mix_stft)
+
         for j, (target_name, target_module) in enumerate(
             self.target_models.items()
         ):
 
             # apply current model to get the source spectrogram
-            X = self.spec(audio)
-            target_spectrogram = target_module(X)
+            target_spectrogram = target_module(X.detach().clone())
 
             # output is nb_frames, nb_samples, nb_channels, nb_bins
             if spectrograms is None:
@@ -346,10 +343,6 @@ class Separator(nn.Module):
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
         spectrograms = spectrograms.permute(1, 0, 3, 2, 4)
-
-        # getting the STFT of mix:
-        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = self.stft(audio)
 
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
@@ -396,10 +389,10 @@ class Separator(nn.Module):
         # inverse STFTs
         estimates = istft(
             targets_stft,
-            n_fft=target_module.stft.n_fft,
-            hop_length=target_module.stft.n_hop,
-            window=target_module.stft.window,
-            center=target_module.stft.center,
+            n_fft=self.stft.n_fft,
+            hop_length=self.stft.n_hop,
+            window=self.stft.window,
+            center=self.stft.center,
             normalized=False,
             onesided=True,
             pad_mode='reflect',

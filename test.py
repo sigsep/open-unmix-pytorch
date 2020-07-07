@@ -124,7 +124,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # create the Separator object
-    target_models = utils.load_models(
+    target_models = utils.load_target_models(
         targets=args.targets,
         model_name=args.model
     )
