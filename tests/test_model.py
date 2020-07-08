@@ -24,8 +24,8 @@ def nb_bins(request):
 
 
 @pytest.fixture
-def spectrogram(request, nb_frames, nb_samples, nb_channels, nb_bins):
-    return torch.rand((nb_frames, nb_samples, nb_channels, nb_bins))
+def spectrogram(request, nb_samples, nb_channels, nb_bins, nb_frames):
+    return torch.rand((nb_samples, nb_channels, nb_bins, nb_frames))
 
 
 @pytest.fixture(params=[True, False])

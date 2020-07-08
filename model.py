@@ -52,6 +52,7 @@ class STFT(nn.Module):
 
         # unpack batch
         stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
+        # bring frames to first dimension for efficient lstm
         return stft_f
 
 
@@ -72,7 +73,6 @@ class ComplexNorm(nn.Module):
         Output: Power/Mag Spectrogram
             (nb_samples, nb_channels, nb_bins, nb_frames)
         """
-        stft_f = stft_f.transpose(2, 3)
         # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
 
@@ -80,9 +80,7 @@ class ComplexNorm(nn.Module):
         if self.mono:
             stft_f = torch.mean(stft_f, 1, keepdim=True)
 
-        # permute output for LSTM convenience
-        return stft_f.permute(2, 0, 1, 3)
-        # return stft_f  # TODO: test batch_first
+        return stft_f
 
 
 class OpenUnmix(nn.Module):
@@ -98,8 +96,8 @@ class OpenUnmix(nn.Module):
         max_bin=None
     ):
         """
-        Input:  (nb_frames, nb_samples, nb_channels, nb_bins)
-        Output: (nb_frames, nb_samples, nb_channels, nb_bins)
+        Input:  (nb_samples, nb_channels, nb_bins, nb_frames)
+        Output: (nb_samples, nb_channels, nb_bins, nb_frames)
         """
 
         super(OpenUnmix, self).__init__()
@@ -182,7 +180,9 @@ class OpenUnmix(nn.Module):
         self.eval()
 
     def forward(self, x):
-        # get spectrogram shape
+        # permute so that batch is last for lstm
+        x = x.permute(3, 0, 1, 2)
+        # get current spectrogram shape
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         mix = x.detach().clone()
@@ -227,8 +227,8 @@ class OpenUnmix(nn.Module):
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x) * mix
-
-        return x
+        # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+        return x.permute(1, 2, 3, 0)
 
 
 class Separator(nn.Module):
@@ -342,7 +342,7 @@ class Separator(nn.Module):
 
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
-        spectrograms = spectrograms.permute(1, 0, 3, 2, 4)
+        spectrograms = spectrograms.permute(0, 3, 2, 1, 4)
 
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed

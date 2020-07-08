@@ -83,6 +83,6 @@ def test_spectrogram(mus):
     encoder = torch.nn.Sequential(model.STFT(), model.ComplexNorm())
     audio = utils.preprocess(track.audio, track.rate, track.rate)
     ref = torch.load(spec_path)
-    dut = encoder(audio)
+    dut = encoder(audio).permute(3, 0, 1, 2)
 
     assert torch.allclose(ref, dut, atol=1e-4, rtol=1e-5)

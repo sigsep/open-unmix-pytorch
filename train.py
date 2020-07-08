@@ -28,6 +28,7 @@ def train(args, unmix, encoder, device, train_sampler, optimizer):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         X = encoder(x)
+        import ipdb; ipdb.set_trace()
         Y_hat = unmix(X)
         Y = encoder(y)
         loss = torch.nn.functional.mse_loss(Y_hat, Y)
@@ -65,7 +66,8 @@ def get_statistics(args, encoder, dataset):
     for ind in pbar:
         x, y = dataset_scaler[ind]
         pbar.set_description("Compute dataset statistics")
-        X = encoder(x[None, ...].mean(1, keepdim=True))
+        X = encoder(x[None, ...]).mean(1, keepdim=False).permute(0, 2, 1)
+
         scaler.partial_fit(np.squeeze(X))
 
     # set inital input scaler values
