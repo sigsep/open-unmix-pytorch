@@ -28,7 +28,6 @@ def train(args, unmix, encoder, device, train_sampler, optimizer):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         X = encoder(x)
-        import ipdb; ipdb.set_trace()
         Y_hat = unmix(X)
         Y = encoder(y)
         loss = torch.nn.functional.mse_loss(Y_hat, Y)
@@ -66,6 +65,7 @@ def get_statistics(args, encoder, dataset):
     for ind in pbar:
         x, y = dataset_scaler[ind]
         pbar.set_description("Compute dataset statistics")
+        # downmix to mono channel
         X = encoder(x[None, ...]).mean(1, keepdim=False).permute(0, 2, 1)
 
         scaler.partial_fit(np.squeeze(X))
@@ -126,7 +126,7 @@ def main():
     parser.add_argument('--nhop', type=int, default=1024,
                         help='STFT hop size')
     parser.add_argument('--hidden-size', type=int, default=512,
-                        help='hidden size parameter of dense bottleneck layers')
+                        help='hidden size parameter of bottleneck layers')
     parser.add_argument('--bandwidth', type=int, default=16000,
                         help='maximum model bandwidth in herz')
     parser.add_argument('--nb-channels', type=int, default=2,
@@ -252,8 +252,12 @@ def main():
     for epoch in t:
         t.set_description("Training Epoch")
         end = time.time()
-        train_loss = train(args, unmix, encoder, device, train_sampler, optimizer)
-        valid_loss = valid(args, unmix, encoder, device, valid_sampler)
+        train_loss = train(
+            args, unmix, encoder, device, train_sampler, optimizer
+        )
+        valid_loss = valid(
+            args, unmix, encoder, device, valid_sampler
+        )
         scheduler.step(valid_loss)
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)
