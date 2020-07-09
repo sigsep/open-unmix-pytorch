@@ -15,10 +15,16 @@ class TestModels(JitTestCase):
             (nb_samples, nb_channels, nb_bins, nb_frames),
             device=device
         )
-        # test model in eval due to non-deterministic behaviour of dropout
-        umx = model.OpenUnmix(nb_bins=nb_bins, nb_channels=nb_channels).eval().to(device)
+        # set model to eval due to non-deterministic behaviour of dropout
+        umx = model.OpenUnmix(
+            nb_bins=nb_bins,
+            nb_channels=nb_channels
+        ).eval().to(device)
+
+        # test trace
         self.checkTrace(umx, (example,), export_import=check_export_import)
 
+        # creatr separator
         separator = model.Separator(
             target_models={'source_1': umx, 'source_2': umx},
             niter=1
