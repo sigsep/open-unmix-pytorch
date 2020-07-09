@@ -6,12 +6,17 @@ import model
 class TestModels(JitTestCase):
     @staticmethod
     def _test_umx(self, device, check_export_import=True):
+        nb_samples = 1
+        nb_channels = 2
+        nb_bins = 2049
+        nb_frames = 11
+
         example = torch.rand(
-            (1, 2049, 2, 22),
+            (nb_samples, nb_channels, nb_bins, nb_frames),
             device=device
         )
         # test model in eval due to non-deterministic behaviour of dropout
-        umx = model.OpenUnmix().eval().to(device)
+        umx = model.OpenUnmix(nb_bins=nb_bins, nb_channels=nb_channels).eval().to(device)
         self.checkTrace(umx, (example,), export_import=check_export_import)
 
         separator = model.Separator(
