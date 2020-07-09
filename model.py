@@ -266,10 +266,10 @@ class Separator(nn.Module):
         niter: int = 0,
         softmask: bool = False,
         residual: bool = False,
-        wiener_win_len: Optional[int] = 300,
         sample_rate: int = 44100,
         n_fft: int = 4096,
-        n_hop: int = 1024
+        n_hop: int = 1024,
+        wiener_win_len: Optional[int] = 300
     ):
         super(Separator, self).__init__()
 
