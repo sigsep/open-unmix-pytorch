@@ -28,8 +28,8 @@ def separate_and_evaluate(
         model_str_or_path=model_str_or_path,
         targets=targets,
         niter=niter,
-        residual=args.residual,
-        wiener_win_len=args.wiener_win_len,
+        residual=residual,
+        wiener_win_len=wiener_win_len,
         device=device,
         pretrained=True
     )
