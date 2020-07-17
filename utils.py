@@ -177,7 +177,7 @@ def load_separator(
             pretrained=True
         )
 
-        with open(Path(model_path, 'encoder.json'), 'r') as stream:
+        with open(Path(model_path, 'separator.json'), 'r') as stream:
             enc_conf = json.load(stream)
 
         separator = model.Separator(
