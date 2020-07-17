@@ -184,6 +184,16 @@ def main():
         model.ComplexNorm(mono=args.nb_channels == 1)
     ).to(device)
 
+    encoder_conf = {
+        'nfft': args.nfft,
+        'nhop': args.nhop,
+        'sample_rate': train_dataset.sample_rate,
+        'nb_channels': args.nb_channels
+    }
+
+    with open(Path(target_path, 'encoder.json'), 'w') as outfile:
+        outfile.write(json.dumps(encoder_conf, indent=4, sort_keys=True))
+
     if args.model or args.debug:
         scaler_mean = None
         scaler_std = None

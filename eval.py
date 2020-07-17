@@ -14,7 +14,7 @@ import json
 def separate_and_evaluate(
     track,
     targets,
-    model_name,
+    model_str_or_path,
     niter,
     output_dir,
     eval_dir,
@@ -23,18 +23,16 @@ def separate_and_evaluate(
     device='cpu',
     wiener_win_len=None
 ):
-    # create the Separator object
-    target_models = utils.load_target_models(
-        targets=targets,
-        model_name=model_name
-    )
 
-    separator = Separator(
-        target_models=target_models,
+    separator = utils.load_separator(
+        model_str_or_path=model_str_or_path,
+        targets=targets,
         niter=niter,
-        residual=residual,
-        wiener_win_len=wiener_win_len
-    ).to(device)
+        residual=args.residual,
+        wiener_win_len=args.wiener_win_len,
+        device=device,
+        pretrained=True
+    )
 
     separator.freeze()
 
@@ -146,7 +144,7 @@ if __name__ == '__main__':
                 func=functools.partial(
                     separate_and_evaluate,
                     targets=args.targets,
-                    model_name=args.model,
+                    model_str_or_path=args.model,
                     niter=args.niter,
                     residual=args.residual,
                     aggregate_dict=aggregate_dict,
@@ -169,7 +167,7 @@ if __name__ == '__main__':
             scores = separate_and_evaluate(
                 track,
                 targets=args.targets,
-                model_name=args.model,
+                model_str_or_path=args.model,
                 niter=args.niter,
                 residual=args.residual,
                 aggregate_dict=aggregate_dict,

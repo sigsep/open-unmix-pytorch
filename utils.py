@@ -97,36 +97,37 @@ class EarlyStopping(object):
 
 def load_target_models(
     targets,
-    model_name='umxhq',
+    model_str_or_path='umxhq',
     device='cpu',
     pretrained=True
 ):
     """
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
+
+    The loader either loads the models from a known model string
+    as registered in the hubconf.py or loads from custom configs.
     """
     if isinstance(targets, str):
         targets = [targets]
 
-    model_path = Path(model_name).expanduser()
+    model_path = Path(model_str_or_path).expanduser()
     if not model_path.exists():
         # model path does not exist, use hubconf model
         try:
             # disable progress bar
-            hub_loader = getattr(hubconf, model_name)
+            hub_loader = getattr(hubconf, model_str_or_path + "_spec")
             err = io.StringIO()
             with redirect_stderr(err):
-                return {
-                    target: hub_loader(
-                        target=target,
-                        device=device,
-                        pretrained=pretrained
-                    )
-                    for target in targets}
+                return hub_loader(
+                    targets=targets,
+                    device=device,
+                    pretrained=pretrained
+                )
             print(err.getvalue())
         except AttributeError:
             raise NameError('Model does not exist on torchhub')
-            # assume model is a path to a local model_name direcotry
+            # assume model is a path to a local model_str_or_path directory
     else:
         models = {}
         for target in targets:
@@ -149,9 +150,59 @@ def load_target_models(
 
             if pretrained:
                 models[target].load_state_dict(state, strict=False)
-                models[target].freeze()
+
             models[target].to(device)
         return models
+
+
+def load_separator(
+    model_str_or_path='umxhq',
+    targets=None,
+    niter=1,
+    residual=False,
+    wiener_win_len=300,
+    device='cpu',
+    pretrained=True
+):
+    model_path = Path(model_str_or_path).expanduser()
+
+    # when path exists, we assume its a custom model saved locally
+    if model_path.exists():
+        if targets is None:
+            raise UserWarning("For custom models, please specify the targets")
+
+        target_models = load_target_models(
+            targets=targets,
+            model_str_or_path=model_path,
+            pretrained=True
+        )
+
+        with open(Path(model_path, 'encoder.json'), 'r') as stream:
+            enc_conf = json.load(stream)
+
+        separator = model.Separator(
+            target_models=target_models,
+            niter=niter,
+            residual=residual,
+            wiener_win_len=wiener_win_len,
+            sample_rate=enc_conf['sample_rate'],
+            n_fft=enc_conf['nfft'],
+            n_hop=enc_conf['nhop'],
+            nb_channels=enc_conf['nb_channels'],
+        ).to(device)
+
+    # otherwise we load the separator from torchhub
+    else:
+        hub_loader = getattr(hubconf, model_str_or_path)
+        separator = hub_loader(
+            targets=targets,
+            device=device,
+            pretrained=True,
+            niter=niter,
+            residual=residual
+        )
+
+    return separator
 
 
 def preprocess(audio, rate=None, model_rate=None):

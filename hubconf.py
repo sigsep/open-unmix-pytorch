@@ -1,29 +1,25 @@
+# This file is to be parsed by torch.hub mechanics
+#
+# `xxx_spec` take spectrogram inputs and output separated spectrograms
+# `xxx`      take waveform inputs and output separated waveforms
+
 import utils
 import torch.hub
-
 
 # Optional list of dependencies required by the package
 dependencies = ['torch', 'numpy']
 
 
-def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
-    """
-    Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
-    trained on the 28-speaker version of Voicebank+Demand
-    (Sampling rate: 16kHz)
-
-    Reference:
-        Uhlich, Stefan, & Mitsufuji, Yuki. (2020).
-        Open-Unmix for Speech Enhancement (UMX SE).
-        Zenodo. http://doi.org/10.5281/zenodo.3786908
-    """
-
+def umxse_spec(targets=None, device='cpu', pretrained=True):
     target_urls = {
         'speech': 'https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth',
         'noise': 'https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth'
     }
 
     from model import OpenUnmix
+
+    if targets is None:
+        targets = ['speech', 'noise']
 
     # determine the maximum bin count for a 16khz bandwidth model
     max_bin = utils.bandwidth_to_max_bin(
@@ -32,39 +28,86 @@ def umxse(target='speech', device='cpu', pretrained=True, *args, **kwargs):
         bandwidth=16000
     )
 
-    # load open unmix model
-    unmix = OpenUnmix(
-        nb_bins=1024 // 2 + 1,
-        nb_channels=1,
-        hidden_size=256,
-        max_bin=max_bin
-    )
-
-    # enable centering of stft to minimize reconstruction error
-    if pretrained:
-        state_dict = torch.hub.load_state_dict_from_url(
-            target_urls[target],
-            map_location=device
+    # load open unmix models speech enhancement models
+    target_models = {}
+    for target in targets:
+        target_unmix = OpenUnmix(
+            nb_bins=1024 // 2 + 1,
+            nb_channels=1,
+            hidden_size=256,
+            max_bin=max_bin
         )
-        unmix.load_state_dict(state_dict, strict=False)
-        unmix.eval()
 
-    return unmix.to(device)
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target],
+                map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
 
 
-def umxhq(
-    target='vocals', device='cpu', pretrained=True, *args, **kwargs
+def umxse(
+    targets=None,
+    residual=False,
+    niter=1,
+    device='cpu',
+    pretrained=True
 ):
     """
-    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
+    Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
+    trained on the 28-speaker version of Voicebank+Demand
+    (Sampling rate: 16kHz)
 
     Args:
-        target (str): select the target for the source to be separated.
-                      Supported targets are
-                        ['vocals', 'drums', 'bass', 'other']
+        targets (str): select the targets for the source to be separated.
+                a list including: ['speech', 'noise'].
+                If you don't pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a "garbage" target is created
+        niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+
+    Reference:
+        Uhlich, Stefan, & Mitsufuji, Yuki. (2020).
+        Open-Unmix for Speech Enhancement (UMX SE).
+        Zenodo. http://doi.org/10.5281/zenodo.3786908
     """
+    from model import Separator
+
+    target_models = umxse_spec(
+        targets=targets,
+        device=device,
+        pretrained=pretrained
+    )
+
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=1024,
+        n_hop=512,
+        nb_channels=1,
+        sample_rate=16000
+    ).to(device)
+
+    return separator
+
+
+def umxhq_spec(
+    targets=None,
+    device='cpu',
+    pretrained=True
+):
+    from model import OpenUnmix
+
     # set urls for weights
     target_urls = {
         'bass': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth',
@@ -73,7 +116,8 @@ def umxhq(
         'vocals': 'https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth'
     }
 
-    from model import OpenUnmix
+    if targets is None:
+        targets = ['vocals', 'drums', 'bass', 'other']
 
     # determine the maximum bin count for a 16khz bandwidth model
     max_bin = utils.bandwidth_to_max_bin(
@@ -82,39 +126,79 @@ def umxhq(
         bandwidth=16000
     )
 
-    # load open unmix model
-    unmix = OpenUnmix(
-        nb_bins=4096 // 2 + 1,
-        nb_channels=2,
-        hidden_size=512,
-        max_bin=max_bin
-    )
-
-    # enable centering of stft to minimize reconstruction error
-    if pretrained:
-        state_dict = torch.hub.load_state_dict_from_url(
-            target_urls[target],
-            map_location=device
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1,
+            nb_channels=2,
+            hidden_size=512,
+            max_bin=max_bin
         )
-        unmix.load_state_dict(state_dict, strict=False)
-        unmix.eval()
 
-    return unmix.to(device)
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target],
+                map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
 
 
-def umx(
-    target='vocals', device='cpu', pretrained=True, *args, **kwargs
+def umxhq(
+    targets=None,
+    residual=False,
+    niter=1,
+    device='cpu',
+    pretrained=True
 ):
     """
-    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
 
     Args:
-        target (str): select the target for the source to be separated.
-                      Supported targets are
-                        ['vocals', 'drums', 'bass', 'other']
+        targets (str): select the targets for the source to be separated.
+                a list including: ['vocals', 'drums', 'bass', 'other'].
+                If you don't pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a "garbage" target is created
+        niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
     """
+
+    from model import Separator
+
+    target_models = umxhq_spec(
+        targets=targets,
+        device=device,
+        pretrained=pretrained
+    )
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100
+    ).to(device)
+
+    return separator
+
+
+def umx_spec(
+    targets=None,
+    device='cpu',
+    pretrained=True
+):
+    from model import OpenUnmix
+
     # set urls for weights
     target_urls = {
         'bass': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth',
@@ -123,7 +207,8 @@ def umx(
         'vocals': 'https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth'
     }
 
-    from model import OpenUnmix
+    if targets is None:
+        targets = ['vocals', 'drums', 'bass', 'other']
 
     # determine the maximum bin count for a 16khz bandwidth model
     max_bin = utils.bandwidth_to_max_bin(
@@ -132,75 +217,68 @@ def umx(
         bandwidth=16000
     )
 
-    # load open unmix model
-    unmix = OpenUnmix(
-        nb_bins=4096 // 2 + 1,
-        nb_channels=2,
-        hidden_size=512,
-        max_bin=max_bin
-    )
-
-    # enable centering of stft to minimize reconstruction error
-    if pretrained:
-        state_dict = torch.hub.load_state_dict_from_url(
-            target_urls[target],
-            map_location=device
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1,
+            nb_channels=2,
+            hidden_size=512,
+            max_bin=max_bin
         )
-        unmix.load_state_dict(state_dict, strict=False)
-        unmix.eval()
 
-    return unmix.to(device)
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target],
+                map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
 
 
-def separator(
-    model_name='umxhq',
+def umx(
     targets=None,
-    pretrained=True,
     residual=False,
     niter=1,
     device='cpu',
-    *args, **kwargs
+    pretrained=True,
 ):
     """
-    Create a complete Separator exploiting 2-channel/stereo BiLSTM UMX with
-    several targets, trained on MUSDB18-HQ or MUSDB18.
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
 
     Args:
         targets (str): select the targets for the source to be separated.
-                       a list including: ['vocals', 'drums', 'bass', 'other'].
-                       If you don't pick them all, you probably want to
-                       activate the `residual=True` option.
-                       Defaults to all available targets per model.
+                a list including: ['vocals', 'drums', 'bass', 'other'].
+                If you don't pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
         pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+
     """
+
     from model import Separator
 
-    assert model_name in ['umx', 'umxhq', 'umxse'], \
-        "model_name must be `umx`, `umxhq` or `umxse`"
-
-    if targets is not None:
-        if model_name in ['umx', 'umxhq']:
-            targets = ['vocals', 'drums', 'bass', 'other']
-        elif model_name == 'umxse':
-            targets = ['speech', 'noise']
-
-    load_fn = umx if model_name == 'umx' else umxhq
-
-    # load targets models
-    target_models = {
-        target: load_fn(target, device, pretrained, *args, **kwargs)
-        for target in targets
-    }
-
-    # create the separator
+    target_models = umx_spec(
+        targets=targets,
+        device=device,
+        pretrained=pretrained
+    )
     separator = Separator(
         target_models=target_models,
         niter=niter,
-        residual=residual
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100
     ).to(device)
-    separator.freeze()
 
     return separator

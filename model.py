@@ -269,6 +269,7 @@ class Separator(nn.Module):
         sample_rate: int = 44100,
         n_fft: int = 4096,
         n_hop: int = 1024,
+        nb_channels: int = 2,
         wiener_win_len: Optional[int] = 300
     ):
         super(Separator, self).__init__()
@@ -280,7 +281,7 @@ class Separator(nn.Module):
         self.wiener_win_len = wiener_win_len
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
-        self.complexnorm = ComplexNorm(power=1, mono=False)
+        self.complexnorm = ComplexNorm(power=1, mono=nb_channels == 1)
 
         # registering the targets models
         self.target_models = nn.ModuleDict(target_models)
@@ -321,7 +322,6 @@ class Separator(nn.Module):
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
         mix_stft = self.stft(audio)
         X = self.complexnorm(mix_stft)
-
         for j, (target_name, target_module) in enumerate(
             self.target_models.items()
         ):
