@@ -5,20 +5,10 @@ import torch.nn.functional as F
 import utils
 import json
 import model
-from pathlib import Path
-from contextlib import redirect_stderr
 from filtering import wiener
-import io
 from torchaudio.functional import istft
+import torchaudio
 from typing import Optional
-
-
-class NoOp(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
-        return x
 
 
 class STFT(nn.Module):
@@ -43,12 +33,12 @@ class STFT(nn.Module):
         Output:(nb_samples, nb_channels, nb_bins, nb_frames, 2)
         """
 
-        nb_samples, nb_channels, nb_timesteps = x.size()
+        shape = x.size()
+        nb_samples, nb_channels, nb_timesteps = shape
 
-        # merge nb_samples and nb_channels for multichannel stft
-        x = x.reshape(nb_samples*nb_channels, -1)
+        # pack batch
+        x = x.view(-1, shape[-1])
 
-        # compute stft with parameters as close as possible scipy settings
         stft_f = torch.stft(
             x,
             n_fft=self.n_fft,
@@ -60,146 +50,65 @@ class STFT(nn.Module):
             pad_mode='reflect'
         )
 
-        # reshape back to channel dimension
-        stft_f = stft_f.contiguous().view(
-            nb_samples, nb_channels, self.n_fft // 2 + 1, -1, 2
-        )
+        # unpack batch
+        stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
+        # bring frames to first dimension for efficient lstm
         return stft_f
 
 
-class Spectrogram(nn.Module):
+class ComplexNorm(nn.Module):
     def __init__(
         self,
         power=1,
-        mono=True
+        mono=False
     ):
-        super(Spectrogram, self).__init__()
+        super(ComplexNorm, self).__init__()
         self.power = power
         self.mono = mono
 
     def forward(self, stft_f):
         """
         Input: complex STFT
-            (nb_samples, nb_bins, nb_frames, 2)
+            (nb_samples, nb_channels, nb_bins, nb_frames, 2)
         Output: Power/Mag Spectrogram
-            (nb_frames, nb_samples, nb_channels, nb_bins)
+            (nb_samples, nb_channels, nb_bins, nb_frames)
         """
-        stft_f = stft_f.transpose(2, 3)
         # take the magnitude
         stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
 
-        # downmix in the mag domain
+        # downmix in the mag domain to preserve energy
         if self.mono:
             stft_f = torch.mean(stft_f, 1, keepdim=True)
 
-        # permute output for LSTM convenience
-        return stft_f.permute(2, 0, 1, 3)
-
-
-def load_models(targets, model_name='umxhq', device='cpu', pretrained=True):
-    """
-    target model path can be either <target>.pth, or <target>-sha256.pth
-    (as used on torchub)
-    """
-    if isinstance(targets, str):
-        targets = [targets]
-
-    model_path = Path(model_name).expanduser()
-    if not model_path.exists():
-        # model path does not exist, use hubconf model
-        try:
-            # disable progress bar
-            err = io.StringIO()
-            with redirect_stderr(err):
-                return {
-                    target: torch.hub.load(
-                        'sigsep/open-unmix-pytorch',
-                        model_name,
-                        target=target,
-                        device=device,
-                        pretrained=pretrained
-                    )
-                    for target in targets}
-            print(err.getvalue())
-        except AttributeError:
-            raise NameError('Model does not exist on torchhub')
-            # assume model is a path to a local model_name direcotry
-    else:
-        models = {}
-        for target in targets:
-            # load model from disk
-            with open(Path(model_path, target + '.json'), 'r') as stream:
-                results = json.load(stream)
-
-            target_model_path = next(Path(model_path).glob("%s*.pth" % target))
-            state = torch.load(
-                target_model_path,
-                map_location=device
-            )
-
-            max_bin = utils.bandwidth_to_max_bin(
-                state['sample_rate'],
-                results['args']['nfft'],
-                results['args']['bandwidth']
-            )
-
-            models[target] = model.OpenUnmix(
-                n_fft=results['args']['nfft'],
-                n_hop=results['args']['nhop'],
-                nb_channels=results['args']['nb_channels'],
-                hidden_size=results['args']['hidden_size'],
-                max_bin=max_bin
-            )
-
-            if pretrained:
-                models[target].load_state_dict(state)
-                models[target].stft.center = True
-                models[target].eval()
-            models[target].to(device)
-        return models
+        return stft_f
 
 
 class OpenUnmix(nn.Module):
     def __init__(
         self,
-        n_fft=4096,
-        n_hop=1024,
-        input_is_spectrogram=False,
-        hidden_size=512,
+        nb_bins=4096,
         nb_channels=2,
-        sample_rate=44100,
+        hidden_size=512,
         nb_layers=3,
         input_mean=None,
         input_scale=None,
-        max_bin=None,
         unidirectional=False,
-        power=1
+        max_bin=None
     ):
         """
-        Input: (nb_samples, nb_channels, nb_timesteps)
-            or (nb_frames, nb_samples, nb_channels, nb_bins)
-        Output: Power/Mag Spectrogram
-                (nb_frames, nb_samples, nb_channels, nb_bins)
+        Input:  (nb_samples, nb_channels, nb_bins, nb_frames)
+        Output: (nb_samples, nb_channels, nb_bins, nb_frames)
         """
 
         super(OpenUnmix, self).__init__()
 
-        self.nb_output_bins = n_fft // 2 + 1
+        self.nb_output_bins = nb_bins
         if max_bin:
             self.nb_bins = max_bin
         else:
             self.nb_bins = self.nb_output_bins
 
         self.hidden_size = hidden_size
-
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=False)
-        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
-
-        if input_is_spectrogram:
-            self.transform = NoOp()
-        else:
-            self.transform = nn.Sequential(self.stft, self.spec)
 
         self.fc1 = Linear(
             self.nb_bins*nb_channels, hidden_size,
@@ -271,10 +180,9 @@ class OpenUnmix(nn.Module):
         self.eval()
 
     def forward(self, x):
-        # check for waveform or spectrogram
-        # transform to spectrogram if (nb_samples, nb_channels, nb_timesteps)
-        # and reduce feature dimensions, therefore we reshape
-        x = self.transform(x)
+        # permute so that batch is last for lstm
+        x = x.permute(3, 0, 1, 2)
+        # get current spectrogram shape
         nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
 
         mix = x.detach().clone()
@@ -319,8 +227,8 @@ class OpenUnmix(nn.Module):
 
         # since our output is non-negative, we can apply RELU
         x = F.relu(x) * mix
-
-        return x
+        # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+        return x.permute(1, 2, 3, 0)
 
 
 class Separator(nn.Module):
@@ -332,7 +240,7 @@ class Separator(nn.Module):
     ----------
     targets: dictionary of target models {target: model}
         the spectrogram models to be used by the Separator. Each model
-        may for instance be loaded with the `model.load_models` function
+        may for instance be loaded with the `utils.load_target_models` function
 
     niter: int
          Number of EM steps for refining initial estimates in a
@@ -354,12 +262,15 @@ class Separator(nn.Module):
     """
     def __init__(
         self,
-        targets: dict,
+        target_models: dict,
         niter: int = 0,
         softmask: bool = False,
         residual: bool = False,
-        wiener_win_len: Optional[int] = 300,
-        sample_rate: int = 44100
+        sample_rate: int = 44100,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        nb_channels: int = 2,
+        wiener_win_len: Optional[int] = 300
     ):
         super(Separator, self).__init__()
 
@@ -369,10 +280,13 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.complexnorm = ComplexNorm(power=1, mono=nb_channels == 1)
+
         # registering the targets models
-        self.targets = nn.ModuleDict(targets)
+        self.target_models = nn.ModuleDict(target_models)
         # adding till https://github.com/pytorch/pytorch/issues/38963
-        self.nb_targets = len(self.targets)
+        self.nb_targets = len(self.target_models)
         # get the sample_rate as the sample_rate of the first model
         # (tacitly assume it's the same for all targets)
         self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
@@ -404,10 +318,16 @@ class Separator(nn.Module):
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
-        for j, (target_name, target_module) in enumerate(self.targets.items()):
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        mix_stft = self.stft(audio)
+        X = self.complexnorm(mix_stft)
+        for j, (target_name, target_module) in enumerate(
+            self.target_models.items()
+        ):
 
             # apply current model to get the source spectrogram
-            target_spectrogram = target_module(audio)
+            target_spectrogram = target_module(X.detach().clone())
 
             # output is nb_frames, nb_samples, nb_channels, nb_bins
             if spectrograms is None:
@@ -422,11 +342,7 @@ class Separator(nn.Module):
 
         # transposing it as
         # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
-        spectrograms = spectrograms.permute(1, 0, 3, 2, 4)
-
-        # getting the STFT of mix:
-        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = target_module.stft(audio)
+        spectrograms = spectrograms.permute(0, 3, 2, 1, 4)
 
         # rearranging it into:
         # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
@@ -473,10 +389,10 @@ class Separator(nn.Module):
         # inverse STFTs
         estimates = istft(
             targets_stft,
-            n_fft=target_module.stft.n_fft,
-            hop_length=target_module.stft.n_hop,
-            window=target_module.stft.window,
-            center=target_module.stft.center,
+            n_fft=self.stft.n_fft,
+            hop_length=self.stft.n_hop,
+            window=self.stft.window,
+            center=self.stft.center,
             normalized=False,
             onesided=True,
             pad_mode='reflect',
@@ -503,7 +419,7 @@ class Separator(nn.Module):
         estimates_dict: Dict
         """
         estimates_dict = {}
-        for k, target in enumerate(self.targets):
+        for k, target in enumerate(self.target_models):
             estimates_dict[target] = estimates[:, k, ...]
 
         # in the case of residual, we added another source

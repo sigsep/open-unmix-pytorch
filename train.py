@@ -19,7 +19,7 @@ from torchaudio.datasets.utils import bg_iterator
 tqdm.monitor_interval = 0
 
 
-def train(args, unmix, device, train_sampler, optimizer):
+def train(args, unmix, encoder, device, train_sampler, optimizer):
     losses = utils.AverageMeter()
     unmix.train()
     pbar = tqdm.tqdm(train_sampler, disable=args.quiet)
@@ -27,8 +27,9 @@ def train(args, unmix, device, train_sampler, optimizer):
         pbar.set_description("Training batch")
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        Y_hat = unmix(x)
-        Y = unmix.transform(y)
+        X = encoder(x)
+        Y_hat = unmix(X)
+        Y = encoder(y)
         loss = torch.nn.functional.mse_loss(Y_hat, Y)
         loss.backward()
         optimizer.step()
@@ -36,26 +37,22 @@ def train(args, unmix, device, train_sampler, optimizer):
     return losses.avg
 
 
-def valid(args, unmix, device, valid_sampler):
+def valid(args, unmix, encoder, device, valid_sampler):
     losses = utils.AverageMeter()
     unmix.eval()
     with torch.no_grad():
         for x, y in valid_sampler:
             x, y = x.to(device), y.to(device)
-            Y_hat = unmix(x)
-            Y = unmix.transform(y)
+            X = encoder(x)
+            Y_hat = unmix(X)
+            Y = encoder(y)
             loss = torch.nn.functional.mse_loss(Y_hat, Y)
             losses.update(loss.item(), Y.size(1))
         return losses.avg
 
 
-def get_statistics(args, dataset):
+def get_statistics(args, encoder, dataset):
     scaler = sklearn.preprocessing.StandardScaler()
-
-    spec = torch.nn.Sequential(
-        model.STFT(n_fft=args.nfft, n_hop=args.nhop),
-        model.Spectrogram(mono=True)
-    )
 
     dataset_scaler = copy.deepcopy(dataset)
     dataset_scaler.samples_per_track = 1
@@ -68,7 +65,9 @@ def get_statistics(args, dataset):
     for ind in pbar:
         x, y = dataset_scaler[ind]
         pbar.set_description("Compute dataset statistics")
-        X = spec(x[None, ...])
+        # downmix to mono channel
+        X = encoder(x[None, ...]).mean(1, keepdim=False).permute(0, 2, 1)
+
         scaler.partial_fit(np.squeeze(X))
 
     # set inital input scaler values
@@ -127,13 +126,15 @@ def main():
     parser.add_argument('--nhop', type=int, default=1024,
                         help='STFT hop size')
     parser.add_argument('--hidden-size', type=int, default=512,
-                        help='hidden size parameter of dense bottleneck layers')
+                        help='hidden size parameter of bottleneck layers')
     parser.add_argument('--bandwidth', type=int, default=16000,
                         help='maximum model bandwidth in herz')
     parser.add_argument('--nb-channels', type=int, default=2,
                         help='set number of channels for model (1, 2)')
     parser.add_argument('--nb-workers', type=int, default=0,
                         help='Number of workers for dataloader.')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='Speed up training init for dev purposes')
 
     # Misc Parameters
     parser.add_argument('--quiet', action='store_true', default=False,
@@ -175,15 +176,29 @@ def main():
         valid_dataset, batch_size=1,
         **dataloader_kwargs
     )
-
     # enable queuing
     train_sampler = bg_iterator(train_sampler, 4)
 
-    if args.model:
+    encoder = torch.nn.Sequential(
+        model.STFT(n_fft=args.nfft, n_hop=args.nhop),
+        model.ComplexNorm(mono=args.nb_channels == 1)
+    ).to(device)
+
+    separator_conf = {
+        'nfft': args.nfft,
+        'nhop': args.nhop,
+        'sample_rate': train_dataset.sample_rate,
+        'nb_channels': args.nb_channels
+    }
+
+    with open(Path(target_path, 'separator.json'), 'w') as outfile:
+        outfile.write(json.dumps(separator_conf, indent=4, sort_keys=True))
+
+    if args.model or args.debug:
         scaler_mean = None
         scaler_std = None
     else:
-        scaler_mean, scaler_std = get_statistics(args, train_dataset)
+        scaler_mean, scaler_std = get_statistics(args, encoder, train_dataset)
 
     max_bin = utils.bandwidth_to_max_bin(
         train_dataset.sample_rate, args.nfft, args.bandwidth
@@ -192,12 +207,10 @@ def main():
     unmix = model.OpenUnmix(
         input_mean=scaler_mean,
         input_scale=scaler_std,
+        nb_bins=args.nfft // 2 + 1,
         nb_channels=args.nb_channels,
         hidden_size=args.hidden_size,
-        n_fft=args.nfft,
-        n_hop=args.nhop,
-        max_bin=max_bin,
-        sample_rate=train_dataset.sample_rate
+        max_bin=max_bin
     ).to(device)
 
     optimizer = torch.optim.Adam(
@@ -223,7 +236,7 @@ def main():
 
         target_model_path = Path(model_path, args.target + ".chkpnt")
         checkpoint = torch.load(target_model_path, map_location=device)
-        unmix.load_state_dict(checkpoint['state_dict'])
+        unmix.load_state_dict(checkpoint['state_dict'], strict=False)
         optimizer.load_state_dict(checkpoint['optimizer'])
         scheduler.load_state_dict(checkpoint['scheduler'])
         # train for another epochs_trained
@@ -249,8 +262,12 @@ def main():
     for epoch in t:
         t.set_description("Training Epoch")
         end = time.time()
-        train_loss = train(args, unmix, device, train_sampler, optimizer)
-        valid_loss = valid(args, unmix, device, valid_sampler)
+        train_loss = train(
+            args, unmix, encoder, device, train_sampler, optimizer
+        )
+        valid_loss = valid(
+            args, unmix, encoder, device, valid_sampler
+        )
         scheduler.step(valid_loss)
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)

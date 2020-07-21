@@ -3,9 +3,9 @@ import argparse
 import json
 from pathlib import Path
 import torchaudio
-import model
 from model import Separator
 import utils
+import hubconf
 
 
 def inference_args(parser, remaining_args):
@@ -68,7 +68,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--targets',
         nargs='+',
-        default=['vocals', 'drums', 'bass', 'other'],
         type=str,
         help='provide targets to be processed. \
               If none, all available targets will be computed'
@@ -123,23 +122,21 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    # create the Separator object
-    targets = model.load_models(
-        targets=args.targets,
-        model_name=args.model
-    )
-
     # parsing the output dict
     aggregate_dict = None if args.aggregate is None else json.loads(
         args.aggregate
     )
 
-    separator = Separator(
-        targets=targets,
+    separator = utils.load_separator(
+        model_str_or_path=args.model,
+        targets=args.targets,
         niter=args.niter,
         residual=args.residual,
-        wiener_win_len=args.wiener_win_len
-    ).to(device)
+        wiener_win_len=args.wiener_win_len,
+        device=device,
+        pretrained=True
+    )
+
     separator.freeze()
 
     # loop over the files
@@ -151,7 +148,10 @@ if __name__ == '__main__':
 
         # getting the separated signals
         estimates = separator(audio)
-        estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
+        estimates = separator.to_dict(
+            estimates,
+            aggregate_dict=aggregate_dict
+        )
 
         if not args.outdir:
             model_path = Path(args.model)
@@ -165,8 +165,9 @@ if __name__ == '__main__':
 
         # write out estimates
         for target, estimate in estimates.items():
+            target_path = str(outdir / Path(target).with_suffix('.wav'))
             torchaudio.save(
-                 str(outdir / Path(target).with_suffix('.wav')),
+                 target_path,
                  torch.squeeze(estimate),
                  separator.sample_rate
             )

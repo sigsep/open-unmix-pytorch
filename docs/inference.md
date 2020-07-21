@@ -30,7 +30,7 @@ At the core of the process of separating audio is the `Separator` Module which
 takes a numpy audio array or a torch.Tensor as input (the mixture) and separates into `targets` stems.
 Note, that for each target a separate model will be loaded and the user would need to know if
 a particular target is available. E.g. for `umx` and `umxhq` the supported targets are
-`['vocals', 'drums', 'bass', 'other']`. The model can be specified using `model_name` parameter.
+`['vocals', 'drums', 'bass', 'other']`. The model can be specified using `model_str_or_path` parameter.
 Both models `umx` and `umxhq` are downloaded automatically.
 
 the constructor for the Separator class takes the following arguments, with suggested default values:
@@ -38,8 +38,7 @@ the constructor for the Separator class takes the following arguments, with sugg
 ```python
 class Separator(nn.Module):
   def __init__(
-    targets,
-    model_name='umxhq',
+    target_models,
     niter=1,
     softmask=False,
     alpha=1.0,
@@ -59,9 +58,6 @@ class Separator(nn.Module):
         a list of the separation targets.
         Note that for each target a separate model is expected
         to be loaded.
-
-    model_name: str
-        name of torchhub model or path to model folder, defaults to `umxhq`
 
     niter: int
          Number of EM steps for refining initial estimates in a

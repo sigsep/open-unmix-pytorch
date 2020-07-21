@@ -4,25 +4,7 @@ import torch
 import model
 import test
 import torchaudio
-
-
-def istft(
-    X,
-    rate=44100,
-    n_fft=4096,
-    n_hopsize=1024,
-    center=True
-):
-    return torchaudio.functional.istft(
-        X,
-        n_fft=n_fft,
-        hop_length=n_hopsize,
-        window=torch.hann_window(n_fft),
-        center=center,
-        normalized=False,
-        onesided=True,
-        pad_mode='reflect'
-    )
+from torchaudio.functional import istft
 
 
 @pytest.fixture(params=[4096, 4096*10])
@@ -55,24 +37,25 @@ def audio(request, nb_samples, nb_channels, nb_timesteps):
     return torch.rand((nb_samples, nb_channels, nb_timesteps))
 
 
-@pytest.mark.parametrize(
-    ("center"),
-    [
-        True,
-        pytest.param(
-            False,
-            marks=pytest.mark.xfail(
-                reason="https://github.com/pytorch/audio/issues/500"
-            )
-        ),
-    ],
-)
-def test_stft(audio, nb_channels, nfft, hop, center):
-    unmix = model.OpenUnmix(nb_channels=nb_channels)
-    unmix.stft.center = center
-    X = unmix.stft(audio)
+def test_stft(audio, nb_channels, nfft, hop):
+    # we should only test for center=True as
+    # False doesn't pass COLA
+    # https://github.com/pytorch/audio/issues/500
+    stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
+    X = stft(audio)
     X = X.detach()
-    out = istft(X, center=center)
+    out = istft(
+        X,
+        n_fft=nfft,
+        hop_length=hop,
+        window=stft.window,
+        center=stft.center,
+        normalized=False,
+        onesided=True,
+        pad_mode='reflect',
+        length=audio.shape[-1]
+    )
+
     assert np.sqrt(
         np.mean((audio.detach().numpy() - out.detach().numpy())**2)
     ) < 1e-6
