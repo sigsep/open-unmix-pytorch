@@ -338,8 +338,8 @@ class AlignedDataset(torch.utils.data.Dataset):
         p = Path(self.root, self.split)
         for track_path in tqdm.tqdm(p.iterdir()):
             if track_path.is_dir():
-                input_path = sorted(list(track_path.glob(self.input_file)))
-                output_path = sorted(list(track_path.glob(self.output_file)))
+                input_path = list(track_path.glob(self.input_file))
+                output_path = list(track_path.glob(self.output_file))
                 if input_path and output_path:
                     if self.seq_duration is not None:
                         input_info = load_info(input_path[0])
@@ -370,17 +370,18 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         source_augmentations=lambda audio: audio,
         seed=42
     ):
-        """A dataset of that assumes folders of sources,
+        """A dataset that assumes folders of sources,
         instead of track folders. This is a common
         format for speech and environmental sound datasets
         such das DCASE. For each source a variable number of
         tracks/sounds is available, therefore the dataset
         is unaligned by design.
 
-        By default, for each sample, random tracks are drawn
-        to assemble the mixture. This can be turned off using the
-        `random_tracks` switch. This is useful for deterministic
-        behaviour such as validation mode or when collection
+        By default, for each sample, sources from random track are drawn
+        to assemble the mixture (`random_tracks=True`).
+        This can be controlled using the `random_tracks` switch.
+        Setting it `False` is useful for deterministic behaviour
+        such as validation mode or when collecting
         train data statistics.
 
         Example
@@ -474,7 +475,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         sample_rate=44100,
         seed=42
     ):
-        """A dataset of that assumes audio sources to be stored
+        """A dataset that assumes audio sources to be stored
         in track folder where each track has a fixed number of sources.
         For each track the users specifies the target file-name (`target_file`)
         and a list of interferences files (`interferer_files`).
@@ -605,7 +606,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
         source_augmentations=lambda audio: audio,
         silence_missing_targets=False
     ):
-        """A dataset of that assumes audio sources to be stored
+        """A dataset that assumes audio sources to be stored
         in track folder where each track has a _variable_ number of sources.
         The users specifies the target file-name (`target_file`)
         and the extension of sources to used for mixing.
