@@ -331,8 +331,8 @@ class AlignedDataset(torch.utils.data.Dataset):
         p = Path(self.root, self.split)
         for track_path in tqdm.tqdm(p.iterdir()):
             if track_path.is_dir():
-                input_path = list(track_path.glob(self.input_file))
-                output_path = list(track_path.glob(self.output_file))
+                input_path = sorted(list(track_path.glob(self.input_file)))
+                output_path = sorted(list(track_path.glob(self.output_file)))
                 if input_path and output_path:
                     if self.seq_duration is not None:
                         input_info = load_info(input_path[0])
@@ -440,7 +440,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         for source_folder in tqdm.tqdm(self.source_folders):
             tracks = []
             source_path = (p / source_folder)
-            for source_track_path in source_path.glob('*' + self.ext):
+            for source_track_path in sorted(source_path.glob('*' + self.ext)):
                 if self.seq_duration is not None:
                     info = load_info(source_track_path)
                     # get minimum duration of track
@@ -464,6 +464,7 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         random_track_mix=False,
         source_augmentations=lambda audio: audio,
         sample_rate=44100,
+        seed=42
     ):
         """A dataset of that assumes audio sources to be stored
         in track folder where each track has a fixed number of sources.
@@ -505,6 +506,9 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
         self.target_file = target_file
         self.interferer_files = interferer_files
         self.source_files = self.interferer_files + [self.target_file]
+        self.seed = seed
+        random.seed(self.seed)
+
         self.tracks = list(self.get_tracks())
         if not len(self.tracks):
             raise RuntimeError("No tracks found")
@@ -658,7 +662,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
             intfr_start = target_start
 
         # get sources from interferer track
-        sources = list(intfr_track_path.glob('*' + self.ext))
+        sources = sorted(list(intfr_track_path.glob('*' + self.ext)))
 
         # load sources
         x = 0
@@ -703,7 +707,7 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
                 if Path(
                     track_path, self.target_file
                 ).exists() or self.silence_missing_targets:
-                    sources = list(track_path.glob('*' + self.ext))
+                    sources = sorted(list(track_path.glob('*' + self.ext)))
                     if not sources:
                         # in case of empty folder
                         print("empty track: ", track_path)
