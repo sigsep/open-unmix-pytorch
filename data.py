@@ -358,8 +358,10 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         nb_samples=1000,
         seq_duration=None,
         random_chunks=False,
+        random_tracks=True,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
+        seed=42
     ):
         """A dataset of that assumes folders of sources,
         instead of track folders. This is a common
@@ -367,6 +369,12 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         such das DCASE. For each source a variable number of
         tracks/sounds is available, therefore the dataset
         is unaligned by design.
+
+        By default, for each sample, random tracks are drawn
+        to assemble the mixture. This can be turned off using the
+        `random_tracks` switch. This is useful for deterministic
+        behaviour such as validation mode or when collection
+        train data statistics.
 
         Example
         =======
@@ -389,18 +397,20 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self.source_folders = self.interferer_dirs + [self.target_dir]
         self.source_tracks = self.get_tracks()
         self.nb_samples = nb_samples
+        self.random_tracks = random_tracks
+        random.seed(self.seed)
+        self.seed = seed
 
     def __getitem__(self, index):
-        # for validation, get deterministic behavior
-        # by using the index as seed
-        if self.split == 'valid':
-            random.seed(index)
-
         # For each source draw a random sound and mix them together
         audio_sources = []
         for source in self.source_folders:
             # select a random track for each source
-            source_path = random.choice(self.source_tracks[source])
+            if self.random_tracks:
+                source_path = random.choice(self.source_tracks[source])
+            else:
+                source_path = self.source_tracks[source][index]
+
             if self.random_chunks:
                 # for each source, select a random chunk
                 duration = load_info(source_path)['duration']
