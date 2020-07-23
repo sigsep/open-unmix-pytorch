@@ -61,6 +61,10 @@ def get_statistics(args, encoder, dataset):
     dataset_scaler.random_track_mix = False
     dataset_scaler.random_interferer_mix = False
     dataset_scaler.seq_duration = None
+
+    if isinstance(dataset_scaler, data.SourceFolderDataset):
+        dataset_scaler.random_tracks = False
+
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
         x, y = dataset_scaler[ind]
