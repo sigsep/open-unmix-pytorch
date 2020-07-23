@@ -105,6 +105,11 @@ def load_datasets(parser, args):
         parser.add_argument('--nb-train-samples', type=int, default=1000)
         parser.add_argument('--nb-valid-samples', type=int, default=100)
         parser.add_argument(
+            '--no-random-tracks',
+            action='store_true',
+            default=False
+        )
+        parser.add_argument(
             '--source-augmentations', type=str, nargs='+',
             default=['gain', 'channelswap']
         )
@@ -126,6 +131,7 @@ def load_datasets(parser, args):
             split='train',
             source_augmentations=source_augmentations,
             random_chunks=True,
+            random_tracks=True,
             nb_samples=args.nb_train_samples,
             seq_duration=args.seq_dur,
             **dataset_kwargs
@@ -134,6 +140,7 @@ def load_datasets(parser, args):
         valid_dataset = SourceFolderDataset(
             split='valid',
             random_chunks=True,
+            random_tracks=False,
             seq_duration=args.seq_dur,
             nb_samples=args.nb_valid_samples,
             **dataset_kwargs
@@ -398,8 +405,8 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self.source_tracks = self.get_tracks()
         self.nb_samples = nb_samples
         self.random_tracks = random_tracks
-        random.seed(self.seed)
         self.seed = seed
+        random.seed(self.seed)
 
     def __getitem__(self, index):
         # For each source draw a random sound and mix them together
@@ -407,9 +414,10 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         for source in self.source_folders:
             # select a random track for each source
             if self.random_tracks:
-                source_path = random.choice(self.source_tracks[source])
-            else:
-                source_path = self.source_tracks[source][index]
+                # provide deterministic behaviour
+                random.seed(index)
+
+            source_path = random.choice(self.source_tracks[source])
 
             if self.random_chunks:
                 # for each source, select a random chunk
@@ -783,6 +791,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
             initialization function.
 
         """
+        self.seed = seed
         random.seed(seed)
         self.is_wav = is_wav
         self.seq_duration = seq_duration
