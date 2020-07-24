@@ -356,7 +356,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         ext='.flac',
         nb_samples=1000,
         seq_duration=None,
-        random_chunks=False,
+        random_chunks=True,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
         seed=42
