@@ -45,9 +45,10 @@ def test_sourcefolder():
         root="TrackfolderDataset",
         sample_rate=8000,
         target_dir='1',
-        interferer_dirs=['2', '3', '4'],
+        interferer_dirs=['2', '3'],
         ext='.wav',
-        nb_samples=3
+        nb_samples=20
     )
-    for x, y in train_dataset:
+    for k in range(len(train_dataset)):
+        x, y = train_dataset[k]
         assert x.shape[-1] == 8000
