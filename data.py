@@ -114,11 +114,6 @@ def load_datasets(parser, args):
         parser.add_argument('--nb-train-samples', type=int, default=1000)
         parser.add_argument('--nb-valid-samples', type=int, default=100)
         parser.add_argument(
-            '--no-random-tracks',
-            action='store_true',
-            default=False
-        )
-        parser.add_argument(
             '--source-augmentations', type=str, nargs='+'
         )
         args = parser.parse_args()
