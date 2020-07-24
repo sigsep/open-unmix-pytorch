@@ -55,12 +55,17 @@ def get_statistics(args, encoder, dataset):
     scaler = sklearn.preprocessing.StandardScaler()
 
     dataset_scaler = copy.deepcopy(dataset)
+    if isinstance(dataset_scaler, data.SourceFolderDataset):
+        dataset_scaler.random_chunks = False
+    else:
+        dataset_scaler.random_chunks = False
+        dataset_scaler.seq_duration = None
+
     dataset_scaler.samples_per_track = 1
     dataset_scaler.augmentations = None
-    dataset_scaler.random_chunks = False
     dataset_scaler.random_track_mix = False
     dataset_scaler.random_interferer_mix = False
-    dataset_scaler.seq_duration = None
+
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
         x, y = dataset_scaler[ind]
@@ -176,8 +181,6 @@ def main():
         valid_dataset, batch_size=1,
         **dataloader_kwargs
     )
-    # enable queuing
-    train_sampler = bg_iterator(train_sampler, 4)
 
     encoder = torch.nn.Sequential(
         model.STFT(n_fft=args.nfft, n_hop=args.nhop),
@@ -227,6 +230,9 @@ def main():
     )
 
     es = utils.EarlyStopping(patience=args.patience)
+
+    # enable queuing
+    train_sampler = bg_iterator(train_sampler, 4)
 
     # if a model is specified: resume training
     if args.model:

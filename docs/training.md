@@ -36,7 +36,7 @@ Some of the parameters for the MUSDB sampling can be controlled using the follow
 |---------------------|-----------------------------------------------|--------------|
 | `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `True`      |
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
-| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
+| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing, available augmentations: `[gain, channelswap]`| no augmentations       |
 
 ## Training and Model Parameters
 
@@ -150,7 +150,7 @@ train/vocals/track11.wav ---------------------> output
 |`--ext <str>` | File extension | `.wav` |
 |`--nb-train-samples <str>` | Number of samples drawn for training | `1000` |
 |`--nb-valid-samples <str>` | Number of samples drawn for validation | `100` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 
@@ -186,7 +186,7 @@ train/1/vocals.wav -------------------> output
 |`--target-file <str>` | Target file (includes extension) | `None` |
 |`--interferer-files list[<str>]` | list of interfering sources | `None` |
 |`--random-track-mix` | Applies random track mixing | `False` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 
@@ -222,7 +222,7 @@ train/1/vocals.wav -----------------------> output
 |`--silence-missing-targets` | if a target is not among the list of sources it will be filled with zero | not set |
 |`random interferer mixing` | use _random track_ for the inference track to increase generalization of the model. | not set |
 |`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 
