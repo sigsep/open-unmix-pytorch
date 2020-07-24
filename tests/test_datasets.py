@@ -10,4 +10,44 @@ def test_musdb():
         seq_duration=1.0
     )
     for x, y in musdb:
-        print(x.mean())
+        assert x.shape[-1] == 44100
+
+
+def test_trackfolder_fix():
+    train_dataset = data.FixedSourcesTrackFolderDataset(
+        split='train',
+        seq_duration=1.0,
+        root="TrackfolderDataset",
+        sample_rate=8000,
+        target_file='1.wav',
+        interferer_files=['2.wav', '3.wav', '4.wav'],
+    )
+    for x, y in train_dataset:
+        assert x.shape[-1] == 8000
+
+
+def test_trackfolder_var():
+    train_dataset = data.VariableSourcesTrackFolderDataset(
+        split='train',
+        seq_duration=1.0,
+        root="TrackfolderDataset",
+        sample_rate=8000,
+        target_file='1.wav',
+    )
+    for x, y in train_dataset:
+        assert x.shape[-1] == 8000
+
+
+def test_sourcefolder():
+    train_dataset = data.SourceFolderDataset(
+        split='train',
+        seq_duration=1.0,
+        root="TrackfolderDataset",
+        sample_rate=8000,
+        target_dir='1',
+        interferer_dirs=['2', '3', '4'],
+        ext='.wav',
+        nb_samples=3
+    )
+    for x, y in train_dataset:
+        assert x.shape[-1] == 8000

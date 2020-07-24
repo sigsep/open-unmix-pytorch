@@ -353,7 +353,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         split='train',
         target_dir='vocals',
         interferer_dirs=['bass', 'drums'],
-        ext='.flac',
+        ext='.wav',
         nb_samples=1000,
         seq_duration=None,
         random_chunks=True,
