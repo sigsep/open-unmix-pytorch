@@ -38,6 +38,15 @@ def load_audio(path, start=0, dur=None):
         return sig
 
 
+def aug_from_str(list_of_function_names):
+    if list_of_function_names:
+        return Compose(
+            [globals()['_augment_' + aug] for aug in list_of_function_names]
+        )
+    else:
+        return lambda audio: audio
+
+
 class Compose(object):
     """Composes several augmentation transforms.
     Args:
@@ -110,8 +119,7 @@ def load_datasets(parser, args):
             default=False
         )
         parser.add_argument(
-            '--source-augmentations', type=str, nargs='+',
-            default=['gain', 'channelswap']
+            '--source-augmentations', type=str, nargs='+'
         )
         args = parser.parse_args()
         args.target = args.target_dir
@@ -123,9 +131,7 @@ def load_datasets(parser, args):
             'ext': args.ext
         }
 
-        source_augmentations = Compose(
-            [globals()['_augment_' + aug] for aug in args.source_augmentations]
-        )
+        source_augmentations = aug_from_str(args.source_augmentations)
 
         train_dataset = SourceFolderDataset(
             split='train',
@@ -155,8 +161,7 @@ def load_datasets(parser, args):
             help='Apply random track mixing augmentation'
         )
         parser.add_argument(
-            '--source-augmentations', type=str, nargs='+',
-            default=['gain', 'channelswap']
+            '--source-augmentations', type=str, nargs='+'
         )
 
         args = parser.parse_args()
@@ -168,9 +173,7 @@ def load_datasets(parser, args):
             'target_file': args.target_file
         }
 
-        source_augmentations = Compose(
-            [globals()['_augment_' + aug] for aug in args.source_augmentations]
-        )
+        source_augmentations = aug_from_str(args.source_augmentations)
 
         train_dataset = FixedSourcesTrackFolderDataset(
             split='train',
@@ -190,8 +193,7 @@ def load_datasets(parser, args):
         parser.add_argument('--ext', type=str, default=".wav")
         parser.add_argument('--target-file', type=str)
         parser.add_argument(
-            '--source-augmentations', type=str, nargs='+',
-            default=['gain', 'channelswap']
+            '--source-augmentations', type=str, nargs='+'
         )
         parser.add_argument(
             '--random-interferer-mix',
@@ -236,8 +238,7 @@ def load_datasets(parser, args):
                             help='loads wav instead of STEMS')
         parser.add_argument('--samples-per-track', type=int, default=64)
         parser.add_argument(
-            '--source-augmentations', type=str, nargs='+',
-            default=['gain', 'channelswap']
+            '--source-augmentations', type=str, nargs='+'
         )
 
         args = parser.parse_args()
@@ -250,9 +251,7 @@ def load_datasets(parser, args):
             'seed': args.seed
         }
 
-        source_augmentations = Compose(
-            [globals()['_augment_' + aug] for aug in args.source_augmentations]
-        )
+        source_augmentations = aug_from_str(args.source_augmentations)
 
         train_dataset = MUSDBDataset(
             split='train',
