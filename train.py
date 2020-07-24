@@ -180,8 +180,6 @@ def main():
         valid_dataset, batch_size=1,
         **dataloader_kwargs
     )
-    # enable queuing
-    train_sampler = bg_iterator(train_sampler, 4)
 
     encoder = torch.nn.Sequential(
         model.STFT(n_fft=args.nfft, n_hop=args.nhop),
@@ -231,6 +229,9 @@ def main():
     )
 
     es = utils.EarlyStopping(patience=args.patience)
+
+    # enable queuing
+    train_sampler = bg_iterator(train_sampler, 4)
 
     # if a model is specified: resume training
     if args.model:
