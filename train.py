@@ -56,14 +56,15 @@ def get_statistics(args, encoder, dataset):
 
     dataset_scaler = copy.deepcopy(dataset)
     if isinstance(dataset_scaler, data.SourceFolderDataset):
-        dataset_scaler.random_tracks = False
-        dataset_scaler.random_chunks = True
+        dataset_scaler.random_chunks = False
     else:
-        dataset_scaler.samples_per_track = 1
-        dataset_scaler.augmentations = None
-        dataset_scaler.random_track_mix = False
-        dataset_scaler.random_interferer_mix = False
+        dataset_scaler.random_chunks = False
         dataset_scaler.seq_duration = None
+
+    dataset_scaler.samples_per_track = 1
+    dataset_scaler.augmentations = None
+    dataset_scaler.random_track_mix = False
+    dataset_scaler.random_interferer_mix = False
 
     pbar = tqdm.tqdm(range(len(dataset_scaler)), disable=args.quiet)
     for ind in pbar:
