@@ -25,7 +25,7 @@ install:
   - conda install -c conda-forge sox 
   - pip install codecov
   - pip install pytest pytest-cov
-  - sh tests/create_dummy_datasets.sh
+  - bash tests/create_dummy_datasets.sh
 
 script:
   - py.test tests --cov=./
