@@ -137,7 +137,6 @@ def load_datasets(parser, args):
             split='train',
             source_augmentations=source_augmentations,
             random_chunks=True,
-            random_tracks=True,
             nb_samples=args.nb_train_samples,
             seq_duration=args.seq_dur,
             **dataset_kwargs
@@ -146,7 +145,6 @@ def load_datasets(parser, args):
         valid_dataset = SourceFolderDataset(
             split='valid',
             random_chunks=True,
-            random_tracks=False,
             seq_duration=args.seq_dur,
             nb_samples=args.nb_valid_samples,
             **dataset_kwargs
@@ -364,7 +362,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         nb_samples=1000,
         seq_duration=None,
         random_chunks=False,
-        random_tracks=True,
         sample_rate=44100,
         source_augmentations=lambda audio: audio,
         seed=42
@@ -375,13 +372,8 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         such das DCASE. For each source a variable number of
         tracks/sounds is available, therefore the dataset
         is unaligned by design.
-
         By default, for each sample, sources from random track are drawn
-        to assemble the mixture (`random_tracks=True`).
-        This can be controlled using the `random_tracks` switch.
-        Setting it `False` is useful for deterministic behaviour
-        such as validation mode or when collecting
-        train data statistics.
+        to assemble the mixture.
 
         Example
         =======
@@ -404,7 +396,6 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         self.source_folders = self.interferer_dirs + [self.target_dir]
         self.source_tracks = self.get_tracks()
         self.nb_samples = nb_samples
-        self.random_tracks = random_tracks
         self.seed = seed
         random.seed(self.seed)
 
@@ -412,19 +403,20 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         # For each source draw a random sound and mix them together
         audio_sources = []
         for source in self.source_folders:
-            # select a random track for each source
-            if self.random_tracks:
-                # provide deterministic behaviour
+            if self.split == 'valid':
+                # provide deterministic behaviour for validation so that
+                # each epoch, the same tracks are yielded
                 random.seed(index)
 
+            # select a random track for each source
             source_path = random.choice(self.source_tracks[source])
-
+            duration = load_info(source_path)['duration']
             if self.random_chunks:
                 # for each source, select a random chunk
-                duration = load_info(source_path)['duration']
                 start = random.uniform(0, duration - self.seq_duration)
             else:
-                start = 0
+                # use center segment
+                start = max(duration // 2 - self.seq_duration // 2, 0)
 
             audio = load_audio(
                 source_path, start=start, dur=self.seq_duration
@@ -831,6 +823,7 @@ class MUSDBDataset(torch.utils.data.Dataset):
                     track = random.choice(self.mus.tracks)
 
                 # set the excerpt duration
+
                 track.chunk_duration = self.seq_duration
                 # set random start position
                 track.chunk_start = random.uniform(
