@@ -25,7 +25,7 @@ install:
   - conda install -c conda-forge sox 
   - pip install codecov
   - pip install pytest pytest-cov
-  - ./prepare_tests.sh
+  - sh prepare_tests.sh
 
 script:
   - py.test tests --cov=./
