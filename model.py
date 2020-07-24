@@ -52,7 +52,6 @@ class STFT(nn.Module):
 
         # unpack batch
         stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
-        # bring frames to first dimension for efficient lstm
         return stft_f
 
 
