@@ -52,6 +52,7 @@ def valid(args, unmix, encoder, device, valid_sampler):
 
 
 def get_statistics(args, encoder, dataset):
+    encoder = copy.deepcopy(encoder).to('cpu')
     scaler = sklearn.preprocessing.StandardScaler()
 
     dataset_scaler = copy.deepcopy(dataset)
