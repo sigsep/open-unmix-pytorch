@@ -76,6 +76,18 @@ def _augment_channelswap(audio):
         return audio
 
 
+def _augment_force_stereo(audio):
+    # for multichannel > 2, we drop the other channels
+    if audio.shape[0] > 2:
+        audio = audio[:2, ...]
+
+    if audio.shape[0] == 1:
+        # if we have mono, we duplicate it to get stereo
+        audio = torch.repeat_interleave(audio, 2, dim=0)
+
+    return audio
+
+
 def load_datasets(parser, args):
     """Loads the specified dataset from commandline arguments
 
@@ -418,6 +430,7 @@ class SourceFolderDataset(torch.utils.data.Dataset):
             )
             audio = self.source_augmentations(audio)
             audio_sources.append(audio)
+
         stems = torch.stack(audio_sources)
         # # apply linear mix over source index=0
         x = stems.sum(0)
