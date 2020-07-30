@@ -31,6 +31,7 @@ def test_channelswap(audio):
     assert out.shape == audio.shape
 
 
-def test_forcestereo(audio):
+def test_forcestereo(audio, nb_channels):
     out = data._augment_force_stereo(audio)
-    assert out.shape == audio.shape
+    assert out.shape[-1] == audio.shape[-1]
+    assert out.shape[0] == 2
