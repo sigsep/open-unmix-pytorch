@@ -79,7 +79,7 @@ def _augment_channelswap(audio):
 def _augment_force_stereo(audio):
     # for multichannel > 2, we drop the other channels
     if audio.shape[0] > 2:
-        audio = audio[..., :2]
+        audio = audio[:2, ...]
 
     if audio.shape[0] == 1:
         # if we have mono, we duplicate it to get stereo
