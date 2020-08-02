@@ -1,5 +1,6 @@
 from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
 import torch
+from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import utils
@@ -12,6 +13,19 @@ from typing import Optional
 
 
 class STFT(nn.Module):
+    """Multichannel Short-Time-Fourier Forward transform
+
+    uses hard coded hann_window.
+
+    Args:
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+    """
     def __init__(
         self,
         n_fft=4096,
@@ -27,10 +41,16 @@ class STFT(nn.Module):
         self.n_hop = n_hop
         self.center = center
 
-    def forward(self, x):
-        """
-        Input: (nb_samples, nb_channels, nb_timesteps)
-        Output:(nb_samples, nb_channels, nb_bins, nb_frames, 2)
+    def forward(self, x: Tensor) -> Tensor:
+        """STFT forward path
+
+        Args:
+            x (Tensor): audio waveform of
+                shape (nb_samples, nb_channels, nb_timesteps)
+        Returns:
+            STFT (Tensor): complex stft of
+                shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+                last axis is stacked real and imaginary
         """
 
         shape = x.size()
@@ -56,24 +76,36 @@ class STFT(nn.Module):
 
 
 class ComplexNorm(nn.Module):
+    r"""Compute the norm of complex tensor input.
+
+    Extension of `torchaudio.functional.complex_norm` with mono
+
+    Args:
+        power (float): Power of the norm. (Default: `1.0`).
+        mono (bool): Downmix to single channel after applying power norm
+            to maximize
+    """
+
     def __init__(
         self,
-        power=1,
-        mono=False
+        power: float = 1.0,
+        mono: bool = False
     ):
         super(ComplexNorm, self).__init__()
         self.power = power
         self.mono = mono
 
-    def forward(self, stft_f):
+    def forward(self, stft_f: Tensor) -> Tensor:
         """
-        Input: complex STFT
-            (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        Output: Power/Mag Spectrogram
-            (nb_samples, nb_channels, nb_bins, nb_frames)
+        Input: complex_tensor (Tensor): Tensor shape of
+            (..., complex=2)
+        Output: Power/Mag of input Tensor (Tensor)
+            (...,)
         """
         # take the magnitude
-        stft_f = stft_f.pow(2).sum(-1).pow(self.power / 2.0)
+        stft_f = torchaudio.functional.complex_norm(
+            stft_f, power=self.power
+        )
 
         # downmix in the mag domain to preserve energy
         if self.mono:
@@ -83,22 +115,34 @@ class ComplexNorm(nn.Module):
 
 
 class OpenUnmix(nn.Module):
+    """OpenUnmix Core spectrogram based separation module.
+
+    Args:
+        nb_bins (int): Number of input time-frequency bins (Default: `4096`).
+        nb_channels (int): Number of input audio channels (Default: `2`).
+        hidden_size (int): Size for bottleneck layers (Default: `512`).
+        nb_layers (int): Number of Bi-LSTM layers (Default: `3`).
+        unidirectional (bool): Use causal model useful for realtime purpose.
+            (Default `False`)
+        input_mean (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to zeros(nb_bins)
+        input_scale (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to ones(nb_bins)
+        max_bin (int or None): Internal frequency bin threshold to
+            reduce high frequency content. Defaults to `None` which results
+            in `nb_bins`
+    """
     def __init__(
         self,
         nb_bins=4096,
         nb_channels=2,
         hidden_size=512,
         nb_layers=3,
+        unidirectional=False,
         input_mean=None,
         input_scale=None,
-        unidirectional=False,
         max_bin=None
     ):
-        """
-        Input:  (nb_samples, nb_channels, nb_bins, nb_frames)
-        Output: (nb_samples, nb_channels, nb_bins, nb_frames)
-        """
-
         super(OpenUnmix, self).__init__()
 
         self.nb_output_bins = nb_bins
@@ -178,7 +222,12 @@ class OpenUnmix(nn.Module):
             p.requires_grad = False
         self.eval()
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Input:  (nb_samples, nb_channels, nb_bins, nb_frames)
+        Output: (nb_samples, nb_channels, nb_bins, nb_frames)
+        """
+
         # permute so that batch is last for lstm
         x = x.permute(3, 0, 1, 2)
         # get current spectrogram shape
@@ -297,17 +346,17 @@ class Separator(nn.Module):
             p.requires_grad = False
         self.eval()
 
-    def forward(self, audio):
+    def forward(self, audio: Tensor) -> Tensor:
         """Performing the separation on audio input
 
         Parameters
         ----------
-        audio: torch.Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
+        audio: Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
                 mixture audio
 
         Returns
         -------
-        estimates: `torch.Tensor`
+        estimates: `Tensor`
                    shape(nb_samples, nb_targets, nb_channels, nb_timesteps)
         """
 
