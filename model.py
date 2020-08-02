@@ -1,15 +1,14 @@
-from torch.nn import LSTM, Linear, BatchNorm1d, Parameter
+from typing import Optional
+
 import torch
-from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-import utils
-import json
-import model
-from filtering import wiener
-from torchaudio.functional import istft
 import torchaudio
-from typing import Optional
+from torch import Tensor
+from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
+from torchaudio.functional import istft
+
+from filtering import wiener
 
 
 class STFT(nn.Module):
@@ -95,23 +94,26 @@ class ComplexNorm(nn.Module):
         self.power = power
         self.mono = mono
 
-    def forward(self, stft_f: Tensor) -> Tensor:
+    def forward(self, spec: Tensor) -> Tensor:
         """
-        Input: complex_tensor (Tensor): Tensor shape of
-            (..., complex=2)
-        Output: Power/Mag of input Tensor (Tensor)
-            (...,)
+        Args:
+            spec: complex_tensor (Tensor): Tensor shape of
+                `(..., complex=2)`
+
+        Returns:
+            Tensor: Power/Mag of input
+                `(...,)`
         """
         # take the magnitude
-        stft_f = torchaudio.functional.complex_norm(
-            stft_f, power=self.power
+        spec = torchaudio.functional.complex_norm(
+            spec, power=self.power
         )
 
         # downmix in the mag domain to preserve energy
         if self.mono:
-            stft_f = torch.mean(stft_f, 1, keepdim=True)
+            spec = torch.mean(spec, 1, keepdim=True)
 
-        return stft_f
+        return spec
 
 
 class OpenUnmix(nn.Module):
@@ -224,8 +226,13 @@ class OpenUnmix(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        Input:  (nb_samples, nb_channels, nb_bins, nb_frames)
-        Output: (nb_samples, nb_channels, nb_bins, nb_frames)
+        Args:
+            x: input spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
+
+        Returns:
+            Tensor: filtered spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
         """
 
         # permute so that batch is last for lstm
@@ -284,29 +291,22 @@ class Separator(nn.Module):
     Separator class to encapsulate all the stereo filtering
     as a torch Module, to enable end-to-end learning.
 
-    Parameters
-    ----------
-    targets: dictionary of target models {target: model}
-        the spectrogram models to be used by the Separator. Each model
-        may for instance be loaded with the `utils.load_target_models` function
-
-    niter: int
-         Number of EM steps for refining initial estimates in a
-         post-processing stage. Zeroed if only one target is estimated.
-         defaults to 1.
-
-    residual: bool
-        adds an additional residual target, obtained by
-        subtracting the other estimated targets from the mixture, before any
-        potential EM post-processing.
-        Defaults to False
-
-    wiener_win_len: {None | int}
-        The size of the excerpts (number of frames) on which to apply filtering
-        independently. This means assuming time varying stereo models and
-        localization of sources.
-        None means not batching but using the whole signal. It comes at the
-        price of a much larger memory usage.
+    Args:
+        targets (dict of str: nn.Module): dictionary of target models
+            the spectrogram models to be used by the Separator.
+        niter (int): Number of EM steps for refining initial estimates in a
+            post-processing stage. Zeroed if only one target is estimated.
+            defaults to `1`.
+        residual (bool): adds an additional residual target, obtained by
+            subtracting the other estimated targets from the mixture, 
+            before any potential EM post-processing.
+            Defaults to `False`.
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
     """
     def __init__(
         self,
@@ -329,7 +329,7 @@ class Separator(nn.Module):
         self.wiener_win_len = wiener_win_len
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
-        self.complexnorm = ComplexNorm(power=1, mono=nb_channels == 1)
+        self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models
         self.target_models = nn.ModuleDict(target_models)
@@ -349,15 +349,13 @@ class Separator(nn.Module):
     def forward(self, audio: Tensor) -> Tensor:
         """Performing the separation on audio input
 
-        Parameters
-        ----------
-        audio: Tensor [shape=(nb_samples, nb_channels, nb_timesteps)]
-                mixture audio
+        Args:
+            audio (Tensor): [shape=(nb_samples, nb_channels, nb_timesteps)]
+                mixture audio waveform
 
-        Returns
-        -------
-        estimates: `Tensor`
-                   shape(nb_samples, nb_targets, nb_channels, nb_timesteps)
+        Returns:
+            Tensor: stacked tensor of separated waveforms
+                shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
         """
 
         # initializing spectrograms variable
@@ -452,19 +450,18 @@ class Separator(nn.Module):
 
     def to_dict(
         self,
-        estimates: dict,
+        estimates: Tensor,
         aggregate_dict: Optional[dict] = None
     ) -> dict:
         """Convert estimates as stacked tensor to dictionary
 
-        Parameters
-        ----------
-        estimates:      Dict
-        aggregate_dict: Dict
+        Args:
+            estimates (Tensor): separated targets of shape
+                (nb_samples, nb_targets, nb_channels, nb_timesteps)
+            aggregate_dict (dict or None)
 
-        Returns
-        -------
-        estimates_dict: Dict
+        Returns:
+            (dict of str: Tensor):
         """
         estimates_dict = {}
         for k, target in enumerate(self.target_models):
