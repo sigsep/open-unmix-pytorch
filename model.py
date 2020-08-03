@@ -474,7 +474,7 @@ class Separator(nn.Module):
         if aggregate_dict is not None:
             new_estimates = {}
             for key in aggregate_dict:
-                new_estimates[key] = 0.0
+                new_estimates[key] = torch.tensor(0.0)
                 for target in aggregate_dict[key]:
                     new_estimates[key] = new_estimates[key] + \
                         estimates_dict[target]
