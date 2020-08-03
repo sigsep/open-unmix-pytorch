@@ -412,12 +412,15 @@ class Separator(nn.Module):
             else:
                 wiener_win_len = nb_frames
             while pos < nb_frames:
-                t = torch.arange(pos, min(nb_frames, pos+wiener_win_len))
-                pos = t[-1] + 1
+                cur_frame = torch.arange(
+                    pos,
+                    min(nb_frames, pos+wiener_win_len)
+                )
+                pos = int(cur_frame[-1]) + 1
 
-                targets_stft[sample, t] = wiener(
-                    spectrograms[sample, t],
-                    mix_stft[sample, t],
+                targets_stft[sample, cur_frame] = wiener(
+                    spectrograms[sample, cur_frame],
+                    mix_stft[sample, cur_frame],
                     self.niter,
                     softmask=self.softmask,
                     residual=self.residual
