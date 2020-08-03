@@ -1,11 +1,14 @@
-import torch
-from torch.utils.data import DataLoader
-import torch.nn as nn
+import json
 import warnings
+from typing import Optional
+
+import torch
+import torch.nn as nn
+from torch import Tensor
+from torch.utils.data import DataLoader
+
 import model
 import utils
-import json
-from typing import Optional
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
@@ -15,12 +18,11 @@ def _norm(x: torch.Tensor) -> torch.Tensor:
     r"""Computes the norm value of a torch Tensor, assuming that it
     comes as real and imaginary part in its last dimension.
 
-    Parameters:
-    ----------
-    x: torch Tensor [shape=(..., 2)]
+    Args:
+        x (Tensor): Input Tensor of shape [shape=(..., 2)]
 
     Returns:
-    torch Tensor, with shape as x excluding the last dimension.
+        Tensor: shape as x excluding the last dimension.
     """
     return torch.abs(x[..., 0])**2 + torch.abs(x[..., 1])**2
 
@@ -114,15 +116,13 @@ def _invert(
     Will generate errors if the matrices are singular: user must handle this
     through his own regularization schemes.
 
-    Parameters
-    ----------
-    M: torch.Tensor [shape=(..., nb_channels, nb_channels, 2)]
-        matrices to invert: must be square along dimensions -3 and -2
+    Args:
+        M (Tensor): [shape=(..., nb_channels, nb_channels, 2)]
+            matrices to invert: must be square along dimensions -3 and -2
 
-    Returns
-    -------
-    invM: torch.Tensor, [shape=M.shape]
-        inverses of M
+    Returns:
+        invM (Tensor): [shape=M.shape]
+            inverses of M
     """
     nb_channels = M.shape[-2]
 
@@ -205,37 +205,27 @@ def expectation_maximization(
         source separation." IEEE Transactions on Signal Processing
         62.16 (2014): 4298-4310.
 
-    Parameters
-    ----------
-    y: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)]
-        initial estimates for the sources
+    Args:
+        y (Tensor): [shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)]
+            initial estimates for the sources
+        x (Tensor): [shape=(nb_frames, nb_bins, nb_channels, 2)]
+            complex STFT of the mixture signal
+        iterations (int): [scalar]
+            number of iterations for the EM algorithm.
+        eps (float or None): [scalar]
+            The epsilon value to use for regularization and filters.
 
-    x: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)]
-        complex STFT of the mixture signal
+    Returns:
+        y (Tensor): [shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)]
+            estimated sources after iterations
+        v (Tensor): [shape=(nb_frames, nb_bins, nb_sources)]
+            estimated power spectral densities
+        R (Tensor): [shape=(nb_bins, nb_channels, nb_channels, 2, nb_sources)]
+            estimated spatial covariance matrices
 
-    iterations: int [scalar]
-        number of iterations for the EM algorithm.
-
-    eps: float or None [scalar]
-        The epsilon value to use for regularization and filters.
-
-    Returns
-    -------
-    y: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)]
-        estimated sources after iterations
-
-    v: torch.Tensor [shape=(nb_frames, nb_bins, nb_sources)]
-        estimated power spectral densities
-
-    R: torch.Tensor [shape=(nb_bins, nb_channels, nb_channels, 2, nb_sources)]
-        estimated spatial covariance matrices
-
-
-    Note
-    -----
+    Notes:
         * You need an initial estimate for the sources to apply this
           algorithm. This is precisely what the :func:`wiener` function does.
-
         * This algorithm *is not* an implementation of the "exact" EM
           proposed in [1]_. In particular, it does compute the posterior
           covariance matrices the same (exact) way. Instead, it uses the
@@ -246,8 +236,7 @@ def expectation_maximization(
           empirically demonstrated that this simplified algorithm is more
           robust for music separation.
 
-    Warning
-    -------
+    Warning:
         It is *very* important to make sure `x.dtype` is `torch.float64`
         if you want double precision, because this function will **not**
         do such conversion for you from `torch.complex32`, in case you want the
@@ -256,7 +245,6 @@ def expectation_maximization(
         It is usually always better in terms of quality to have double
         precision, by e.g. calling :func:`expectation_maximization`
         with ``x.to(torch.float64)``.
-
     """
     # dimensions
     (nb_frames, nb_bins, nb_channels) = x.shape[:-1]
@@ -426,68 +414,50 @@ def wiener(
         source separation." IEEE Transactions on Signal Processing
         62.16 (2014): 4298-4310.
 
-    Parameters
-    ----------
+    Args:
+        targets_spectrograms (Tensor): spectrograms of the sources
+            [shape=(nb_frames, nb_bins, nb_channels, nb_sources)].
+            This is a nonnegative tensor that is
+            usually the output of the actual separation method of the user. The
+            spectrograms may be mono, but they need to be 4-dimensional in all
+            cases.
+        mix_stft (Tensor): [shape=(nb_frames, nb_bins, nb_channels, complex=2)]
+            STFT of the mixture signal.
+        iterations (int): [scalar]
+            number of iterations for the EM algorithm
+        softmask (bool): Describes how the initial estimates are obtained.
+            * if `False`, then the mixture phase will directly be used with the
+            spectrogram as initial estimates.
+            * if `True`, initial estimates are obtained by multiplying the
+            complex mix element-wise with the ratio of each target spectrogram
+            with the sum of them all. This strategy is better if the model are
+            not really good, and worse otherwise.
+        residual (bool): if `True`, an additional target is created, which is
+            equal to the mixture minus the other targets, before application of
+            expectation maximization
+        eps (float): Epsilon value to use for computing the separations.
+            This is used whenever division with a model energy is
+            performed, i.e. when softmasking and when iterating the EM.
+            It can be understood as the energy of the additional white noise
+            that is taken out when separating.
 
-    targets_spectrograms: torch.Tensor
-                    [shape=(nb_frames, nb_bins, nb_channels, nb_sources)]
-        spectrograms of the sources. This is a nonnegative tensor that is
-        usually the output of the actual separation method of the user. The
-        spectrograms may be mono, but they need to be 4-dimensional in all
-        cases.
+    Returns:
+        Tensor: shape=(nb_frames, nb_bins, nb_channels, complex=2, nb_sources)
+            STFT of estimated sources
 
-    mix_stft: torch.Tensor [complex, shape=(nb_frames, nb_bins, nb_channels, 2)]
-        STFT of the mixture signal.
+    Notes:
+        * Be careful that you need *magnitude spectrogram estimates* for the
+        case `softmask==False`.
+        * `softmask=False` is recommended
+        * The epsilon value will have a huge impact on performance. If it's
+        large, only the parts of the signal with a significant energy will
+        be kept in the sources. This epsilon then directly controls the
+        energy of the reconstruction error.
 
-    iterations: int [scalar]
-        number of iterations for the EM algorithm
-
-    softmask: boolean
-        Describes how the initial estimates are obtained.
-        * if `False`, then the mixture phase will directly be used with the
-          spectrogram as initial estimates.
-
-        * if `True`, initial estimates are obtained by multiplying the complex mix
-          element-wise with the ratio of each target spectrogram with the sum
-          of them all. This strategy is better if the model are not really good,
-          and worse otherwise.
-
-    residual: bool
-        if `True`, an additional target is created, which is
-        equal to the mixture minus the other targets, before application of
-        expectation maximization
-
-    eps: {float}
-        Epsilon value to use for computing the separations. This is used
-        whenever division with a model energy is performed, i.e. when
-        softmasking and when iterating the EM.
-        It can be understood as the energy of the additional white noise
-        that is taken out when separating.
-
-    Returns
-    -------
-
-    y: torch.Tensor
-            [complex, shape=(nb_frames, nb_bins, nb_channels, 2, nb_sources)]
-        STFT of estimated sources
-
-    Note
-    ----
-
-    * Be careful that you need *magnitude spectrogram estimates* for the
-      case `softmask==False`.
-    * `softmask=False` is recommended
-    * The epsilon value will have a huge impact on performance. If it's large,
-      only the parts of the signal with a significant energy will be kept in
-      the sources. This epsilon then directly controls the energy of the
-      reconstruction error.
-
-    Warning
-    -------
-    As in :func:`expectation_maximization`, we recommend converting the
-    mixture `x` to double precision `torch.float64` *before* calling
-    :func:`wiener`.
-
+    Warning:
+        As in :func:`expectation_maximization`, we recommend converting the
+        mixture `x` to double precision `torch.float64` *before* calling
+        :func:`wiener`.
     """
     if softmask:
         # if we use softmask, we compute the ratio mask for all targets and
@@ -495,7 +465,7 @@ def wiener(
         y = mix_stft[..., None] * (
             targets_spectrograms /
             (
-                eps + 
+                eps +
                 torch.sum(
                     targets_spectrograms, dim=-1, keepdim=True
                 ).to(mix_stft.dtype)
@@ -544,15 +514,13 @@ def _covariance(y_j):
     """
     Compute the empirical covariance for a source.
 
-    Parameters
-    ----------
-    y_j: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, 2)].
-          complex stft of the source.
+    Args:
+        y_j (Tensor): complex stft of the source.
+            [shape=(nb_frames, nb_bins, nb_channels, 2)].
 
-    Returns
-    -------
-    Cj: torch.Tensor [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
-        just y_j * conj(y_j.T): empirical covariance for each TF bin.
+    Returns:
+        Cj (Tensor): [shape=(nb_frames, nb_bins, nb_channels, nb_channels, 2)]
+            just y_j * conj(y_j.T): empirical covariance for each TF bin.
     """
     (nb_frames, nb_bins, nb_channels) = y_j.shape[:-1]
     Cj = torch.zeros((nb_frames, nb_bins, nb_channels, nb_channels, 2),
