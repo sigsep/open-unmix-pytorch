@@ -442,7 +442,6 @@ class Separator(nn.Module):
             length=audio.shape[-1]
         )
 
-        # returning (nb_samples, nb_targets, nb_channels, nb_timesteps)
         return estimates
 
     def to_dict(
