@@ -11,7 +11,23 @@ import hubconf
 import model
 
 
-def bandwidth_to_max_bin(rate, n_fft, bandwidth):
+def bandwidth_to_max_bin(
+    rate: int,
+    n_fft: int,
+    bandwidth: float
+) -> np.ndarray:
+    """Convert bandwidth to maximum bin count
+
+    Assuming lapped transforms such as STFT
+
+    Args:
+        rate (int): Sample rate
+        n_fft (int): FFT length
+        bandwidth (float): Target bandwidth in Hz
+
+    Returns:
+        np.ndarray: maximum frequency bin
+    """
     freqs = np.linspace(
         0, float(rate) / 2, n_fft // 2 + 1,
         endpoint=True
