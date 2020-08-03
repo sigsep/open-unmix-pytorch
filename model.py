@@ -358,9 +358,6 @@ class Separator(nn.Module):
                 shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
         """
 
-        # initializing spectrograms variable
-        spectrograms = None
-
         nb_sources = self.nb_targets
         nb_samples = audio.shape[0]
 
@@ -368,22 +365,19 @@ class Separator(nn.Module):
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
         mix_stft = self.stft(audio)
         X = self.complexnorm(mix_stft)
+
+        # initializing spectrograms variable
+        spectrograms = torch.zeros(
+            X.shape + (nb_sources,),
+            dtype=audio.dtype,
+            device=X.device
+        )
+
         for j, (target_name, target_module) in enumerate(
             self.target_models.items()
         ):
-
             # apply current model to get the source spectrogram
             target_spectrogram = target_module(X.detach().clone())
-
-            # output is nb_frames, nb_samples, nb_channels, nb_bins
-            if spectrograms is None:
-                # allocate the spectrograms variable
-                spectrograms = torch.zeros(
-                    target_spectrogram.shape + (nb_sources,),
-                    dtype=audio.dtype,
-                    device=target_spectrogram.device
-                )
-
             spectrograms[..., j] = target_spectrogram
 
         # transposing it as
