@@ -1,28 +1,30 @@
 import argparse
+import functools
+import json
+import multiprocessing
+import test
+from typing import Optional, Union
+
 import musdb
 import museval
-import test
-import multiprocessing
-import functools
-from model import Separator
 import torch
 import tqdm
+
 import utils
-import json
 
 
 def separate_and_evaluate(
-    track,
-    targets,
-    model_str_or_path,
-    niter,
-    output_dir,
-    eval_dir,
-    residual,
-    aggregate_dict,
-    device='cpu',
-    wiener_win_len=None
-):
+    track: musdb.MultiTrack,
+    targets: list,
+    model_str_or_path: str,
+    niter: int,
+    output_dir: str,
+    eval_dir: str,
+    residual: bool,
+    aggregate_dict: dict = None,
+    device: Union[str, torch.device] = 'cpu',
+    wiener_win_len: Optional[int] = None
+) -> str:
 
     separator = utils.load_separator(
         model_str_or_path=model_str_or_path,
@@ -49,7 +51,6 @@ def separate_and_evaluate(
     scores = museval.eval_mus_track(
         track, estimates, output_dir=eval_dir
     )
-    print(track, '\n', scores)
     return scores
 
 
@@ -175,6 +176,7 @@ if __name__ == '__main__':
                 eval_dir=args.evaldir,
                 device=device
             )
+            print(track, '\n', scores)
             results.add_track(scores)
 
     print(results)

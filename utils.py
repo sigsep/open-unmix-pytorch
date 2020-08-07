@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import torch
 import os
 import numpy as np
@@ -187,13 +189,13 @@ def load_target_models(
 
 
 def load_separator(
-    model_str_or_path='umxhq',
-    targets=None,
-    niter=1,
-    residual=False,
-    wiener_win_len=300,
-    device='cpu',
-    pretrained=True
+    model_str_or_path: str = 'umxhq',
+    targets: Optional[list] = None,
+    niter: int = 1,
+    residual: bool = False,
+    wiener_win_len: Optional[int] = 300,
+    device: Union[str, torch.device] = 'cpu',
+    pretrained: bool = True
 ):
     """Separator loader
 
@@ -203,7 +205,7 @@ def load_separator(
             loading `model_str_or_path='mymodel', targets=['vocals']`
             'mymodel/separator', mymodel/vocals.pth', 'mymodel/vocals.json'.
             Defaults to `umxhq`.
-        targets (list or None): list of target names. When loading a
+        targets (list of str or None): list of target names. When loading a
             pre-trained model, all `targets` can be None as all targets
             will be loaded
         niter (int): Number of EM steps for refining initial estimates
@@ -265,7 +267,11 @@ def load_separator(
     return separator
 
 
-def preprocess(audio, rate=None, model_rate=None):
+def preprocess(
+    audio: torch.Tensor,
+    rate: Optional[int] = None,
+    model_rate: Optional[int] = None
+) -> torch.Tensor:
     """
     From an input tensor/ndarray, convert it to a tensor of shape
     shape=(nb_samples, nb_channels, nb_timesteps). This includes:
