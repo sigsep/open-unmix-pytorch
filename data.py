@@ -163,12 +163,11 @@ def load_datasets(
             split='train',
             random_chunks=True,
             **dataset_kwargs
-        )
+        )  # type: UnmixDataset
         valid_dataset = AlignedDataset(
             split='valid',
             **dataset_kwargs
-        )
-        return train_dataset, valid_dataset, args
+        )  # type: UnmixDataset
 
     elif args.dataset == 'sourcefolder':
         parser.add_argument('--interferer-dirs', type=str, nargs="+")
@@ -208,8 +207,6 @@ def load_datasets(
             **dataset_kwargs
         )
 
-        return train_dataset, valid_dataset, args
-
     elif args.dataset == 'trackfolder_fix':
         parser.add_argument('--target-file', type=str)
         parser.add_argument('--interferer-files', type=str, nargs="+")
@@ -246,8 +243,6 @@ def load_datasets(
             seq_duration=None,
             **dataset_kwargs
         )
-
-        return train_dataset, valid_dataset, args
 
     elif args.dataset == 'trackfolder_var':
         parser.add_argument('--ext', type=str, default=".wav")
@@ -292,7 +287,6 @@ def load_datasets(
             seq_duration=None,
             **dataset_kwargs
         )
-        return train_dataset, valid_dataset, args
 
     else:
         parser.add_argument('--is-wav', action='store_true', default=False,
@@ -327,7 +321,8 @@ def load_datasets(
             split='valid', samples_per_track=1, seq_duration=None,
             **dataset_kwargs
         )
-        return train_dataset, valid_dataset, args
+
+    return train_dataset, valid_dataset, args
 
 
 class AlignedDataset(UnmixDataset):
