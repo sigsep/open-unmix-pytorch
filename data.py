@@ -1,14 +1,13 @@
 import argparse
 import random
 from pathlib import Path
-from typing import Optional, Union, Tuple, Any, Callable
+from typing import Optional, Union, Tuple, List, Any, Callable
 
 import musdb
 import torch
 import torch.utils.data
 import torchaudio
 import tqdm
-import os
 from torchaudio.datasets.utils import bg_iterator
 
 
@@ -105,9 +104,7 @@ class UnmixDataset(torch.utils.data.Dataset):
             seq_duration: Optional[float] = None,
             source_augmentations: Optional[Callable] = None,
     ) -> None:
-        if isinstance(root, torch._six.string_classes):
-            root = os.path.expanduser(root)
-        self.root = root
+        self.root = Path(args.root).expanduser()
         self.sample_rate = sample_rate
         self.seq_duration = seq_duration
         self.source_augmentations = source_augmentations
@@ -121,8 +118,6 @@ class UnmixDataset(torch.utils.data.Dataset):
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
         body = ["Number of datapoints: {}".format(self.__len__())]
-        if self.root is not None:
-            body.append("Root location: {}".format(self.root))
         body += self.extra_repr().splitlines()
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
@@ -328,13 +323,15 @@ def load_datasets(
 class AlignedDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        input_file='mixture.wav',
-        output_file='vocals.wav',
-        seq_duration=None,
-        random_chunks=False,
-        sample_rate=44100
+        root: str,
+        split: str = 'train',
+        input_file: str = 'mixture.wav',
+        output_file: str = 'vocals.wav',
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = None,
+        seed: int = 42
     ) -> None:
         """A dataset of that assumes multiple track folders
         where each track includes and input and an output file
@@ -367,6 +364,8 @@ class AlignedDataset(UnmixDataset):
         self.tuple_paths = list(self._get_paths())
         if not self.tuple_paths:
             raise RuntimeError("Dataset is empty, please check parameters")
+        self.seed = seed
+        random.seed(self.seed)
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
@@ -411,17 +410,17 @@ class AlignedDataset(UnmixDataset):
 class SourceFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_dir='vocals',
-        interferer_dirs=['bass', 'drums'],
-        ext='.wav',
-        nb_samples=1000,
-        seq_duration=None,
-        random_chunks=True,
-        sample_rate=44100,
-        source_augmentations=lambda audio: audio,
-        seed=42
+        root: str,
+        split: str = 'train',
+        target_dir: str = 'vocals',
+        interferer_dirs: List[str] = ['bass', 'drums'],
+        ext: str = '.wav',
+        nb_samples: int = 1000,
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = True,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        seed: int = 42
     ) -> None:
         """A dataset that assumes folders of sources,
         instead of track folders. This is a common
@@ -513,16 +512,16 @@ class SourceFolderDataset(UnmixDataset):
 class FixedSourcesTrackFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_file='vocals.wav',
-        interferer_files=['bass.wav', 'drums.wav'],
-        seq_duration=None,
-        random_chunks=False,
-        random_track_mix=False,
-        source_augmentations=lambda audio: audio,
-        sample_rate=44100,
-        seed=42
+        root: str,
+        split: str = 'train',
+        target_file: str = 'vocals.wav',
+        interferer_files: List[str] = ['bass.wav', 'drums.wav'],
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        random_track_mix: bool = False,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        sample_rate: int = 44100,
+        seed: int = 42
     ) -> None:
         """A dataset that assumes audio sources to be stored
         in track folder where each track has a fixed number of sources.
@@ -644,16 +643,16 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
 class VariableSourcesTrackFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_file='vocals.wav',
-        ext='.wav',
-        seq_duration=None,
-        random_chunks=False,
-        random_interferer_mix=False,
-        sample_rate=44100,
-        source_augmentations=lambda audio: audio,
-        silence_missing_targets=False
+        root: str,
+        split: str = 'train',
+        target_file: str = 'vocals.wav',
+        ext: str = '.wav',
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        random_interferer_mix: bool = False,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        silence_missing_targets: bool = False
     ) -> None:
         """A dataset that assumes audio sources to be stored
         in track folder where each track has a _variable_ number of sources.
@@ -787,17 +786,17 @@ class VariableSourcesTrackFolderDataset(UnmixDataset):
 class MUSDBDataset(UnmixDataset):
     def __init__(
         self,
-        target='vocals',
-        root=None,
-        download=False,
-        is_wav=False,
-        subsets='train',
-        split='train',
-        seq_duration=6.0,
-        samples_per_track=64,
-        source_augmentations=lambda audio: audio,
-        random_track_mix=False,
-        seed=42,
+        target: str = 'vocals',
+        root: str = None,
+        download: bool = False,
+        is_wav: bool = False,
+        subsets: str = 'train',
+        split: str = 'train',
+        seq_duration: Optional[float] = 6.0,
+        samples_per_track: int = 64,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        random_track_mix: bool = False,
+        seed: int = 42,
         *args, **kwargs
     ) -> None:
         """MUSDB18 torch.data.Dataset that samples from the MUSDB tracks
