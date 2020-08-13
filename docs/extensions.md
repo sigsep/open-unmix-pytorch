@@ -22,10 +22,10 @@ In case you want to create your own dataset we provide a template for the open-u
 
 ```python
 from utils import load_audio, load_info
-class TemplateDataset(torch.utils.data.Dataset):
+class TemplateDataset(UnmixDataset):
     """A template dataset class for you to implement custom datasets."""
 
-    def __init__(self, root, split='train'):
+    def __init__(self, root, split='train', sample_rate=44100, seq_dur=None):
         """Initialize the dataset
         """
         self.root = root
