@@ -1,15 +1,17 @@
-from pathlib import Path
-import torch.utils.data
 import argparse
 import random
+from pathlib import Path
+from typing import Optional, Union, Tuple, List, Any, Callable
+
 import musdb
 import torch
-import tqdm
+import torch.utils.data
 import torchaudio
+import tqdm
 from torchaudio.datasets.utils import bg_iterator
 
 
-def load_info(path):
+def load_info(path: str) -> dict:
     # get length of file in samples
     info = {}
     si, _ = torchaudio.info(str(path))
@@ -22,7 +24,7 @@ def load_info(path):
     return info
 
 
-def load_audio(path, start=0, dur=None):
+def load_audio(path: str, start: float = 0.0, dur: Optional[float] = None):
     # loads the full track duration
     if dur is None:
         sig, rate = torchaudio.load(path)
@@ -38,7 +40,7 @@ def load_audio(path, start=0, dur=None):
         return sig
 
 
-def aug_from_str(list_of_function_names):
+def aug_from_str(list_of_function_names: list):
     if list_of_function_names:
         return Compose(
             [globals()['_augment_' + aug] for aug in list_of_function_names]
@@ -56,27 +58,31 @@ class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, audio):
+    def __call__(self, audio: torch.Tensor) -> torch.Tensor:
         for t in self.transforms:
             audio = t(audio)
         return audio
 
 
-def _augment_gain(audio, low=0.25, high=1.25):
+def _augment_gain(
+    audio: torch.Tensor,
+    low: float = 0.25,
+    high: float = 1.25
+) -> torch.Tensor:
     """Applies a random gain between `low` and `high`"""
     g = low + torch.rand(1) * (high - low)
     return audio * g
 
 
-def _augment_channelswap(audio):
+def _augment_channelswap(audio: torch.Tensor) -> torch.Tensor:
     """Swap channels of stereo signals with a probability of p=0.5"""
-    if audio.shape[0] == 2 and torch.FloatTensor(1).uniform_() < 0.5:
+    if audio.shape[0] == 2 and torch.tensor(1.0).uniform_() < 0.5:
         return torch.flip(audio, [0])
     else:
         return audio
 
 
-def _augment_force_stereo(audio):
+def _augment_force_stereo(audio: torch.Tensor) -> torch.Tensor:
     # for multichannel > 2, we drop the other channels
     if audio.shape[0] > 2:
         audio = audio[:2, ...]
@@ -88,7 +94,46 @@ def _augment_force_stereo(audio):
     return audio
 
 
-def load_datasets(parser, args):
+class UnmixDataset(torch.utils.data.Dataset):
+    _repr_indent = 4
+
+    def __init__(
+            self,
+            root: Union[Path, str],
+            sample_rate: int,
+            seq_duration: Optional[float] = None,
+            source_augmentations: Optional[Callable] = None,
+    ) -> None:
+        self.root = Path(args.root).expanduser()
+        self.sample_rate = sample_rate
+        self.seq_duration = seq_duration
+        self.source_augmentations = source_augmentations
+
+    def __getitem__(self, index: int) -> Any:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+    def __repr__(self) -> str:
+        head = "Dataset " + self.__class__.__name__
+        body = ["Number of datapoints: {}".format(self.__len__())]
+        body += self.extra_repr().splitlines()
+        lines = [head] + [" " * self._repr_indent + line for line in body]
+        return '\n'.join(lines)
+
+    def extra_repr(self) -> str:
+        return ""
+
+
+def load_datasets(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace
+) -> Tuple[
+    UnmixDataset,
+    UnmixDataset,
+    argparse.Namespace
+]:
     """Loads the specified dataset from commandline arguments
 
     Returns:
@@ -113,11 +158,11 @@ def load_datasets(parser, args):
             split='train',
             random_chunks=True,
             **dataset_kwargs
-        )
+        )  # type: UnmixDataset
         valid_dataset = AlignedDataset(
             split='valid',
             **dataset_kwargs
-        )
+        )  # type: UnmixDataset
 
     elif args.dataset == 'sourcefolder':
         parser.add_argument('--interferer-dirs', type=str, nargs="+")
@@ -238,7 +283,7 @@ def load_datasets(parser, args):
             **dataset_kwargs
         )
 
-    elif args.dataset == 'musdb':
+    else:
         parser.add_argument('--is-wav', action='store_true', default=False,
                             help='loads wav instead of STEMS')
         parser.add_argument('--samples-per-track', type=int, default=64)
@@ -275,17 +320,19 @@ def load_datasets(parser, args):
     return train_dataset, valid_dataset, args
 
 
-class AlignedDataset(torch.utils.data.Dataset):
+class AlignedDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        input_file='mixture.wav',
-        output_file='vocals.wav',
-        seq_duration=None,
-        random_chunks=False,
-        sample_rate=44100
-    ):
+        root: str,
+        split: str = 'train',
+        input_file: str = 'mixture.wav',
+        output_file: str = 'vocals.wav',
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = None,
+        seed: int = 42
+    ) -> None:
         """A dataset of that assumes multiple track folders
         where each track includes and input and an output file
         which directly corresponds to the the input and the
@@ -317,6 +364,8 @@ class AlignedDataset(torch.utils.data.Dataset):
         self.tuple_paths = list(self._get_paths())
         if not self.tuple_paths:
             raise RuntimeError("Dataset is empty, please check parameters")
+        self.seed = seed
+        random.seed(self.seed)
 
     def __getitem__(self, index):
         input_path, output_path = self.tuple_paths[index]
@@ -358,21 +407,21 @@ class AlignedDataset(torch.utils.data.Dataset):
                         yield input_path[0], output_path[0]
 
 
-class SourceFolderDataset(torch.utils.data.Dataset):
+class SourceFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_dir='vocals',
-        interferer_dirs=['bass', 'drums'],
-        ext='.wav',
-        nb_samples=1000,
-        seq_duration=None,
-        random_chunks=True,
-        sample_rate=44100,
-        source_augmentations=lambda audio: audio,
-        seed=42
-    ):
+        root: str,
+        split: str = 'train',
+        target_dir: str = 'vocals',
+        interferer_dirs: List[str] = ['bass', 'drums'],
+        ext: str = '.wav',
+        nb_samples: int = 1000,
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = True,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        seed: int = 42
+    ) -> None:
         """A dataset that assumes folders of sources,
         instead of track folders. This is a common
         format for speech and environmental sound datasets
@@ -460,20 +509,20 @@ class SourceFolderDataset(torch.utils.data.Dataset):
         return source_tracks
 
 
-class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
+class FixedSourcesTrackFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_file='vocals.wav',
-        interferer_files=['bass.wav', 'drums.wav'],
-        seq_duration=None,
-        random_chunks=False,
-        random_track_mix=False,
-        source_augmentations=lambda audio: audio,
-        sample_rate=44100,
-        seed=42
-    ):
+        root: str,
+        split: str = 'train',
+        target_file: str = 'vocals.wav',
+        interferer_files: List[str] = ['bass.wav', 'drums.wav'],
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        random_track_mix: bool = False,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        sample_rate: int = 44100,
+        seed: int = 42
+    ) -> None:
         """A dataset that assumes audio sources to be stored
         in track folder where each track has a fixed number of sources.
         For each track the users specifies the target file-name (`target_file`)
@@ -591,20 +640,20 @@ class FixedSourcesTrackFolderDataset(torch.utils.data.Dataset):
                     })
 
 
-class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
+class VariableSourcesTrackFolderDataset(UnmixDataset):
     def __init__(
         self,
-        root,
-        split='train',
-        target_file='vocals.wav',
-        ext='.wav',
-        seq_duration=None,
-        random_chunks=False,
-        random_interferer_mix=False,
-        sample_rate=44100,
-        source_augmentations=lambda audio: audio,
-        silence_missing_targets=False
-    ):
+        root: str,
+        split: str = 'train',
+        target_file: str = 'vocals.wav',
+        ext: str = '.wav',
+        seq_duration: Optional[float] = None,
+        random_chunks: bool = False,
+        random_interferer_mix: bool = False,
+        sample_rate: int = 44100,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        silence_missing_targets: bool = False
+    ) -> None:
         """A dataset that assumes audio sources to be stored
         in track folder where each track has a _variable_ number of sources.
         The users specifies the target file-name (`target_file`)
@@ -734,23 +783,22 @@ class VariableSourcesTrackFolderDataset(torch.utils.data.Dataset):
                         yield({'path': track_path, 'min_duration': None})
 
 
-class MUSDBDataset(torch.utils.data.Dataset):
+class MUSDBDataset(UnmixDataset):
     def __init__(
         self,
-        target='vocals',
-        root=None,
-        download=False,
-        is_wav=False,
-        subsets='train',
-        split='train',
-        seq_duration=6.0,
-        samples_per_track=64,
-        source_augmentations=lambda audio: audio,
-        random_track_mix=False,
-        dtype=torch.float32,
-        seed=42,
+        target: str = 'vocals',
+        root: str = None,
+        download: bool = False,
+        is_wav: bool = False,
+        subsets: str = 'train',
+        split: str = 'train',
+        seq_duration: Optional[float] = 6.0,
+        samples_per_track: int = 64,
+        source_augmentations: Optional[Callable] = lambda audio: audio,
+        random_track_mix: bool = False,
+        seed: int = 42,
         *args, **kwargs
-    ):
+    ) -> None:
         """MUSDB18 torch.data.Dataset that samples from the MUSDB tracks
         using track and excerpts with replacement.
 
@@ -784,8 +832,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
             custom mix. This augmenation is only applied for the train subset.
         seed : int
             control randomness of dataset iterations
-        dtype : numeric type
-            data type of torch output tuple x and y
         args, kwargs : additional keyword arguments
             used to add further control for the musdb dataset
             initialization function.
@@ -810,7 +856,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
             *args, **kwargs
         )
         self.sample_rate = 44100  # musdb is fixed sample rate
-        self.dtype = dtype
 
     def __getitem__(self, index):
         audio_sources = []
@@ -840,7 +885,6 @@ class MUSDBDataset(torch.utils.data.Dataset):
                 # load source audio and apply time domain source_augmentations
                 audio = torch.as_tensor(
                     track.sources[source].audio.T,
-                    dtype=self.dtype
                 )
                 audio = self.source_augmentations(audio)
                 audio_sources.append(audio)
@@ -863,12 +907,10 @@ class MUSDBDataset(torch.utils.data.Dataset):
         else:
             # get the non-linear source mix straight from musdb
             x = torch.as_tensor(
-                track.audio.T,
-                dtype=self.dtype
+                track.audio.T
             )
             y = torch.as_tensor(
                 track.targets[self.target].audio.T,
-                dtype=self.dtype
             )
 
         return x, y
@@ -940,7 +982,6 @@ if __name__ == "__main__":
 
     # iterate over dataloader
     train_dataset.seq_duration = args.seq_dur
-    train_dataset.random_chunks = True
 
     train_sampler = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4,

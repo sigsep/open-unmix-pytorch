@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import torch
 import os
 import numpy as np
@@ -11,7 +13,23 @@ import hubconf
 import model
 
 
-def bandwidth_to_max_bin(rate, n_fft, bandwidth):
+def bandwidth_to_max_bin(
+    rate: int,
+    n_fft: int,
+    bandwidth: float
+) -> np.ndarray:
+    """Convert bandwidth to maximum bin count
+
+    Assuming lapped transforms such as STFT
+
+    Args:
+        rate (int): Sample rate
+        n_fft (int): FFT length
+        bandwidth (float): Target bandwidth in Hz
+
+    Returns:
+        np.ndarray: maximum frequency bin
+    """
     freqs = np.linspace(
         0, float(rate) / 2, n_fft // 2 + 1,
         endpoint=True
@@ -21,8 +39,21 @@ def bandwidth_to_max_bin(rate, n_fft, bandwidth):
 
 
 def save_checkpoint(
-    state, is_best, path, target
+    state: dict,
+    is_best: bool,
+    path: str,
+    target: str
 ):
+    """Convert bandwidth to maximum bin count
+
+    Assuming lapped transforms such as STFT
+
+    Args:
+        state (dict): torch model state dict
+        is_best (bool): if current model is about to be saved as best model
+        path (str): model path
+        target (str): target name
+    """
     # save full checkpoint including optimizer
     torch.save(
         state,
@@ -55,6 +86,7 @@ class AverageMeter(object):
 
 
 class EarlyStopping(object):
+    """Early Stopping Monitor"""
     def __init__(self, mode='min', min_delta=0, patience=10):
         self.mode = mode
         self.min_delta = min_delta
@@ -101,7 +133,8 @@ def load_target_models(
     device='cpu',
     pretrained=True
 ):
-    """
+    """Core model loader
+
     target model path can be either <target>.pth, or <target>-sha256.pth
     (as used on torchub)
 
@@ -156,14 +189,43 @@ def load_target_models(
 
 
 def load_separator(
-    model_str_or_path='umxhq',
-    targets=None,
-    niter=1,
-    residual=False,
-    wiener_win_len=300,
-    device='cpu',
-    pretrained=True
+    model_str_or_path: str = 'umxhq',
+    targets: Optional[list] = None,
+    niter: int = 1,
+    residual: bool = False,
+    wiener_win_len: Optional[int] = 300,
+    device: Union[str, torch.device] = 'cpu',
+    pretrained: bool = True
 ):
+    """Separator loader
+
+    Args:
+        model_str_or_path (str): Model name or path to model _parent_ directory
+            E.g. The following files are assumed to present when
+            loading `model_str_or_path='mymodel', targets=['vocals']`
+            'mymodel/separator', mymodel/vocals.pth', 'mymodel/vocals.json'.
+            Defaults to `umxhq`.
+        targets (list of str or None): list of target names. When loading a
+            pre-trained model, all `targets` can be None as all targets
+            will be loaded
+        niter (int): Number of EM steps for refining initial estimates
+            in a post-processing stage. `--niter 0` skips this step altogether
+            (and thus makes separation significantly faster) More iterations
+            can get better interference reduction at the price of artifacts.
+            Defaults to `1`.
+        residual (bool): Computes a residual target, for custom separation
+            scenarios when not all targets are available (at the expense
+            of slightly less performance). E.g vocal/accompaniment
+            Defaults to `False`.
+        wiener_win_len (int): The size of the excerpts (number of frames) on
+            which to apply filtering independently. This means assuming
+            time varying stereo models and localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
+            Defaults to `300`
+        device (str): torch device, defaults to `cpu`
+        pretrained (bool): determines if loading pre-trained weights
+    """
     model_path = Path(model_str_or_path).expanduser()
 
     # when path exists, we assume its a custom model saved locally
@@ -205,7 +267,11 @@ def load_separator(
     return separator
 
 
-def preprocess(audio, rate=None, model_rate=None):
+def preprocess(
+    audio: torch.Tensor,
+    rate: Optional[int] = None,
+    model_rate: Optional[int] = None
+) -> torch.Tensor:
     """
     From an input tensor/ndarray, convert it to a tensor of shape
     shape=(nb_samples, nb_channels, nb_timesteps). This includes:
@@ -219,16 +285,13 @@ def preprocess(audio, rate=None, model_rate=None):
       of time steps, swap those two.
     - resampling to target rate if necessary
 
-    Parameters
-    ----------
-    audio: pytorch.Tensor or numpy.ndarray
-    rate: int
-        sample rate for the audio
-    model_rate: int
-        sample rate for the model
-    Returns
-    -------
-    audio: torch.Tensor, [shape=(nb_samples, nb_channels=2, nb_timesteps)]
+    Args:
+        audio (Tensor or np.ndarray): input waveform
+        rate (int): sample rate for the audio
+        model_rate (int): sample rate for the model
+
+    Returns:
+        Tensor: [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
     # convert to torch tensor
     audio = torch.as_tensor(audio, dtype=torch.float32)

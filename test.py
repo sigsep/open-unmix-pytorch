@@ -1,11 +1,11 @@
-import torch
 import argparse
 import json
 from pathlib import Path
+
+import torch
 import torchaudio
-from model import Separator
+
 import utils
-import hubconf
 
 
 def inference_args(parser, remaining_args):
