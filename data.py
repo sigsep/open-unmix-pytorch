@@ -832,8 +832,6 @@ class MUSDBDataset(UnmixDataset):
             custom mix. This augmenation is only applied for the train subset.
         seed : int
             control randomness of dataset iterations
-        dtype : numeric type
-            data type of torch output tuple x and y
         args, kwargs : additional keyword arguments
             used to add further control for the musdb dataset
             initialization function.
@@ -887,7 +885,6 @@ class MUSDBDataset(UnmixDataset):
                 # load source audio and apply time domain source_augmentations
                 audio = torch.as_tensor(
                     track.sources[source].audio.T,
-                    dtype=self.dtype
                 )
                 audio = self.source_augmentations(audio)
                 audio_sources.append(audio)
