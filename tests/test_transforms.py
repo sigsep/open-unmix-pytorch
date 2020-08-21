@@ -2,9 +2,7 @@ import pytest
 import numpy as np
 import torch
 import model
-import test
 import torchaudio
-from torchaudio.functional import istft
 
 
 @pytest.fixture(params=[4096, 4096*10])
@@ -44,18 +42,14 @@ def test_stft(audio, nb_channels, nfft, hop):
     stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
     X = stft(audio)
     X = X.detach()
-    out = istft(
+    out = model.istft(
         X,
         n_fft=nfft,
-        hop_length=hop,
+        n_hop=hop,
+        center=True,
         window=stft.window,
-        center=stft.center,
-        normalized=False,
-        onesided=True,
-        pad_mode='reflect',
         length=audio.shape[-1]
     )
-
     assert np.sqrt(
         np.mean((audio.detach().numpy() - out.detach().numpy())**2)
     ) < 1e-6
