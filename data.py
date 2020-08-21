@@ -14,24 +14,39 @@ from torchaudio.datasets.utils import bg_iterator
 def load_info(path: str) -> dict:
     # get length of file in samples
     info = {}
-    si, _ = torchaudio.info(str(path))
-    info['samplerate'] = si.rate
-    if torchaudio.get_audio_backend() == "sox":
-        info['samples'] = si.length // si.channels
+    if torchaudio.get_audio_backend() == "sox_io":
+        si = torchaudio.info(str(path))
+        info['samplerate'] = si.sample_rate
+        info['samples'] = si.num_frames
     else:
-        info['samples'] = si.length
-    info['duration'] = info['samples'] / si.rate
+        si, _ = torchaudio.info(str(path))
+        info['samplerate'] = si.rate
+        if torchaudio.get_audio_backend() == "sox":
+            info['samples'] = si.length // si.channels
+        else:
+            # soundfile and sox_io calc per channel
+            info['samples'] = si.length
+
+    info['duration'] = info['samples'] / info['samplerate']
     return info
 
 
-def load_audio(path: str, start: float = 0.0, dur: Optional[float] = None):
+def load_audio(
+    path: str,
+    start: float = 0.0,
+    dur: Optional[float] = None,
+    info: Optional[dict] = None
+):
     # loads the full track duration
     if dur is None:
+        # we ignore the case where start!=0 and dur=None
+        # since we have to deal with fixed length audio
         sig, rate = torchaudio.load(path)
         return sig
         # otherwise loads a random excerpt
     else:
-        info = load_info(path)
+        if info is None:
+            info = load_info(path)
         num_frames = int(dur * info['samplerate'])
         offset = int(start * info['samplerate'])
         sig, rate = torchaudio.load(
