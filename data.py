@@ -12,6 +12,17 @@ from torchaudio.datasets.utils import bg_iterator
 
 
 def load_info(path: str) -> dict:
+    """Load audio metadata
+
+    this is a backend_independent wrapper around torchaudio.info
+
+    Args:
+        path: Path of filename
+    Returns:
+        Dict: Metadata with
+        `samplerate`, `samples` and `duration` in seconds
+
+    """
     # get length of file in samples
     info = {}
     if torchaudio.get_audio_backend() == "sox_io":
@@ -37,6 +48,17 @@ def load_audio(
     dur: Optional[float] = None,
     info: Optional[dict] = None
 ):
+    """Load audio file
+
+    Args:
+        path: Path of audio file
+        start: start position in seconds, defaults on the beginning
+        dur: end position in seconds, defaults to `None` (full file)
+        info: metadata object as called from `load_info`
+
+    Returns:
+        Tensor: torch tensor waveform of shape `(num_channels, num_samples)`
+    """
     # loads the full track duration
     if dur is None:
         # we ignore the case where start!=0 and dur=None
