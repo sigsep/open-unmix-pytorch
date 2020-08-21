@@ -1,9 +1,6 @@
 import pytest
-import numpy as np
 import torch
 import data
-import torchaudio
-from torchaudio.functional import istft
 
 
 @pytest.fixture(params=[4096, 4096*10])

@@ -6,7 +6,6 @@ import torch.nn.functional as F
 import torchaudio
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
-from torchaudio.functional import istft
 
 from filtering import wiener
 
@@ -72,6 +71,56 @@ class STFT(nn.Module):
         # unpack batch
         stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
         return stft_f
+
+
+def istft(
+    X,
+    n_fft: int = 4096,
+    n_hop: int = 1024,
+    center: bool = False,
+    window: Optional[Tensor] = None,
+    length: Optional[int] = None,
+):
+    """Multichannel Inverse-Short-Time-Fourier functional
+    wrapper for torch.istft to support batches
+
+    Args:
+        STFT (Tensor): complex stft of
+            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+            last axis is stacked real and imaginary
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        window (callable, optional): window function
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+        length (int, optional): audio signal length to crop the signal
+
+    Returns:
+        x (Tensor): audio waveform of
+            shape (nb_samples, nb_channels, nb_timesteps)
+
+    """
+
+    shape = X.size()
+    X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
+
+    y = torch.istft(
+        X,
+        n_fft=n_fft,
+        hop_length=n_hop,
+        window=window,
+        center=center,
+        normalized=False,
+        onesided=True,
+        length=length
+    )
+
+    y = y.reshape(shape[:-3] + y.shape[-1:])
+
+    return y
 
 
 class ComplexNorm(nn.Module):
@@ -298,7 +347,7 @@ class Separator(nn.Module):
             post-processing stage. Zeroed if only one target is estimated.
             defaults to `1`.
         residual (bool): adds an additional residual target, obtained by
-            subtracting the other estimated targets from the mixture, 
+            subtracting the other estimated targets from the mixture,
             before any potential EM post-processing.
             Defaults to `False`.
         wiener_win_len (int or None): The size of the excerpts
@@ -433,12 +482,9 @@ class Separator(nn.Module):
         estimates = istft(
             targets_stft,
             n_fft=self.stft.n_fft,
-            hop_length=self.stft.n_hop,
+            n_hop=self.stft.n_hop,
             window=self.stft.window,
             center=self.stft.center,
-            normalized=False,
-            onesided=True,
-            pad_mode='reflect',
             length=audio.shape[-1]
         )
 
