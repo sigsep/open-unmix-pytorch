@@ -1,8 +1,9 @@
 import pytest
 import numpy as np
-import data
 import os
-import data
+
+
+from umx import data
 
 
 audio_path = os.path.join(

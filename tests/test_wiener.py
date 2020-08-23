@@ -1,7 +1,9 @@
 import pytest
-import model
 import torch
-from filtering import wiener
+
+
+from umx import model
+from umx.filtering import wiener
 
 
 @pytest.fixture(params=[10, 100])

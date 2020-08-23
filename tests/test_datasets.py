@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
-import data
+
+
+from umx import data
 
 
 def test_musdb():

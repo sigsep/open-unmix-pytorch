@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 import torch
 import model
-import torchaudio
 
 
 @pytest.fixture(params=[4096, 4096*10])
