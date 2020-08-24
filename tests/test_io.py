@@ -32,7 +32,7 @@ def info(request):
 
 def test_loadwav(dur, info):
     audio = data.load_audio(audio_path, dur=dur, info=info)
-    rate = 8000
+    rate = 8000.0
     if dur:
         assert audio.shape[-1] == int(dur * rate)
     else:

@@ -7,9 +7,6 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-import model
-import utils
-
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
 

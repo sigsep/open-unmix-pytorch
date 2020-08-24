@@ -1,12 +1,9 @@
 import argparse
-import model
-import data
 import torch
 import time
 from pathlib import Path
 import tqdm
 import json
-import utils
 import sklearn.preprocessing
 import numpy as np
 import random
@@ -15,6 +12,10 @@ import os
 import copy
 import torchaudio
 from torchaudio.datasets.utils import bg_iterator
+
+from umx import data
+from umx import model
+from umx import utils
 
 tqdm.monitor_interval = 0
 
@@ -158,7 +159,7 @@ def main():
         'pin_memory': True
     } if use_cuda else {}
 
-    repo_dir = os.path.abspath(os.path.dirname(__file__))
+    repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     repo = Repo(repo_dir)
     commit = repo.head.commit.hexsha[:7]
 
