@@ -19,8 +19,8 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
-        "torchaudio",
-        "torch",
+        "torchaudio>=0.6.0",
+        "torch>=1.6.0",
     ],
     extras_require={
         "tests": ["pytest"],
