@@ -9,12 +9,13 @@ from pathlib import Path
 from contextlib import redirect_stderr
 import io
 import json
-import hubconf
-import model
+
+import openunmix
+from openunmix import model
 
 
 def bandwidth_to_max_bin(
-    rate: int,
+    rate: float,
     n_fft: int,
     bandwidth: float
 ) -> np.ndarray:
@@ -31,7 +32,7 @@ def bandwidth_to_max_bin(
         np.ndarray: maximum frequency bin
     """
     freqs = np.linspace(
-        0, float(rate) / 2, n_fft // 2 + 1,
+        0, rate / 2, n_fft // 2 + 1,
         endpoint=True
     )
 
@@ -139,17 +140,17 @@ def load_target_models(
     (as used on torchub)
 
     The loader either loads the models from a known model string
-    as registered in the hubconf.py or loads from custom configs.
+    as registered in the __init__.py or loads from custom configs.
     """
     if isinstance(targets, str):
         targets = [targets]
 
     model_path = Path(model_str_or_path).expanduser()
     if not model_path.exists():
-        # model path does not exist, use hubconf model
+        # model path does not exist, use pretrained models
         try:
             # disable progress bar
-            hub_loader = getattr(hubconf, model_str_or_path + "_spec")
+            hub_loader = getattr(openunmix, model_str_or_path + "_spec")
             err = io.StringIO()
             with redirect_stderr(err):
                 return hub_loader(
@@ -255,7 +256,7 @@ def load_separator(
 
     # otherwise we load the separator from torchhub
     else:
-        hub_loader = getattr(hubconf, model_str_or_path)
+        hub_loader = getattr(openunmix, model_str_or_path)
         separator = hub_loader(
             targets=targets,
             device=device,
@@ -269,8 +270,8 @@ def load_separator(
 
 def preprocess(
     audio: torch.Tensor,
-    rate: Optional[int] = None,
-    model_rate: Optional[int] = None
+    rate: Optional[float] = None,
+    model_rate: Optional[float] = None
 ) -> torch.Tensor:
     """
     From an input tensor/ndarray, convert it to a tensor of shape
@@ -287,8 +288,8 @@ def preprocess(
 
     Args:
         audio (Tensor or np.ndarray): input waveform
-        rate (int): sample rate for the audio
-        model_rate (int): sample rate for the model
+        rate (float): sample rate for the audio
+        model_rate (float): sample rate for the model
 
     Returns:
         Tensor: [shape=(nb_samples, nb_channels=2, nb_timesteps)]

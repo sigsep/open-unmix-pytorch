@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
-import data
+
+
+from openunmix import data
 
 
 def test_musdb():
@@ -18,7 +20,7 @@ def test_trackfolder_fix():
         split='train',
         seq_duration=1.0,
         root="TrackfolderDataset",
-        sample_rate=8000,
+        sample_rate=8000.0,
         target_file='1.wav',
         interferer_files=['2.wav', '3.wav', '4.wav'],
     )
@@ -31,7 +33,7 @@ def test_trackfolder_var():
         split='train',
         seq_duration=1.0,
         root="TrackfolderDataset",
-        sample_rate=8000,
+        sample_rate=8000.0,
         target_file='1.wav',
     )
     for x, y in train_dataset:
@@ -43,7 +45,7 @@ def test_sourcefolder():
         split='train',
         seq_duration=1.0,
         root="TrackfolderDataset",
-        sample_rate=8000,
+        sample_rate=8000.0,
         target_dir='1',
         interferer_dirs=['2', '3'],
         ext='.wav',

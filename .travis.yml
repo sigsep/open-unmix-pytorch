@@ -20,11 +20,12 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda env create -f environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
+  - conda env create -f scripts/environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
   - source activate umx-cpu
   - conda install -c conda-forge sox 
   - pip install codecov
   - pip install pytest pytest-cov
+  - pip install -e .
   - bash tests/create_dummy_datasets.sh
 
 script:

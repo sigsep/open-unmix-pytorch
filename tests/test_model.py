@@ -1,6 +1,7 @@
 import pytest
-import model
 import torch
+
+from openunmix import model
 
 
 @pytest.fixture(params=[10, 100])

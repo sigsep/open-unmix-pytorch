@@ -2,12 +2,13 @@ import os
 import pytest
 import musdb
 import simplejson as json
-import museval
 import numpy as np
-import eval
-import model
-import utils
 import torch
+
+
+from openunmix import model
+from openunmix import evaluation
+from openunmix import utils
 
 
 test_track = 'Al James - Schoolboy Facination'
@@ -35,7 +36,7 @@ def test_estimate_and_evaluate(mus):
 
     track = [track for track in mus.tracks if track.name == test_track][0]
 
-    scores = eval.separate_and_evaluate(
+    scores = evaluation.separate_and_evaluate(
         track,
         targets=['vocals', 'drums', 'bass', 'other'],
         model_str_or_path='umx',
