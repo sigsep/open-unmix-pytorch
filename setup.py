@@ -26,7 +26,7 @@ setup(
         "tests": ["pytest"],
         'evaluation':  ['musdb==0.3.1', 'museval==0.3.0'],
     },
-    # entry_points={"console_scripts": ["umx=umx.predict:separate"]},
+    entry_points={"console_scripts": ["umx=openunmix.cli:unmix"]},
     packages=find_packages(),
     include_package_data=True,
     classifiers=[
