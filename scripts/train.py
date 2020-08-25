@@ -13,9 +13,9 @@ import copy
 import torchaudio
 from torchaudio.datasets.utils import bg_iterator
 
-from umx import data
-from umx import model
-from umx import utils
+from openunmix import data
+from openunmix import model
+from openunmix import utils
 
 tqdm.monitor_interval = 0
 

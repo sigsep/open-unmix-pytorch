@@ -6,11 +6,11 @@
 # Optional list of dependencies required by the package
 dependencies = ['torch', 'numpy']
 
-from umx import umxse_spec
-from umx import umxse
+from openunmix import umxse_spec
+from openunmix import umxse
 
-from umx import umxhq_spec
-from umx import umxhq
+from openunmix import umxhq_spec
+from openunmix import umxhq
 
-from umx import umx_spec
-from umx import umx
+from openunmix import umx_spec
+from openunmix import umx

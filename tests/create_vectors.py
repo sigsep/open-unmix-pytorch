@@ -2,7 +2,7 @@ import os
 import torch
 import musdb
 import numpy as np
-from umx import model, utils
+from openunmix import model, utils
 
 """script to create spectrogram test vectors for STFT regression tests
 

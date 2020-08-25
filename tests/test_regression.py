@@ -3,10 +3,12 @@ import pytest
 import musdb
 import simplejson as json
 import numpy as np
-import utils
 import torch
 
-from umx import model, evaluation
+
+from openunmix import model
+from openunmix import evaluation
+from openunmix import utils
 
 
 test_track = 'Al James - Schoolboy Facination'

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from umx import data
+from openunmix import data
 
 
 @pytest.fixture(params=[4096, 4096*10])

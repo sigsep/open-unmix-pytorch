@@ -1,7 +1,7 @@
 import torch
 from torch.testing._internal.jit_utils import JitTestCase
 
-from umx import model
+from openunmix import model
 
 
 class TestModels(JitTestCase):

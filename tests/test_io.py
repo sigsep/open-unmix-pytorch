@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-from umx import data
+from openunmix import data
 
 
 audio_path = os.path.join(

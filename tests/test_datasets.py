@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 
-from umx import data
+from openunmix import data
 
 
 def test_musdb():
