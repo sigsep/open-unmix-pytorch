@@ -10,7 +10,7 @@ import museval
 import torch
 import tqdm
 
-import utils
+from openunmix import utils
 
 
 def separate_and_evaluate(
@@ -121,8 +121,7 @@ if __name__ == '__main__':
         help='flags wav version of the dataset'
     )
 
-    args, _ = parser.parse_known_args()
-    args = test.inference_args(parser, args)
+    args = test.inference_args(parser)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")

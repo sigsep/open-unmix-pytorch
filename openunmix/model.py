@@ -7,7 +7,7 @@ import torchaudio
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
 
-from filtering import wiener
+from . filtering import wiener
 
 
 class STFT(nn.Module):
@@ -363,7 +363,7 @@ class Separator(nn.Module):
         niter: int = 0,
         softmask: bool = False,
         residual: bool = False,
-        sample_rate: int = 44100,
+        sample_rate: float = 44100.0,
         n_fft: int = 4096,
         n_hop: int = 1024,
         nb_channels: int = 2,

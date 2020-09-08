@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
 import torch
-import model
-import torchaudio
+from openunmix import model
 
 
 @pytest.fixture(params=[4096, 4096*10])

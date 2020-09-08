@@ -1,7 +1,9 @@
 import pytest
-import model
 import torch
-from filtering import wiener
+
+
+from openunmix import model
+from openunmix.filtering import wiener
 
 
 @pytest.fixture(params=[10, 100])

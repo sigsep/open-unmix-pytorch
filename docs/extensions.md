@@ -60,7 +60,7 @@ class Model(nn.Module):
         n_hop=1024,
         nb_channels=2,
         input_is_spectrogram=False,
-        sample_rate=44100,
+        sample_rate=44100.0,
     ):
         """
         Input:  (batch, channel, sample)
