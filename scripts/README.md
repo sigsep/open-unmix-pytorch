@@ -133,7 +133,7 @@ pip install museval
 
 and then run the evaluation using
 
-`python eval.py --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
+`python -m openunmix.evaluate --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
 
 ### Results compared to SiSEC 2018 (SDR/Vocals)
 
