@@ -293,7 +293,6 @@ def preprocess(
     Returns:
         Tensor: [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
-    # TODO: check if dtype==torch.float32
     shape = torch.as_tensor(audio.shape, device=audio.device)
 
     if len(shape) == 1:
