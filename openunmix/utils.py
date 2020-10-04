@@ -295,9 +295,9 @@ def preprocess(
         Tensor: [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
     # convert to torch tensor
-    audio = torch.as_tensor(audio, dtype=torch.float32)
+    audio = torch.as_tensor(audio, dtype=torch.float32, device=audio.device)
     # shape management
-    shape = torch.as_tensor(audio.shape)
+    shape = torch.as_tensor(audio.shape, device=audio.device)
     if len(shape) == 1:
         # assuming only time dimension is provided.
         audio = audio[None, None, ...]

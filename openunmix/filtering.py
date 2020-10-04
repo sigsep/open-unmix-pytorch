@@ -293,8 +293,8 @@ def expectation_maximization(
 
         # update spatial covariance matrices (weighted update)
         for j in range(nb_sources):
-            R[j] = torch.tensor([0.0])
-            weight = torch.tensor([eps])
+            R[j] = torch.tensor(0.0, device=x.device)
+            weight = torch.tensor(eps, device=x.device)
             pos: int = 0
             batch_size = batch_size if batch_size else nb_frames
             while pos < nb_frames:
@@ -318,7 +318,7 @@ def expectation_maximization(
             t = torch.arange(pos, min(nb_frames, pos+batch_size))
             pos = int(t[-1]) + 1
 
-            y[t, ...] = torch.tensor([0.0])
+            y[t, ...] = torch.tensor(0.0, device=x.device)
 
             # compute mix covariance matrix
             Cxx = regularization
@@ -473,8 +473,11 @@ def wiener(
         # we tacitly assume that we have magnitude estimates.
         angle = torch.atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
-        y = torch.zeros(mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype,
-                        device=mix_stft.device)
+        y = torch.zeros(
+            mix_stft.shape + (nb_sources,),
+            dtype=mix_stft.dtype,
+            device=mix_stft.device
+        )
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
 

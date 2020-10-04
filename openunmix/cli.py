@@ -84,6 +84,8 @@ def unmix():
         args.aggregate
     )
 
+    # create separator only once to reduce model loading
+    # when using multiple files
     separator = utils.load_separator(
         model_str_or_path=args.model,
         targets=args.targets,
@@ -95,13 +97,15 @@ def unmix():
     )
 
     separator.freeze()
+    separator.to(device)
 
     # loop over the files
     for input_file in args.input:
         estimates = predict.unmix(
             input_file,
             aggregate_dict=aggregate_dict,
-            separator=separator
+            separator=separator,
+            device=device
         )
         if not args.outdir:
             model_path = Path(args.model)
@@ -118,6 +122,6 @@ def unmix():
             target_path = str(outdir / Path(target).with_suffix('.wav'))
             torchaudio.save(
                  target_path,
-                 torch.squeeze(estimate),
+                 torch.squeeze(estimate).to('cpu'),
                  separator.sample_rate
             )
