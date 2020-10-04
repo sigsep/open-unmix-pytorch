@@ -55,9 +55,9 @@ def unmix(
     niter=1,
     residual=False,
     wiener_win_len=300,
-    device='cpu',
     aggregate_dict=None,
-    separator=None
+    separator=None,
+    device=None
 ):
     if separator is None:
         separator = utils.load_separator(
@@ -70,11 +70,14 @@ def unmix(
             pretrained=True
         )
         separator.freeze()
+        if device:
+            separator.to(device)
 
     # loop over the files
     # handling an input audio path
     audio, rate = torchaudio.load(input_file)
-    audio = audio.to(device)
+    if device:
+        audio = audio.to(device)
     audio = utils.preprocess(audio, rate, separator.sample_rate)
 
     # getting the separated signals
