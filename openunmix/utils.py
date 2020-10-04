@@ -274,9 +274,8 @@ def preprocess(
     model_rate: Optional[float] = None
 ) -> torch.Tensor:
     """
-    From an input tensor/ndarray, convert it to a tensor of shape
+    From an input tensor, convert it to a tensor of shape
     shape=(nb_samples, nb_channels, nb_timesteps). This includes:
-    -  conversion to pytorch Tensor
     -  if input is 1D, adding the samples and channels dimensions.
     -  if input is 2D
         o and the smallest dimension is 1 or 2, adding the samples one.
@@ -287,17 +286,14 @@ def preprocess(
     - resampling to target rate if necessary
 
     Args:
-        audio (Tensor or np.ndarray): input waveform
+        audio (Tensor): input waveform
         rate (float): sample rate for the audio
         model_rate (float): sample rate for the model
 
     Returns:
         Tensor: [shape=(nb_samples, nb_channels=2, nb_timesteps)]
     """
-    # convert to torch tensor
-    audio = torch.as_tensor(audio, dtype=torch.float32, device=audio.device)
-    # shape management
-    shape = torch.as_tensor(audio.shape, device=audio.device)
+    # TODO: check if dtype==torch.float32
     if len(shape) == 1:
         # assuming only time dimension is provided.
         audio = audio[None, None, ...]
