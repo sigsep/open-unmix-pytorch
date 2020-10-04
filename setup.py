@@ -24,7 +24,7 @@ setup(
     ],
     extras_require={
         "tests": ["pytest"],
-        'evaluation':  ['musdb==0.3.1', 'museval==0.3.0'],
+        'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:unmix"]},
     packages=find_packages(),

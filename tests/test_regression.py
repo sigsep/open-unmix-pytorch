@@ -7,7 +7,7 @@ import torch
 
 
 from openunmix import model
-from openunmix import evaluation
+from openunmix import evaluate
 from openunmix import utils
 
 

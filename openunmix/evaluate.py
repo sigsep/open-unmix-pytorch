@@ -2,7 +2,6 @@ import argparse
 import functools
 import json
 import multiprocessing
-import test
 from typing import Optional, Union
 
 import musdb
@@ -10,6 +9,7 @@ import museval
 import torch
 import tqdm
 
+from openunmix import predict
 from openunmix import utils
 
 
@@ -47,7 +47,7 @@ def separate_and_evaluate(
     estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
 
     for key in estimates:
-        estimates[key] = estimates[key][0].detach().numpy().T
+        estimates[key] = estimates[key][0].cpu().detach().numpy().T
     if output_dir:
         mus.save_estimates(estimates, track, output_dir)
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         help='flags wav version of the dataset'
     )
 
-    args = test.inference_args(parser)
+    args = predict.inference_args(parser)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
