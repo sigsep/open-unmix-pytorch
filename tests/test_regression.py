@@ -36,7 +36,7 @@ def test_estimate_and_evaluate(mus):
 
     track = [track for track in mus.tracks if track.name == test_track][0]
 
-    scores = evaluation.separate_and_evaluate(
+    scores = evaluate.separate_and_evaluate(
         track,
         targets=['vocals', 'drums', 'bass', 'other'],
         model_str_or_path='umx',
