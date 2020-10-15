@@ -276,7 +276,7 @@ def umx(
     return separator
 
 
-def unmix(
+def separate(
     input,
     rate=None,
     model_str_or_path="umxhq",
