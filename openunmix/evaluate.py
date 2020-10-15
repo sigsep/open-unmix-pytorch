@@ -9,7 +9,6 @@ import museval
 import torch
 import tqdm
 
-from openunmix import predict
 from openunmix import utils
 
 
