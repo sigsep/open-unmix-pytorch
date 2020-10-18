@@ -6,6 +6,9 @@ import torch.nn.functional as F
 import torchaudio
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
+from asteroid.filterbanks.enc_dec import Filterbank, Encoder, Decoder
+from asteroid.filterbanks import STFTFB
+from asteroid.filterbanks.transforms import take_mag, to_torchaudio, from_torchaudio
 
 from . filtering import wiener
 
@@ -377,7 +380,11 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.n_fft = n_fft
+        dft_filters = STFTFB(n_filters=n_fft, kernel_size=n_fft, stride=n_hop)
+        self.stft = Encoder(dft_filters)
+        idft_filters = STFTFB(n_filters=n_fft, kernel_size=n_fft, stride=n_hop)
+        self.istft = Decoder(idft_filters)
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models
@@ -412,7 +419,9 @@ class Separator(nn.Module):
 
         # getting the STFT of mix:
         # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
-        mix_stft = self.stft(audio)
+        mix_stft = self.stft(audio)*((self.n_fft)**(0.5))
+        # cut dimension bins in chunks, gather them along dimension -1
+        mix_stft = to_torchaudio(mix_stft)
         X = self.complexnorm(mix_stft)
 
         # initializing spectrograms variable
@@ -479,14 +488,9 @@ class Separator(nn.Module):
         targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
 
         # inverse STFTs
-        estimates = istft(
-            targets_stft,
-            n_fft=self.stft.n_fft,
-            n_hop=self.stft.n_hop,
-            window=self.stft.window,
-            center=self.stft.center,
-            length=audio.shape[-1]
-        )
+        targets_stft = from_torchaudio(targets_stft)
+        targets_stft = targets_stft / ((self.n_fft)**(0.5))
+        estimates = self.istft2(targets_stft)
 
         return estimates
 
