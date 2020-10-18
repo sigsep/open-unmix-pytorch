@@ -490,7 +490,7 @@ class Separator(nn.Module):
         # inverse STFTs
         targets_stft = from_torchaudio(targets_stft)
         targets_stft = targets_stft / ((self.n_fft)**(0.5))
-        estimates = self.istft2(targets_stft)
+        estimates = self.istft(targets_stft)
 
         return estimates
 
