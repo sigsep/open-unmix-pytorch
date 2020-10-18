@@ -471,12 +471,24 @@ def wiener(
     else:
         # otherwise, we just multiply the targets spectrograms with mix phase
         # we tacitly assume that we have magnitude estimates.
+        """
         angle = torch.atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
         y = torch.zeros(mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype,
                         device=mix_stft.device)
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
+        """
+        # Version without using atan2 (computing mag instead)
+        mag = (mix_stft[..., 0]**2 + mix_stft[..., 1]**2)**(0.5)
+        cosangle = mix_stft[..., 0] / mag
+        sinangle = mix_stft[..., 1] / mag
+        nb_sources = targets_spectrograms.shape[-1]
+        y = torch.zeros(mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype,
+                        device=mix_stft.device)
+        y[..., 0, :] = targets_spectrograms * cosangle[...,None]
+        y[..., 1, :] = targets_spectrograms * sinangle[...,None]
+
 
     if residual:
         # if required, adding an additional target as the mix minus
