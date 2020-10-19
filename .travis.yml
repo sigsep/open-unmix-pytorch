@@ -25,6 +25,7 @@ install:
   - conda install -c conda-forge sox 
   - pip install codecov
   - pip install pytest pytest-cov
+  - pip install numpy Cython
   - pip install -e .
   - bash tests/create_dummy_datasets.sh
 

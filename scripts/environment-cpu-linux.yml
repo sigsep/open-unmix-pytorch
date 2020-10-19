@@ -21,5 +21,3 @@ dependencies:
     - gitpython
     - asteroid==0.3.4
     - cython==0.29.21
-
-
