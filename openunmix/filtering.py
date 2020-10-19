@@ -6,14 +6,14 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
-import numpy as np
+import math
 
 
 
 
 
 def my_atan2(y, x):
-    pi = torch.from_numpy(np.array([np.pi])).to(y.device, y.dtype)
+    pi = math.pi
     x +=  ((x==0) & (y==0)) *  1.0 
     ans = torch.atan(y / x)
     ans += ((y >= 0) & (x < 0)) * pi
