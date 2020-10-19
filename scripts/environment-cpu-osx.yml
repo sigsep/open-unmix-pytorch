@@ -19,3 +19,5 @@ dependencies:
     - norbert>=0.2.0
     - museval==0.3.0
     - gitpython
+    - asteroid==0.3.4
+    - cython==0.29.21
