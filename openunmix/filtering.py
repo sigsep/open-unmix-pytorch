@@ -9,16 +9,22 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 
+
+
+
 def my_atan2(y, x):
     pi = torch.from_numpy(np.array([np.pi])).to(y.device, y.dtype)
+    x +=  ((x==0) & (y==0)) *  1.0 
     ans = torch.atan(y / x)
-    ans += ((y > 0) & (x < 0)) * pi
+    ans += ((y >= 0) & (x < 0)) * pi
     ans -= ((y < 0) & (x < 0)) * pi
     ans *= (1 - ((y > 0) & (x == 0)) * 1.0)
     ans += ((y > 0) & (x == 0)) * (pi / 2)
     ans *= (1 - ((y < 0) & (x == 0)) * 1.0)
     ans += ((y < 0) & (x == 0)) * (-pi / 2)
     return ans
+
+
 
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
@@ -492,6 +498,7 @@ def wiener(
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
         """
+        
         # Version with home made atan2 
         angle = my_atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
