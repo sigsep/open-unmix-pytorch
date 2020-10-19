@@ -9,7 +9,7 @@ from openunmix import predict
 import argparse
 
 
-def unmix():
+def separate():
     parser = argparse.ArgumentParser(
         description='UMX Inference',
         add_help=True,
@@ -135,7 +135,7 @@ def unmix():
 
     # loop over the files
     for input_file in args.input:
-        estimates = predict.unmix(
+        estimates = predict.separate(
             input_file,
             aggregate_dict=aggregate_dict,
             separator=separator,
