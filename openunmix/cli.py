@@ -9,11 +9,12 @@ from openunmix import predict
 import argparse
 
 
-def unmix():
-    # Training settings
+def separate():
     parser = argparse.ArgumentParser(
         description='UMX Inference',
-        add_help=False
+        add_help=True,
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument(
@@ -72,7 +73,40 @@ def unmix():
         help='Set torchaudio backend '
              '(`sox` or `soundfile`), defaults to `sox`')
 
-    args = predict.inference_args(parser)
+    parser.add_argument(
+        '--niter',
+        type=int,
+        default=1,
+        help='number of iterations for refining results.'
+    )
+
+    parser.add_argument(
+        '--wiener-win-len',
+        type=int,
+        default=300,
+        help='Number of frames on which to apply filtering independently'
+    )
+
+    parser.add_argument(
+        '--residual',
+        type=str,
+        default=None,
+        help='if provided, build a source with given name'
+             'for the mix minus all estimated targets'
+    )
+
+    parser.add_argument(
+        '--aggregate',
+        type=str,
+        default=None,
+        help='if provided, must be a string containing a valid expression for '
+             'a dictionary, with keys as output target names, and values '
+             'a list of targets that are used to build it. For instance: '
+             '\'{\"vocals\":[\"vocals\"], \"accompaniment\":[\"drums\",'
+             '\"bass\",\"other\"]}\''
+    )
+
+    args = parser.parse_args()
 
     torchaudio.set_audio_backend(args.audio_backend)
 
@@ -84,6 +118,8 @@ def unmix():
         args.aggregate
     )
 
+    # create separator only once to reduce model loading
+    # when using multiple files
     separator = utils.load_separator(
         model_str_or_path=args.model,
         targets=args.targets,
@@ -95,13 +131,15 @@ def unmix():
     )
 
     separator.freeze()
+    separator.to(device)
 
     # loop over the files
     for input_file in args.input:
-        estimates = predict.unmix(
+        estimates = predict.separate(
             input_file,
             aggregate_dict=aggregate_dict,
-            separator=separator
+            separator=separator,
+            device=device
         )
         if not args.outdir:
             model_path = Path(args.model)
@@ -118,6 +156,6 @@ def unmix():
             target_path = str(outdir / Path(target).with_suffix('.wav'))
             torchaudio.save(
                  target_path,
-                 torch.squeeze(estimate),
+                 torch.squeeze(estimate).to('cpu'),
                  separator.sample_rate
             )

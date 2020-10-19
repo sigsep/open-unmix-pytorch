@@ -7,7 +7,7 @@ import torch
 
 
 from openunmix import model
-from openunmix import evaluation
+from openunmix import evaluate
 from openunmix import utils
 
 
@@ -36,7 +36,7 @@ def test_estimate_and_evaluate(mus):
 
     track = [track for track in mus.tracks if track.name == test_track][0]
 
-    scores = evaluation.separate_and_evaluate(
+    scores = evaluate.separate_and_evaluate(
         track,
         targets=['vocals', 'drums', 'bass', 'other'],
         model_str_or_path='umx',
@@ -82,7 +82,8 @@ def test_spectrogram(mus):
     """
     track = [track for track in mus.tracks if track.name == test_track][0]
     encoder = torch.nn.Sequential(model.STFT(), model.ComplexNorm())
-    audio = utils.preprocess(track.audio, track.rate, track.rate)
+    audio = torch.as_tensor(track.audio, dtype=torch.float32, device='cpu')
+    audio = utils.preprocess(audio, track.rate, track.rate)
     ref = torch.load(spec_path)
     dut = encoder(audio).permute(3, 0, 1, 2)
 

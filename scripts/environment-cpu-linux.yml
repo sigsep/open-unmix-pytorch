@@ -17,7 +17,12 @@ dependencies:
   - pip
   - pip:
     - musdb==0.3.1
+<<<<<<< HEAD
     - museval==0.3.0
     - gitpython
     - asteroid==0.3.4
     - cython==0.29.21
+=======
+    - museval==0.3.1
+    - gitpython
+>>>>>>> open-unmix-pytorch/dev

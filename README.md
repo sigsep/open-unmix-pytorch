@@ -1,4 +1,4 @@
-#  _Open-Unmix_ for PyTorch: end-to-end torch branch
+#  _Open-Unmix_ for PyTorch
 
 [![status](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d/status.svg)](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open-unmix-a-reference-implementation-for/music-source-separation-on-musdb18)](https://paperswithcode.com/sota/music-source-separation-on-musdb18?p=open-unmix-a-reference-implementation-for)
 
@@ -6,7 +6,7 @@
 
 [![Build Status](https://travis-ci.com/sigsep/open-unmix-pytorch.svg?branch=master)](https://travis-ci.com/sigsep/open-unmix-pytorch) [![Docker hub](https://img.shields.io/docker/cloud/build/faroit/open-unmix-pytorch)](https://cloud.docker.com/u/faroit/repository/docker/faroit/open-unmix-pytorch)
 
-This repository contains the PyTorch (1.0+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
+This repository contains the PyTorch (1.6+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
 ## News:
 
@@ -133,7 +133,7 @@ pip install museval
 
 and then run the evaluation using
 
-`python eval.py --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
+`python -m openunmix.evaluate --outdir /path/to/musdb/estimates --evaldir /path/to/museval/results`
 
 ### Results compared to SiSEC 2018 (SDR/Vocals)
 
