@@ -13,7 +13,6 @@ def separate():
     parser = argparse.ArgumentParser(
         description='UMX Inference',
         add_help=True,
-        description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
