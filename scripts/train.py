@@ -104,7 +104,7 @@ def main():
                         help='provide output path base folder name')
     parser.add_argument('--model', type=str, help='Path to checkpoint folder')
     parser.add_argument('--audio-backend', type=str, default="soundfile",
-                        help='Set torchaudio backend (`sox` or `soundfile`')
+                        help='Set torchaudio backend (`sox_io` or `soundfile`')
 
     # Training Parameters
     parser.add_argument('--epochs', type=int, default=1000)
