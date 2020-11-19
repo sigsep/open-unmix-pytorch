@@ -70,7 +70,7 @@ def separate():
         type=str,
         default="soundfile",
         help='Set torchaudio backend '
-             '(`sox` or `soundfile`), defaults to `sox`')
+             '(`sox_io`, `sox` or `soundfile`), defaults to `soundfile`')
 
     parser.add_argument(
         '--niter',

@@ -19,8 +19,8 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
-        "torchaudio>=0.6.0",
-        "torch>=1.6.0",
+        "torchaudio>=0.6.0,<0.8.0",
+        "torch>=1.6.0,<1.8.0",
     ],
     extras_require={
         "tests": ["pytest"],
@@ -37,5 +37,5 @@ setup(
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
+    ]
 )
