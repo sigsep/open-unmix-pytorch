@@ -7,6 +7,32 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+
+def atan2(y, x):
+    r"""Element-wise arctangent function of y/x.
+    Returns a new tensor with signed angles in radians.
+    It is an alternative implementation of torch.atan2
+
+    Args:
+        y (Tensor): First input tensor
+        x (Tensor): Second input tensor [shape=y.shape]
+
+    Returns:
+        Tensor: [shape=y.shape].
+    """
+    pi = 2*torch.asin(torch.tensor(1.))
+    x +=  ((x==0) & (y==0)) *  1.0 
+    out = torch.atan(y / x)
+    out += ((y >= 0) & (x < 0)) * pi
+    out -= ((y < 0) & (x < 0)) * pi
+    out *= (1 - ((y > 0) & (x == 0)) * 1.0)
+    out += ((y > 0) & (x == 0)) * (pi / 2)
+    out *= (1 - ((y < 0) & (x == 0)) * 1.0)
+    out += ((y < 0) & (x == 0)) * (-pi / 2)
+    return out
+
+
+
 # Define basic complex operations on torch.Tensor objects whose last dimension
 # consists in the concatenation of the real and imaginary parts.
 
@@ -471,7 +497,7 @@ def wiener(
     else:
         # otherwise, we just multiply the targets spectrograms with mix phase
         # we tacitly assume that we have magnitude estimates.
-        angle = torch.atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
+        angle = atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
         y = torch.zeros(
             mix_stft.shape + (nb_sources,),
@@ -480,6 +506,7 @@ def wiener(
         )
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
+
 
     if residual:
         # if required, adding an additional target as the mix minus
