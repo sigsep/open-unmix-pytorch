@@ -6,8 +6,8 @@ import torch.nn.functional as F
 import torchaudio
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
-from asteroid.filterbanks.enc_dec import Filterbank, Encoder, Decoder
-from asteroid.filterbanks.transforms import take_mag, to_torchaudio, from_torchaudio
+from asteroid_filterbanks.enc_dec import Filterbank, Encoder, Decoder
+from asteroid_filterbanks.transforms import take_mag, to_torchaudio, from_torchaudio
 from asteroid_filterbanks import torch_stft_fb
 
 from . filtering import wiener
@@ -143,7 +143,7 @@ def istft(
         )
         dec = Decoder(idft_filters)
         aux = from_torchaudio(X)
-        y = dec(aux)
+        y = dec(aux, length=length)
     else:
         shape = X.size()
         X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
@@ -527,6 +527,10 @@ class Separator(nn.Module):
                 center=self.stft.center,
                 length=audio.shape[-1]
             )
+
+        assert estimates.shape[-1] >= audio.shape[-1], "asteroid raw estimates signal sould be longer thant input signal"
+        estimates = estimates[...,:audio.shape[-1]]
+        
         return estimates
 
     def to_dict(
