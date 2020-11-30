@@ -11,7 +11,6 @@ from git import Repo
 import os
 import copy
 import torchaudio
-from torchaudio.datasets.utils import bg_iterator
 
 from openunmix import data
 from openunmix import model
@@ -232,9 +231,6 @@ def main():
     )
 
     es = utils.EarlyStopping(patience=args.patience)
-
-    # enable queuing
-    train_sampler = bg_iterator(train_sampler, 4)
 
     # if a model is specified: resume training
     if args.model:
