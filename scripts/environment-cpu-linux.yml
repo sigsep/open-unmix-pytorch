@@ -15,9 +15,10 @@ dependencies:
   - scikit-learn=0.22
   - ffmpeg
   - pip
+  - cython==0.29.21
   - pip:
     - musdb==0.3.1
     - museval==0.3.1
     - gitpython
     - asteroid==0.3.4
-    - cython==0.29.21
+    
