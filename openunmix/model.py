@@ -144,6 +144,9 @@ def istft(
         dec = Decoder(idft_filters)
         aux = from_torchaudio(X)
         y = dec(aux, length=length)
+        if length: 
+            assert y.shape[-1] >= length, "asteroid raw estimates signal sould be longer thant input signal"
+            y = y[...,:length]
     else:
         shape = X.size()
         X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
@@ -528,8 +531,7 @@ class Separator(nn.Module):
                 length=audio.shape[-1]
             )
 
-        assert estimates.shape[-1] >= audio.shape[-1], "asteroid raw estimates signal sould be longer thant input signal"
-        estimates = estimates[...,:audio.shape[-1]]
+       
         
         return estimates
 
