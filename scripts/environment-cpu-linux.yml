@@ -15,7 +15,6 @@ dependencies:
   - scikit-learn=0.22
   - ffmpeg
   - pip
-  - Cython
   - pip:
     - musdb==0.3.1
     - museval==0.3.1
