@@ -15,7 +15,7 @@ dependencies:
   - tqdm
   - ffmpeg
   - pip
-  -cython==0.29.21
+  - Cython
   - pip:
     - musdb==0.3.1
     - norbert>=0.2.0
