@@ -22,5 +22,6 @@ dependencies:
     - museval==0.3.1
     - gitpython
     - asteroid==0.3.4
+    - asteroid-filterbanks
 
 
