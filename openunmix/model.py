@@ -52,7 +52,7 @@ class STFT(nn.Module):
                         n_filters=n_fft,
                         kernel_size=n_fft,
                         stride=n_hop,
-                        window=self.window.numpy(),
+                        window=self.window,
                         center=center,
                         pad_mode="reflect",
                         normalized=False,
