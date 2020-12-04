@@ -33,7 +33,8 @@ class STFT(nn.Module):
         n_fft=4096,
         n_hop=1024,
         center=False,
-        use_asteroid = True
+        use_asteroid = True,
+        sample_rate = 44100.0,
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -51,12 +52,12 @@ class STFT(nn.Module):
                         n_filters=n_fft,
                         kernel_size=n_fft,
                         stride=n_hop,
-                        window=torch.hann_window(n_fft).numpy(),
+                        window=self.window.numpy(),
                         center=center,
                         pad_mode="reflect",
                         normalized=False,
                         onesided=True,
-                        sample_rate=44100.0,
+                        sample_rate=sample_rate,
                     )
             self.enc = Encoder(dft_filters)
 
@@ -106,6 +107,7 @@ def istft(
     window: Optional[Tensor] = None,
     length: Optional[int] = None,
     use_asteroid: bool = True,
+    sample_rate: float = 44100.0,
 ):
     """Multichannel Inverse-Short-Time-Fourier functional
     wrapper for torch.istft to support batches
@@ -134,12 +136,12 @@ def istft(
             n_filters=n_fft,
             kernel_size=n_fft,
             stride=n_hop,
-            window=torch.hann_window(n_fft).numpy(),
+            window=window.numpy(),
             center=center,
             pad_mode="reflect",
             normalized=False,
             onesided=True,
-            sample_rate=44100.0,
+            sample_rate=sample_rate,
         )
         dec = Decoder(idft_filters)
         aux = from_torchaudio(X)
@@ -419,7 +421,7 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
-        self.n_fft = n_fft
+
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)  
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
