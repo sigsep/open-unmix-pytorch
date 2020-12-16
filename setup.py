@@ -23,7 +23,7 @@ setup(
         "torch>=1.6.0,<1.8.0",
     ],
     extras_require={
-        "tests": ["pytest"],
+        "tests": ["pytest", "musdb"],
         'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:separate"]},
