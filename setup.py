@@ -19,12 +19,12 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
-        "torchaudio>=0.6.0,<0.8.0",
-        "torch>=1.6.0,<1.8.0",
-        "stempeg"
+        "torchaudio>=0.7.0",
+        "torch>=1.7.0",
     ],
     extras_require={
         "tests": ["pytest"],
+        "stempeg": ["stempeg"],
         'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:separate"]},

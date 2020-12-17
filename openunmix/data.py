@@ -8,6 +8,7 @@ import torch.utils.data
 import torchaudio
 import tqdm
 from torchaudio.datasets.utils import bg_iterator
+import torchaudio
 
 
 def load_info(path: str) -> dict:
@@ -24,19 +25,9 @@ def load_info(path: str) -> dict:
     """
     # get length of file in samples
     info = {}
-    if torchaudio.get_audio_backend() == "sox_io":
-        si = torchaudio.info(str(path))
-        info['samplerate'] = si.sample_rate
-        info['samples'] = si.num_frames
-    else:
-        si, _ = torchaudio.info(str(path))
-        info['samplerate'] = si.rate
-        if torchaudio.get_audio_backend() == "sox":
-            info['samples'] = si.length // si.channels
-        else:
-            # soundfile and sox_io calc per channel
-            info['samples'] = si.length
-
+    si = torchaudio.info(str(path))
+    info['samplerate'] = si.sample_rate
+    info['samples'] = si.num_frames
     info['duration'] = info['samples'] / info['samplerate']
     return info
 
@@ -69,9 +60,9 @@ def load_audio(
         if info is None:
             info = load_info(path)
         num_frames = int(dur * info['samplerate'])
-        offset = int(start * info['samplerate'])
+        frame_offset = int(start * info['samplerate'])
         sig, rate = torchaudio.load(
-            path, num_frames=num_frames, offset=offset
+            path, num_frames=num_frames, frame_offset=frame_offset
         )
         return sig, rate
 
@@ -995,6 +986,8 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=16)
 
     args, _ = parser.parse_known_args()
+
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(args.audio_backend)
 
     train_dataset, valid_dataset, args = load_datasets(parser, args)
