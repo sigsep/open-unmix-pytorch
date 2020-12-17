@@ -3,7 +3,6 @@ import random
 from pathlib import Path
 from typing import Optional, Union, Tuple, List, Any, Callable
 
-import musdb
 import torch
 import torch.utils.data
 import torchaudio
@@ -74,7 +73,7 @@ def load_audio(
         sig, rate = torchaudio.load(
             path, num_frames=num_frames, offset=offset
         )
-        return sig
+        return sig, rate
 
 
 def aug_from_str(list_of_function_names: list):
@@ -415,8 +414,8 @@ class AlignedDataset(UnmixDataset):
         else:
             start = 0
 
-        X_audio = load_audio(input_path, start=start, dur=self.seq_duration)
-        Y_audio = load_audio(output_path, start=start, dur=self.seq_duration)
+        X_audio, _ = load_audio(input_path, start=start, dur=self.seq_duration)
+        Y_audio, _ = load_audio(output_path, start=start, dur=self.seq_duration)
         # return torch tensors
         return X_audio, Y_audio
 
@@ -511,7 +510,7 @@ class SourceFolderDataset(UnmixDataset):
                 # use center segment
                 start = max(duration // 2 - self.seq_duration // 2, 0)
 
-            audio = load_audio(
+            audio, _ = load_audio(
                 source_path, start=start, dur=self.seq_duration
             )
             audio = self.source_augmentations(audio)
@@ -620,7 +619,7 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
         # assemble the mixture of target and interferers
         audio_sources = []
         # load target
-        target_audio = load_audio(
+        target_audio, _ = load_audio(
             track_path / self.target_file, start=start, dur=self.seq_duration
         )
         target_audio = self.source_augmentations(target_audio)
@@ -635,7 +634,7 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
                     min_duration = self.tracks[random_idx]['min_duration']
                     start = random.uniform(0, min_duration - self.seq_duration)
 
-            audio = load_audio(
+            audio, _ = load_audio(
                 track_path / source, start=start, dur=self.seq_duration
             )
             audio = self.source_augmentations(audio)
@@ -766,7 +765,7 @@ class VariableSourcesTrackFolderDataset(UnmixDataset):
                 continue
 
             try:
-                audio = load_audio(
+                audio, _ = load_audio(
                     source_path, start=intfr_start, dur=self.seq_duration
                 )
             except RuntimeError:
@@ -776,7 +775,7 @@ class VariableSourcesTrackFolderDataset(UnmixDataset):
 
         # load the selected track target
         if Path(target_track_path / self.target_file).exists():
-            y = load_audio(
+            y, _ = load_audio(
                 target_track_path / self.target_file,
                 start=target_start,
                 dur=self.seq_duration
@@ -874,6 +873,8 @@ class MUSDBDataset(UnmixDataset):
             initialization function.
 
         """
+        import musdb
+
         self.seed = seed
         random.seed(seed)
         self.is_wav = is_wav

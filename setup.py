@@ -21,6 +21,7 @@ setup(
         "scipy",
         "torchaudio>=0.6.0,<0.8.0",
         "torch>=1.6.0,<1.8.0",
+        "stempeg"
     ],
     extras_require={
         "tests": ["pytest"],
