@@ -54,7 +54,7 @@ def load_audio(
         # we ignore the case where start!=0 and dur=None
         # since we have to deal with fixed length audio
         sig, rate = torchaudio.load(path)
-        return sig
+        return sig, rate
         # otherwise loads a random excerpt
     else:
         if info is None:

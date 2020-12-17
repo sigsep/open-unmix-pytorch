@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import os
-
+import torchaudio
 
 from openunmix import data
 
@@ -12,7 +12,7 @@ audio_path = os.path.join(
 )
 
 
-@pytest.fixture(params=["sox", "soundfile", "sox_io"])
+@pytest.fixture(params=["soundfile", "sox_io"])
 def torch_backend(request):
     return request.param
 
@@ -23,15 +23,20 @@ def dur(request):
 
 
 @pytest.fixture(params=[True, False])
-def info(request):
+def info(request, torch_backend):
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
+    torchaudio.set_audio_backend(torch_backend)
+
     if request.param:
         return data.load_info(audio_path)
     else:
         return None
 
 
-def test_loadwav(dur, info):
-    audio = data.load_audio(audio_path, dur=dur, info=info)
+def test_loadwav(dur, info, torch_backend):
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
+    torchaudio.set_audio_backend(torch_backend)
+    audio, _ = data.load_audio(audio_path, dur=dur, info=info)
     rate = 8000.0
     if dur:
         assert audio.shape[-1] == int(dur * rate)
