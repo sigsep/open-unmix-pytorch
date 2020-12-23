@@ -4,6 +4,8 @@ import json
 import multiprocessing
 from typing import Optional, Union
 
+from numpy.lib.financial import ipmt
+
 import musdb
 import museval
 import torch
@@ -20,9 +22,10 @@ def separate_and_evaluate(
     output_dir: str,
     eval_dir: str,
     residual: bool,
+    mus,
     aggregate_dict: dict = None,
     device: Union[str, torch.device] = 'cpu',
-    wiener_win_len: Optional[int] = None
+    wiener_win_len: Optional[int] = None,
 ) -> str:
 
     separator = utils.load_separator(
@@ -39,7 +42,6 @@ def separate_and_evaluate(
     separator.to(device)
     
     audio = torch.as_tensor(track.audio, dtype=torch.float32, device=device)
-
     audio = utils.preprocess(audio, track.rate, separator.sample_rate)
 
     estimates = separator(audio)
@@ -182,10 +184,11 @@ if __name__ == '__main__':
                     model_str_or_path=args.model,
                     niter=args.niter,
                     residual=args.residual,
+                    mus=mus,
                     aggregate_dict=aggregate_dict,
                     output_dir=args.outdir,
                     eval_dir=args.evaldir,
-                    device=device
+                    device=device,
                 ),
                 iterable=mus.tracks,
                 chunksize=1
@@ -205,10 +208,11 @@ if __name__ == '__main__':
                 model_str_or_path=args.model,
                 niter=args.niter,
                 residual=args.residual,
+                mus=mus,
                 aggregate_dict=aggregate_dict,
                 output_dir=args.outdir,
                 eval_dir=args.evaldir,
-                device=device
+                device=device,
             )
             print(track, '\n', scores)
             results.add_track(scores)

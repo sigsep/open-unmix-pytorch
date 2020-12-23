@@ -42,6 +42,7 @@ def test_estimate_and_evaluate(mus):
         model_str_or_path='umx',
         niter=1,
         residual=None,
+        mus=mus,
         aggregate_dict=None,
         output_dir=None,
         eval_dir=None,
