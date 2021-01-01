@@ -93,13 +93,14 @@ def separate(
 
     Parameters
     ----------
-    audio: np.ndarray [shape=(nb_samples, nb_channels, nb_timesteps)]
+    audio: np.ndarray [shape=(nb_timesteps, nb_channels)]
         mixture audio
 
     targets: list of str
         a list of the separation targets.
         Note that for each target a separate model is expected
         to be loaded.
+        One of `vocals`, `drums`, `bass`, `other`.
 
     model_name: str
         name of torchhub model or path to model folder, defaults to `umxhq`
