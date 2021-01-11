@@ -1,0 +1,40 @@
+name: CI
+# thanks for @mpariente for copying this workflow
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+jobs:
+  src-test:
+    name: conda-tests
+    runs-on: ubuntu-latest
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install miniconda dependencies
+      run: |
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        bash miniconda.sh -b -p $HOME/miniconda
+        export PATH="$HOME/miniconda/bin:$PATH"
+        hash -r
+        conda config --set always_yes yes --set changeps1 no
+        conda update -q conda
+        cconda info -a
+        conda env create -f scripts/environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
+        source activate umx-cpu
+        conda install -c conda-forge sox 
+        python -m pip install -e .['tests']
+        python --version
+        pip --version
+        python -m pip list
+    - name: Create dummy dataset
+      run: |
+        chmod +x tests/create_dummy_datasets.sh
+        ./tests/create_dummy_datasets.sh
+      shell: bash
+
+    - name: Source code tests
+      run: |
+        py.test tests/test_regression.py -v
