@@ -34,21 +34,15 @@ def audio(request, nb_samples, nb_channels, nb_timesteps):
     return torch.rand((nb_samples, nb_channels, nb_timesteps))
 
 
-def test_stft(audio, nb_channels, nfft, hop):
+def test_stft(audio, nfft, hop):
     # we should only test for center=True as
     # False doesn't pass COLA
     # https://github.com/pytorch/audio/issues/500
     stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
+    istft = model.ISTFT(n_fft=nfft, n_hop=hop, center=True)
     X = stft(audio)
     X = X.detach()
-    out = model.istft(
-        X,
-        n_fft=nfft,
-        n_hop=hop,
-        center=True,
-        window=stft.window,
-        length=audio.shape[-1]
-    )
+    out = istft(X, length=audio.shape[-1])
     assert np.sqrt(
         np.mean((audio.detach().numpy() - out.detach().numpy())**2)
     ) < 1e-6

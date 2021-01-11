@@ -33,7 +33,6 @@ class STFT(nn.Module):
         n_fft=4096,
         n_hop=1024,
         center=False,
-        use_asteroid=True,
         sample_rate=44100.0,
     ):
         super(STFT, self).__init__()
@@ -46,20 +45,18 @@ class STFT(nn.Module):
         self.center = center
 
         # alt with asteroid
-        self.use_asteroid = use_asteroid
-        if use_asteroid:
-            dft_filters = torch_stft_fb.TorchSTFTFB(
-                        n_filters=n_fft,
-                        kernel_size=n_fft,
-                        stride=n_hop,
-                        window=self.window,
-                        center=center,
-                        pad_mode="reflect",
-                        normalized=False,
-                        onesided=True,
-                        sample_rate=sample_rate,
-                    )
-            self.enc = Encoder(dft_filters)
+        dft_filters = torch_stft_fb.TorchSTFTFB(
+                    n_filters=n_fft,
+                    kernel_size=n_fft,
+                    stride=n_hop,
+                    window=self.window,
+                    center=center,
+                    pad_mode="reflect",
+                    normalized=False,
+                    onesided=True,
+                    sample_rate=sample_rate,
+                )
+        self.enc = Encoder(dft_filters)
 
     def forward(self, x: Tensor) -> Tensor:
         """STFT forward path
@@ -73,41 +70,11 @@ class STFT(nn.Module):
                 last axis is stacked real and imaginary
         """
 
-        if self.use_asteroid:  # asteroid stft
-            aux = self.enc(x)
-            stft_f = to_torchaudio(aux)
-        else:  # orginal UMX stft
-            shape = x.size()
-            nb_samples, nb_channels, nb_timesteps = shape
-            # pack batch
-            x = x.view(-1, shape[-1])
-
-            stft_f = torch.stft(
-                x,
-                n_fft=self.n_fft,
-                hop_length=self.n_hop,
-                window=self.window,
-                center=self.center,
-                normalized=False,
-                onesided=True,
-                pad_mode='reflect'
-            )
-
-            # unpack batch
-            stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
-        return stft_f
+        aux = self.enc(x)
+        return to_torchaudio(aux)
 
 
-def istft(
-    X,
-    n_fft: int = 4096,
-    n_hop: int = 1024,
-    center: bool = False,
-    window: Optional[Tensor] = None,
-    length: Optional[int] = None,
-    use_asteroid: bool = True,
-    sample_rate: float = 44100.0,
-):
+class ISTFT(nn.Module):
     """Multichannel Inverse-Short-Time-Fourier functional
     wrapper for torch.istft to support batches
 
@@ -130,7 +97,19 @@ def istft(
             shape (nb_samples, nb_channels, nb_timesteps)
 
     """
-    if use_asteroid:
+    def __init__(
+        self,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        center: bool = False,
+        window: Optional[Tensor] = None,
+        sample_rate: float = 44100.0
+    ):
+        super(ISTFT, self).__init__()
+        self.window = nn.Parameter(
+            torch.hann_window(n_fft),
+            requires_grad=False
+        )
         idft_filters = torch_stft_fb.TorchSTFTFB(
             n_filters=n_fft,
             kernel_size=n_fft,
@@ -142,25 +121,11 @@ def istft(
             onesided=True,
             sample_rate=sample_rate,
         )
-        dec = Decoder(idft_filters)
-        aux = from_torchaudio(X)
-        y = dec(aux, length=length)
-    else:
-        shape = X.size()
-        X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
+        self.dec = Decoder(idft_filters)
 
-        y = torch.istft(
-            X,
-            n_fft=n_fft,
-            hop_length=n_hop,
-            window=window,
-            center=center,
-            normalized=False,
-            onesided=True,
-            length=length
-        )
-        y = y.reshape(shape[:-3] + y.shape[-1:])
-    return y
+    def forward(self, X: Tensor, length: Optional[int] = None) -> Tensor:
+        aux = from_torchaudio(X)
+        return self.dec(aux, length=length)
 
 
 class ComplexNorm(nn.Module):
@@ -418,6 +383,7 @@ class Separator(nn.Module):
         self.wiener_win_len = wiener_win_len
 
         self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.istft = ISTFT(n_fft=n_fft, n_hop=n_hop, center=True)
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models
@@ -519,14 +485,7 @@ class Separator(nn.Module):
         targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
 
         # inverse STFT
-        estimates = istft(
-                targets_stft,
-                n_fft=self.stft.n_fft,
-                n_hop=self.stft.n_hop,
-                window=self.stft.window,
-                center=self.stft.center,
-                length=audio.shape[-1]
-            )
+        estimates = self.istft(targets_stft, length=audio.shape[-1])
 
         return estimates
 
