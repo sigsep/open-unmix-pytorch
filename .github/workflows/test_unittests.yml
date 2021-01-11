@@ -44,6 +44,10 @@ jobs:
         python --version
         pip --version
         python -m pip list
+    - name: Create dummy dataset
+      run: |
+        chmod +x tests/create_dummy_datasets.sh
+        ./tests/create_dummy_datasets.sh
       shell: bash
 
     - name: Source code tests
