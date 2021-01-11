@@ -15,7 +15,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.7
       - name: Conda info
         shell: bash -l {0}
         run: conda info
@@ -26,7 +26,7 @@ jobs:
         run: |
           conda update -q conda
           conda info -a
-          conda env create -f scripts/environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
+          conda env create -f scripts/environment-cpu-linux.yml
           source activate umx-cpu
           conda install -c conda-forge sox 
           python -m pip install -e .['tests']
