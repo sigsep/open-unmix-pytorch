@@ -21,11 +21,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Install libnsdfile
+    - name: Install libnsdfile and ffmpeg
       run: |
         sudo apt update
-        sudo apt install libsndfile1-dev libsndfile1
+        sudo apt install libsndfile1-dev libsndfile1 ffmpeg
     - name: Install python dependencies
       env:
         TORCH_INSTALL: ${{ matrix.pytorch-version }}
