@@ -33,8 +33,8 @@ class STFT(nn.Module):
         n_fft=4096,
         n_hop=1024,
         center=False,
-        use_asteroid = True,
-        sample_rate = 44100.0,
+        use_asteroid=True,
+        sample_rate=44100.0,
     ):
         super(STFT, self).__init__()
         self.window = nn.Parameter(
@@ -47,7 +47,7 @@ class STFT(nn.Module):
 
         # alt with asteroid
         self.use_asteroid = use_asteroid
-        if use_asteroid :
+        if use_asteroid:
             dft_filters = torch_stft_fb.TorchSTFTFB(
                         n_filters=n_fft,
                         kernel_size=n_fft,
@@ -73,10 +73,10 @@ class STFT(nn.Module):
                 last axis is stacked real and imaginary
         """
 
-        if self.use_asteroid: # asteroid stft
+        if self.use_asteroid:  # asteroid stft
             aux = self.enc(x)
             stft_f = to_torchaudio(aux)
-        else : # orginal UMX stft
+        else:  # orginal UMX stft
             shape = x.size()
             nb_samples, nb_channels, nb_timesteps = shape
             # pack batch
@@ -96,7 +96,6 @@ class STFT(nn.Module):
             # unpack batch
             stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
         return stft_f
-
 
 
 def istft(
@@ -136,7 +135,7 @@ def istft(
             n_filters=n_fft,
             kernel_size=n_fft,
             stride=n_hop,
-            window=window.numpy(),
+            window=window,
             center=center,
             pad_mode="reflect",
             normalized=False,
@@ -146,9 +145,6 @@ def istft(
         dec = Decoder(idft_filters)
         aux = from_torchaudio(X)
         y = dec(aux, length=length)
-        if length: 
-            assert y.shape[-1] >= length, "asteroid raw estimates signal sould be longer thant input signal"
-            y = y[...,:length]
     else:
         shape = X.size()
         X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
@@ -421,8 +417,7 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
-
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)  
+        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models
@@ -533,8 +528,6 @@ class Separator(nn.Module):
                 length=audio.shape[-1]
             )
 
-       
-        
         return estimates
 
     def to_dict(
