@@ -1,5 +1,5 @@
 name: CI
-
+# thanks for @mpariente for copying this workflow
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 # Trigger the workflow on push or pull request
 on: [push, pull_request]
