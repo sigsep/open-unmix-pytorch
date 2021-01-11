@@ -12,29 +12,33 @@ jobs:
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v2
-    - name: Install miniconda dependencies
-      run: |
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-        bash miniconda.sh -b -p $HOME/miniconda
-        export PATH="$HOME/miniconda/bin:$PATH"
-        hash -r
-        conda config --set always_yes yes --set changeps1 no
-        conda update -q conda
-        conda info -a
-        conda env create -f scripts/environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
-        source activate umx-cpu
-        conda install -c conda-forge sox 
-        python -m pip install -e .['tests']
-        python --version
-        pip --version
-        python -m pip list
-    - name: Create dummy dataset
-      run: |
-        chmod +x tests/create_dummy_datasets.sh
-        ./tests/create_dummy_datasets.sh
-      shell: bash
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
+      - name: Conda list
+        shell: pwsh
+        run: conda list
+      - name: Install dependencies
+        run: |
+          conda update -q conda
+          conda info -a
+          conda env create -f scripts/environment-cpu-linux.yml python=$TRAVIS_PYTHON_VERSION
+          source activate umx-cpu
+          conda install -c conda-forge sox 
+          python -m pip install -e .['tests']
+          python --version
+          pip --version
+          python -m pip list
+      - name: Create dummy dataset
+        run: |
+          chmod +x tests/create_dummy_datasets.sh
+          ./tests/create_dummy_datasets.sh
+        shell: bash
 
-    - name: Source code tests
-      run: |
-        py.test tests/test_regression.py -v
+      - name: Source code tests
+        run: |
+          py.test tests/test_regression.py -v
