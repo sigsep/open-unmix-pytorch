@@ -15,7 +15,14 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v2
+      - name: Cache conda
+        uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key: conda-${{ hashFiles('environment-ci.yml') }}
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: umx-cpu
           environment-file: scripts/environment-cpu-linux.yml
@@ -30,13 +37,6 @@ jobs:
           python -m pip list
       - name: Conda list
         run: conda list
-      - name: Create dummy dataset
+      - name: Run model test
         run: |
-          conda install -c conda-forge sox 
-          chmod +x tests/create_dummy_datasets.sh
-          ./tests/create_dummy_datasets.sh
-        shell: bash
-
-      - name: Source code tests
-        run: |
-          py.test tests/test_regression.py -v
+          py.test tests/test_model.py -v
