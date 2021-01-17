@@ -42,7 +42,7 @@ def separate():
         '--ext',
         type=str,
         default=".wav",
-        help='Output extension, that defines the audio container'
+        help='Output extension which sets the audio format'
     )
 
     parser.add_argument(
@@ -142,14 +142,15 @@ def separate():
     separator.freeze()
     separator.to(device)
 
+    if args.audio_backend == 'stempeg':
+        try:
+            import stempeg
+        except ImportError:
+            raise RuntimeError("Please install pip package `stempeg`")
+
     # loop over the files
     for input_file in args.input:
         if args.audio_backend == 'stempeg':
-            try:
-                import stempeg
-            except ImportError:
-                raise RuntimeError("Please install pip package `stempeg`")
-
             if args.duration == -1:
                 duration = None
             else:

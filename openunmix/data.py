@@ -24,10 +24,14 @@ def load_info(path: str) -> dict:
 
     """
     # get length of file in samples
+    if torchaudio.get_audio_backend() == 'sox':
+        raise RuntimeError("Deprecated backend is not supported")
+
     info = {}
     si = torchaudio.info(str(path))
     info['samplerate'] = si.sample_rate
     info['samples'] = si.num_frames
+    info['channels'] = si.num_channels
     info['duration'] = info['samples'] / info['samplerate']
     return info
 
@@ -975,7 +979,7 @@ if __name__ == "__main__":
     parser.add_argument('--target', type=str, default='vocals')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--audio-backend', type=str, default="soundfile",
-                        help='Set torchaudio backend (`sox` or `soundfile`')
+                        help='Set torchaudio backend (`sox_io` or `soundfile`')
 
     # I/O Parameters
     parser.add_argument(
