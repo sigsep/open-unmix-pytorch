@@ -5,6 +5,7 @@ import json
 
 from openunmix import utils
 from openunmix import predict
+from openunmix import data
 
 import argparse
 
@@ -38,6 +39,13 @@ def separate():
     )
 
     parser.add_argument(
+        '--ext',
+        type=str,
+        default=".wav",
+        help='Output extension which sets the audio format'
+    )
+
+    parser.add_argument(
         '--start',
         type=float,
         default=0.0,
@@ -68,9 +76,9 @@ def separate():
     parser.add_argument(
         '--audio-backend',
         type=str,
-        default="soundfile",
+        default="sox_io",
         help='Set torchaudio backend '
-             '(`sox_io`, `sox` or `soundfile`), defaults to `soundfile`')
+             '(`sox_io`, `sox`, `soundfile` or `stempeg`), defaults to `sox_io`')
 
     parser.add_argument(
         '--niter',
@@ -106,8 +114,10 @@ def separate():
     )
 
     args = parser.parse_args()
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
 
-    torchaudio.set_audio_backend(args.audio_backend)
+    if args.audio_backend != "stempeg":
+        torchaudio.set_audio_backend(args.audio_backend)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -132,10 +142,36 @@ def separate():
     separator.freeze()
     separator.to(device)
 
+    if args.audio_backend == 'stempeg':
+        try:
+            import stempeg
+        except ImportError:
+            raise RuntimeError("Please install pip package `stempeg`")
+
     # loop over the files
     for input_file in args.input:
+        if args.audio_backend == 'stempeg':
+            if args.duration == -1:
+                duration = None
+            else:
+                duration = args.duration
+
+            audio, rate = stempeg.read_stems(
+                input_file,
+                start=args.start,
+                duration=duration,
+                sample_rate=separator.sample_rate
+            )
+            audio = torch.tensor(audio)
+        else:
+            audio, rate = data.load_audio(
+                input_file,
+                start=args.start,
+                dur=args.duration
+            )
         estimates = predict.separate(
-            input_file,
+            audio=audio,
+            rate=rate,
             aggregate_dict=aggregate_dict,
             separator=separator,
             device=device
@@ -151,10 +187,29 @@ def separate():
         outdir.mkdir(exist_ok=True, parents=True)
 
         # write out estimates
-        for target, estimate in estimates.items():
-            target_path = str(outdir / Path(target).with_suffix('.wav'))
-            torchaudio.save(
-                 target_path,
-                 torch.squeeze(estimate).to('cpu'),
-                 separator.sample_rate
+        if args.audio_backend == 'stempeg':
+            target_path = str(outdir / Path("target").with_suffix(args.ext))
+            # convert torch dict to numpy dict
+            estimates_numpy = {}
+            for target, estimate in estimates.items():
+                estimates_numpy[target] = torch.squeeze(
+                    estimate
+                ).detach().numpy().T
+
+            stempeg.write_stems(
+                target_path,
+                estimates_numpy,
+                sample_rate=separator.sample_rate,
+                writer=stempeg.FilesWriter(
+                    multiprocess=True,
+                    output_sample_rate=rate
+                )
             )
+        else:
+            for target, estimate in estimates.items():
+                target_path = str(outdir / Path(target).with_suffix('.wav'))
+                torchaudio.save(
+                    target_path,
+                    torch.squeeze(estimate).to('cpu'),
+                    sample_rate=separator.sample_rate,
+                )

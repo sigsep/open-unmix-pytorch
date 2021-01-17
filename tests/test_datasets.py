@@ -1,8 +1,13 @@
 import pytest
 import numpy as np
-
+import torchaudio
 
 from openunmix import data
+
+
+@pytest.fixture(params=["soundfile", "sox_io"])
+def torch_backend(request):
+    return request.param
 
 
 def test_musdb():
@@ -15,7 +20,10 @@ def test_musdb():
         assert x.shape[-1] == 44100
 
 
-def test_trackfolder_fix():
+def test_trackfolder_fix(torch_backend):
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
+    torchaudio.set_audio_backend(torch_backend)
+
     train_dataset = data.FixedSourcesTrackFolderDataset(
         split='train',
         seq_duration=1.0,
@@ -28,7 +36,10 @@ def test_trackfolder_fix():
         assert x.shape[-1] == 8000
 
 
-def test_trackfolder_var():
+def test_trackfolder_var(torch_backend):
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
+    torchaudio.set_audio_backend(torch_backend)
+
     train_dataset = data.VariableSourcesTrackFolderDataset(
         split='train',
         seq_duration=1.0,
@@ -40,7 +51,10 @@ def test_trackfolder_var():
         assert x.shape[-1] == 8000
 
 
-def test_sourcefolder():
+def test_sourcefolder(torch_backend):
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
+    torchaudio.set_audio_backend(torch_backend)
+
     train_dataset = data.SourceFolderDataset(
         split='train',
         seq_duration=1.0,
