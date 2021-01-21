@@ -3,12 +3,12 @@ import random
 from pathlib import Path
 from typing import Optional, Union, Tuple, List, Any, Callable
 
-import musdb
 import torch
 import torch.utils.data
 import torchaudio
 import tqdm
 from torchaudio.datasets.utils import bg_iterator
+import torchaudio
 
 
 def load_info(path: str) -> dict:
@@ -24,20 +24,14 @@ def load_info(path: str) -> dict:
 
     """
     # get length of file in samples
-    info = {}
-    if torchaudio.get_audio_backend() == "sox_io":
-        si = torchaudio.info(str(path))
-        info['samplerate'] = si.sample_rate
-        info['samples'] = si.num_frames
-    else:
-        si, _ = torchaudio.info(str(path))
-        info['samplerate'] = si.rate
-        if torchaudio.get_audio_backend() == "sox":
-            info['samples'] = si.length // si.channels
-        else:
-            # soundfile and sox_io calc per channel
-            info['samples'] = si.length
+    if torchaudio.get_audio_backend() == 'sox':
+        raise RuntimeError("Deprecated backend is not supported")
 
+    info = {}
+    si = torchaudio.info(str(path))
+    info['samplerate'] = si.sample_rate
+    info['samples'] = si.num_frames
+    info['channels'] = si.num_channels
     info['duration'] = info['samples'] / info['samplerate']
     return info
 
@@ -64,17 +58,17 @@ def load_audio(
         # we ignore the case where start!=0 and dur=None
         # since we have to deal with fixed length audio
         sig, rate = torchaudio.load(path)
-        return sig
+        return sig, rate
         # otherwise loads a random excerpt
     else:
         if info is None:
             info = load_info(path)
         num_frames = int(dur * info['samplerate'])
-        offset = int(start * info['samplerate'])
+        frame_offset = int(start * info['samplerate'])
         sig, rate = torchaudio.load(
-            path, num_frames=num_frames, offset=offset
+            path, num_frames=num_frames, frame_offset=frame_offset
         )
-        return sig
+        return sig, rate
 
 
 def aug_from_str(list_of_function_names: list):
@@ -415,8 +409,8 @@ class AlignedDataset(UnmixDataset):
         else:
             start = 0
 
-        X_audio = load_audio(input_path, start=start, dur=self.seq_duration)
-        Y_audio = load_audio(output_path, start=start, dur=self.seq_duration)
+        X_audio, _ = load_audio(input_path, start=start, dur=self.seq_duration)
+        Y_audio, _ = load_audio(output_path, start=start, dur=self.seq_duration)
         # return torch tensors
         return X_audio, Y_audio
 
@@ -511,7 +505,7 @@ class SourceFolderDataset(UnmixDataset):
                 # use center segment
                 start = max(duration // 2 - self.seq_duration // 2, 0)
 
-            audio = load_audio(
+            audio, _ = load_audio(
                 source_path, start=start, dur=self.seq_duration
             )
             audio = self.source_augmentations(audio)
@@ -620,7 +614,7 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
         # assemble the mixture of target and interferers
         audio_sources = []
         # load target
-        target_audio = load_audio(
+        target_audio, _ = load_audio(
             track_path / self.target_file, start=start, dur=self.seq_duration
         )
         target_audio = self.source_augmentations(target_audio)
@@ -635,7 +629,7 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
                     min_duration = self.tracks[random_idx]['min_duration']
                     start = random.uniform(0, min_duration - self.seq_duration)
 
-            audio = load_audio(
+            audio, _ = load_audio(
                 track_path / source, start=start, dur=self.seq_duration
             )
             audio = self.source_augmentations(audio)
@@ -766,7 +760,7 @@ class VariableSourcesTrackFolderDataset(UnmixDataset):
                 continue
 
             try:
-                audio = load_audio(
+                audio, _ = load_audio(
                     source_path, start=intfr_start, dur=self.seq_duration
                 )
             except RuntimeError:
@@ -776,7 +770,7 @@ class VariableSourcesTrackFolderDataset(UnmixDataset):
 
         # load the selected track target
         if Path(target_track_path / self.target_file).exists():
-            y = load_audio(
+            y, _ = load_audio(
                 target_track_path / self.target_file,
                 start=target_start,
                 dur=self.seq_duration
@@ -874,6 +868,8 @@ class MUSDBDataset(UnmixDataset):
             initialization function.
 
         """
+        import musdb
+
         self.seed = seed
         random.seed(seed)
         self.is_wav = is_wav
@@ -983,7 +979,7 @@ if __name__ == "__main__":
     parser.add_argument('--target', type=str, default='vocals')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--audio-backend', type=str, default="soundfile",
-                        help='Set torchaudio backend (`sox` or `soundfile`')
+                        help='Set torchaudio backend (`sox_io` or `soundfile`')
 
     # I/O Parameters
     parser.add_argument(
@@ -994,6 +990,8 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=16)
 
     args, _ = parser.parse_known_args()
+
+    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(args.audio_backend)
 
     train_dataset, valid_dataset, args = load_datasets(parser, args)
