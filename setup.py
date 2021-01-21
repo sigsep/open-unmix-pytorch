@@ -18,13 +18,12 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy",
-        "scipy",
-        "torchaudio>=0.6.0",
-        "torch>=1.6.0",
+        "torchaudio>=0.6.0,<0.8.0",
+        "torch>=1.6.0,<1.8.0",
     ],
     extras_require={
-        "tests": ["pytest"],
-        'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
+        "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1"],
+        'evaluation':  ["musdb==0.3.2", "museval==0.3.1"],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:separate"]},
     packages=find_packages(),
@@ -37,5 +36,5 @@ setup(
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
+    ]
 )

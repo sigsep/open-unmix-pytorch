@@ -11,7 +11,6 @@ from git import Repo
 import os
 import copy
 import torchaudio
-from torchaudio.datasets.utils import bg_iterator
 
 from openunmix import data
 from openunmix import model
@@ -104,7 +103,7 @@ def main():
                         help='provide output path base folder name')
     parser.add_argument('--model', type=str, help='Path to checkpoint folder')
     parser.add_argument('--audio-backend', type=str, default="soundfile",
-                        help='Set torchaudio backend (`sox` or `soundfile`')
+                        help='Set torchaudio backend (`sox_io` or `soundfile`')
 
     # Training Parameters
     parser.add_argument('--epochs', type=int, default=1000)
@@ -232,9 +231,6 @@ def main():
     )
 
     es = utils.EarlyStopping(patience=args.patience)
-
-    # enable queuing
-    train_sampler = bg_iterator(train_sampler, 4)
 
     # if a model is specified: resume training
     if args.model:
