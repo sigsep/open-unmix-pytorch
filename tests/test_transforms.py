@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 import torch
 from openunmix import model
+from asteroid_filterbanks import torch_stft_fb
+from asteroid_filterbanks import Encoder, Decoder
 
 
 @pytest.fixture(params=[4096, 4096*5])
@@ -40,6 +42,7 @@ def test_stft(audio, nfft, hop):
     # https://github.com/pytorch/audio/issues/500
     stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
     istft = model.ISTFT(n_fft=nfft, n_hop=hop, center=True)
+
     X = stft(audio)
     X = X.detach()
     out = istft(X, length=audio.shape[-1])

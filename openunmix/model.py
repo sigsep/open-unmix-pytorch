@@ -12,64 +12,32 @@ from asteroid_filterbanks import torch_stft_fb
 
 from . filtering import wiener
 
-
-
 class STFT(nn.Module):
-    """Multichannel Short-Time-Fourier Forward transform
-
-    uses hard coded hann_window.
-
-    Args:
-        n_fft (int, optional): transform FFT size. Defaults to 4096.
-        n_hop (int, optional): transform hop size. Defaults to 1024.
-        center (bool, optional): If True, the signals first window is
-            zero padded. Centering is required for a perfect
-            reconstruction of the signal. However, during training
-            of spectrogram models, it can safely turned off.
-            Defaults to `true`
-    """
     def __init__(
         self,
         n_fft=4096,
         n_hop=1024,
         center=False,
-        sample_rate=44100.0,
+        sample_rate=44100.0
     ):
         super(STFT, self).__init__()
-        self.window = nn.Parameter(
+
+        window = nn.Parameter(
             torch.hann_window(n_fft),
             requires_grad=False
         )
-        self.n_fft = n_fft
-        self.n_hop = n_hop
-        self.center = center
+        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+            n_fft=n_fft,
+            hop_length=n_hop,
+            win_length=n_fft,
+            window=window,
+            center=center,
+            sample_rate=sample_rate
+        )
 
-        # alt with asteroid
-        dft_filters = torch_stft_fb.TorchSTFTFB(
-                    n_filters=n_fft,
-                    kernel_size=n_fft,
-                    stride=n_hop,
-                    window=self.window,
-                    center=center,
-                    pad_mode="reflect",
-                    normalized=False,
-                    onesided=True,
-                    sample_rate=sample_rate,
-                )
-        self.enc = Encoder(dft_filters)
+        self.enc = Encoder(fb)
 
-    def forward(self, x: Tensor) -> Tensor:
-        """STFT forward path
-
-        Args:
-            x (Tensor): audio waveform of
-                shape (nb_samples, nb_channels, nb_timesteps)
-        Returns:
-            STFT (Tensor): complex stft of
-                shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
-                last axis is stacked real and imaginary
-        """
-
+    def forward(self, x):
         aux = self.enc(x)
         return to_torchaudio(aux)
 
@@ -102,26 +70,24 @@ class ISTFT(nn.Module):
         n_fft: int = 4096,
         n_hop: int = 1024,
         center: bool = False,
-        window: Optional[Tensor] = None,
         sample_rate: float = 44100.0
     ):
         super(ISTFT, self).__init__()
-        self.window = nn.Parameter(
+
+        window = nn.Parameter(
             torch.hann_window(n_fft),
             requires_grad=False
         )
-        idft_filters = torch_stft_fb.TorchSTFTFB(
-            n_filters=n_fft,
-            kernel_size=n_fft,
-            stride=n_hop,
+        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+            n_fft=n_fft,
+            hop_length=n_hop,
+            win_length=n_fft,
             window=window,
             center=center,
-            pad_mode="reflect",
-            normalized=False,
-            onesided=True,
-            sample_rate=sample_rate,
+            sample_rate=sample_rate
         )
-        self.dec = Decoder(idft_filters)
+
+        self.dec = Decoder(fb)
 
     def forward(self, X: Tensor, length: Optional[int] = None) -> Tensor:
         aux = from_torchaudio(X)
