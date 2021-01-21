@@ -18,8 +18,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy",
-        "asteroid-filterbanks>=0.3.2"
-        "scipy",
+        "asteroid-filterbanks>=0.3.2",
         "torchaudio>=0.7.0",
         "torch>=1.7.0",
     ],
