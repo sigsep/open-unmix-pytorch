@@ -20,6 +20,7 @@ setup(
         "numpy",
         "torchaudio>=0.6.0,<0.8.0",
         "torch>=1.6.0,<1.8.0",
+        "asteroid-filterbanks>=0.3.2"
     ],
     extras_require={
         "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1"],
