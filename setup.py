@@ -23,9 +23,9 @@ setup(
         "torch>=1.7.0",
     ],
     extras_require={
-        "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1"],
         "stempeg": ["stempeg"],
-        'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
+        'evaluation':  ["musdb", "museval"],
+        "tests": ["pytest", "musdb", "museval"],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:separate"]},
     packages=find_packages(),
