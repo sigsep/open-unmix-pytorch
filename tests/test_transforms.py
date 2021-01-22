@@ -1,9 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from openunmix import model
-from asteroid_filterbanks import torch_stft_fb
-from asteroid_filterbanks import Encoder, Decoder
+from openunmix import transforms
 
 
 @pytest.fixture(params=[4096, 4096*5])
@@ -40,8 +38,8 @@ def test_stft(audio, nfft, hop):
     # we should only test for center=True as
     # False doesn't pass COLA
     # https://github.com/pytorch/audio/issues/500
-    stft = model.STFT(n_fft=nfft, n_hop=hop, center=True)
-    istft = model.ISTFT(n_fft=nfft, n_hop=hop, center=True)
+    stft = transforms.AsteroidSTFT(n_fft=nfft, n_hop=hop, center=True)
+    istft = transforms.AsteroidISTFT(n_fft=nfft, n_hop=hop, center=True)
 
     X = stft(audio)
     X = X.detach()

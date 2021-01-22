@@ -3,138 +3,10 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchaudio
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
-from asteroid_filterbanks.enc_dec import Filterbank, Encoder, Decoder
-from asteroid_filterbanks.transforms import take_mag, to_torchaudio, from_torchaudio
-from asteroid_filterbanks import torch_stft_fb
-
 from . filtering import wiener
-
-class STFT(nn.Module):
-    def __init__(
-        self,
-        n_fft=4096,
-        n_hop=1024,
-        center=False,
-        sample_rate=44100.0
-    ):
-        super(STFT, self).__init__()
-
-        window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
-        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
-            n_fft=n_fft,
-            hop_length=n_hop,
-            win_length=n_fft,
-            window=window,
-            center=center,
-            sample_rate=sample_rate
-        )
-
-        self.enc = Encoder(fb)
-
-    def forward(self, x):
-        aux = self.enc(x)
-        return to_torchaudio(aux)
-
-
-class ISTFT(nn.Module):
-    """Multichannel Inverse-Short-Time-Fourier functional
-    wrapper for torch.istft to support batches
-
-    Args:
-        STFT (Tensor): complex stft of
-            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
-            last axis is stacked real and imaginary
-        n_fft (int, optional): transform FFT size. Defaults to 4096.
-        n_hop (int, optional): transform hop size. Defaults to 1024.
-        window (callable, optional): window function
-        center (bool, optional): If True, the signals first window is
-            zero padded. Centering is required for a perfect
-            reconstruction of the signal. However, during training
-            of spectrogram models, it can safely turned off.
-            Defaults to `true`
-        length (int, optional): audio signal length to crop the signal
-
-    Returns:
-        x (Tensor): audio waveform of
-            shape (nb_samples, nb_channels, nb_timesteps)
-
-    """
-    def __init__(
-        self,
-        n_fft: int = 4096,
-        n_hop: int = 1024,
-        center: bool = False,
-        sample_rate: float = 44100.0
-    ):
-        super(ISTFT, self).__init__()
-
-        window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
-        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
-            n_fft=n_fft,
-            hop_length=n_hop,
-            win_length=n_fft,
-            window=window,
-            center=center,
-            sample_rate=sample_rate
-        )
-
-        self.dec = Decoder(fb)
-
-    def forward(self, X: Tensor, length: Optional[int] = None) -> Tensor:
-        aux = from_torchaudio(X)
-        return self.dec(aux, length=length)
-
-
-class ComplexNorm(nn.Module):
-    r"""Compute the norm of complex tensor input.
-
-    Extension of `torchaudio.functional.complex_norm` with mono
-
-    Args:
-        power (float): Power of the norm. (Default: `1.0`).
-        mono (bool): Downmix to single channel after applying power norm
-            to maximize
-    """
-
-    def __init__(
-        self,
-        power: float = 1.0,
-        mono: bool = False
-    ):
-        super(ComplexNorm, self).__init__()
-        self.power = power
-        self.mono = mono
-
-    def forward(self, spec: Tensor) -> Tensor:
-        """
-        Args:
-            spec: complex_tensor (Tensor): Tensor shape of
-                `(..., complex=2)`
-
-        Returns:
-            Tensor: Power/Mag of input
-                `(...,)`
-        """
-        # take the magnitude
-        spec = torchaudio.functional.complex_norm(
-            spec, power=self.power
-        )
-
-        # downmix in the mag domain to preserve energy
-        if self.mono:
-            spec = torch.mean(spec, 1, keepdim=True)
-
-        return spec
-
+from . transforms import AsteroidSTFT, AsteroidISTFT, ComplexNorm
 
 class OpenUnmix(nn.Module):
     """OpenUnmix Core spectrogram based separation module.
@@ -348,8 +220,8 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop, center=True)
-        self.istft = ISTFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.stft = AsteroidSTFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.istft = AsteroidISTFT(n_fft=n_fft, n_hop=n_hop, center=True)
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models
