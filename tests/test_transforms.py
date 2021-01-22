@@ -9,7 +9,7 @@ def nb_timesteps(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[1, 2, 3])
+@pytest.fixture(params=[1, 2])
 def nb_channels(request):
     return request.param
 
@@ -24,7 +24,7 @@ def nfft(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[2, 4, 8])
+@pytest.fixture(params=[2, 4])
 def hop(request, nfft):
     return(nfft // request.param)
 
