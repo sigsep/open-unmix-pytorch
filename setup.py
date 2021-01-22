@@ -18,12 +18,18 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy",
-        "asteroid-filterbanks>=0.3.2",
         "torchaudio>=0.7.0",
         "torch>=1.7.0",
     ],
     extras_require={
-        "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1", "onnx"],
+        "asteroid": ["asteroid-filterbanks>=0.3.2"],
+        "tests": [
+            "pytest",
+            "musdb==0.3.2",
+            "museval==0.3.1",
+            "onnx",
+            "asteroid-filterbanks>=0.3.2"
+        ],
         "stempeg": ["stempeg"],
         'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
     },
