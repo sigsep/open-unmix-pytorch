@@ -196,7 +196,8 @@ def load_separator(
     residual: bool = False,
     wiener_win_len: Optional[int] = 300,
     device: Union[str, torch.device] = 'cpu',
-    pretrained: bool = True
+    pretrained: bool = True,
+    filterbank: str = 'torch'
 ):
     """Separator loader
 
@@ -226,6 +227,11 @@ def load_separator(
             Defaults to `300`
         device (str): torch device, defaults to `cpu`
         pretrained (bool): determines if loading pre-trained weights
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
     """
     model_path = Path(model_str_or_path).expanduser()
 
@@ -237,7 +243,7 @@ def load_separator(
         target_models = load_target_models(
             targets=targets,
             model_str_or_path=model_path,
-            pretrained=True
+            pretrained=pretrained
         )
 
         with open(Path(model_path, 'separator.json'), 'r') as stream:
@@ -252,6 +258,7 @@ def load_separator(
             n_fft=enc_conf['nfft'],
             n_hop=enc_conf['nhop'],
             nb_channels=enc_conf['nb_channels'],
+            filterbank=filterbank
         ).to(device)
 
     # otherwise we load the separator from torchhub
@@ -262,7 +269,8 @@ def load_separator(
             device=device,
             pretrained=True,
             niter=niter,
-            residual=residual
+            residual=residual,
+            filterbank=filterbank
         )
 
     return separator

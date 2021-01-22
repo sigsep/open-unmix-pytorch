@@ -113,6 +113,16 @@ def separate():
              '\"bass\",\"other\"]}\''
     )
 
+    parser.add_argument(
+        '--filterbank',
+        type=str,
+        default='torch',
+        help='filterbank implementation method. '
+             'Supported: `[\'torch\', \'asteroid\']`. `torch` is ~30% faster'
+             'compared to `asteroid` on large FFT sizes such as 4096. However'
+             'asteroids stft can be exported to onnx, which makes is practical'
+             'for deployment.'
+    )
     args = parser.parse_args()
     torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
 
@@ -136,7 +146,8 @@ def separate():
         residual=args.residual,
         wiener_win_len=args.wiener_win_len,
         device=device,
-        pretrained=True
+        pretrained=True,
+        filterbank=args.filterbank
     )
 
     separator.freeze()

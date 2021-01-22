@@ -19,4 +19,5 @@ dependencies:
   - pip:
     - musdb==0.3.1
     - museval==0.3.1
-    - gitpython
+    - asteroid-filterbanks==0.3.2
+    
