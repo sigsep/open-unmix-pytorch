@@ -6,7 +6,8 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
 from . filtering import wiener
-from . transforms import AsteroidSTFT, AsteroidISTFT, ComplexNorm
+from . transforms import make_filterbanks, ComplexNorm
+
 
 class OpenUnmix(nn.Module):
     """OpenUnmix Core spectrogram based separation module.
@@ -220,8 +221,11 @@ class Separator(nn.Module):
         self.softmask = softmask
         self.wiener_win_len = wiener_win_len
 
-        self.stft = AsteroidSTFT(n_fft=n_fft, n_hop=n_hop, center=True)
-        self.istft = AsteroidISTFT(n_fft=n_fft, n_hop=n_hop, center=True)
+        self.stft, self.istft = make_filterbanks(
+            n_fft=n_fft,
+            n_hop=n_hop,
+            center=True
+        )
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
         # registering the targets models

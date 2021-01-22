@@ -9,29 +9,35 @@ from torch import Tensor
 import torch.nn as nn
 
 
+def make_filterbanks(
+    n_fft=4096,
+    n_hop=1024,
+    center=False,
+    sample_rate=44100.0
+):
+    window = nn.Parameter(
+        torch.hann_window(n_fft),
+        requires_grad=False
+    )
+    fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+        n_fft=n_fft,
+        hop_length=n_hop,
+        win_length=n_fft,
+        window=window,
+        center=center,
+        sample_rate=sample_rate
+    )
+    encoder = AsteroidSTFT(fb)
+    decoder = AsteroidISTFT(fb)
+    return encoder, decoder
+
+
 class AsteroidSTFT(nn.Module):
     def __init__(
         self,
-        n_fft=4096,
-        n_hop=1024,
-        center=False,
-        sample_rate=44100.0
+        fb
     ):
         super(AsteroidSTFT, self).__init__()
-
-        window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
-        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
-            n_fft=n_fft,
-            hop_length=n_hop,
-            win_length=n_fft,
-            window=window,
-            center=center,
-            sample_rate=sample_rate
-        )
-
         self.enc = Encoder(fb)
 
     def forward(self, x):
@@ -40,50 +46,11 @@ class AsteroidSTFT(nn.Module):
 
 
 class AsteroidISTFT(nn.Module):
-    """Multichannel Inverse-Short-Time-Fourier functional
-    wrapper for torch.istft to support batches
-
-    Args:
-        STFT (Tensor): complex stft of
-            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
-            last axis is stacked real and imaginary
-        n_fft (int, optional): transform FFT size. Defaults to 4096.
-        n_hop (int, optional): transform hop size. Defaults to 1024.
-        window (callable, optional): window function
-        center (bool, optional): If True, the signals first window is
-            zero padded. Centering is required for a perfect
-            reconstruction of the signal. However, during training
-            of spectrogram models, it can safely turned off.
-            Defaults to `true`
-        length (int, optional): audio signal length to crop the signal
-
-    Returns:
-        x (Tensor): audio waveform of
-            shape (nb_samples, nb_channels, nb_timesteps)
-
-    """
     def __init__(
         self,
-        n_fft: int = 4096,
-        n_hop: int = 1024,
-        center: bool = False,
-        sample_rate: float = 44100.0
+        fb
     ):
         super(AsteroidISTFT, self).__init__()
-
-        window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
-        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
-            n_fft=n_fft,
-            hop_length=n_hop,
-            win_length=n_fft,
-            window=window,
-            center=center,
-            sample_rate=sample_rate
-        )
-
         self.dec = Decoder(fb)
 
     def forward(self, X: Tensor, length: Optional[int] = None) -> Tensor:

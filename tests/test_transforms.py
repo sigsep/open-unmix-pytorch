@@ -38,8 +38,9 @@ def test_stft(audio, nfft, hop):
     # we should only test for center=True as
     # False doesn't pass COLA
     # https://github.com/pytorch/audio/issues/500
-    stft = transforms.AsteroidSTFT(n_fft=nfft, n_hop=hop, center=True)
-    istft = transforms.AsteroidISTFT(n_fft=nfft, n_hop=hop, center=True)
+    stft, istft = transforms.make_filterbanks(
+        n_fft=nfft, n_hop=hop, center=True
+    )
 
     X = stft(audio)
     X = X.detach()

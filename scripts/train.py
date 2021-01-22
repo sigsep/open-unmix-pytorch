@@ -15,6 +15,7 @@ import torchaudio
 from openunmix import data
 from openunmix import model
 from openunmix import utils
+from openunmix import transforms
 
 tqdm.monitor_interval = 0
 
@@ -184,8 +185,13 @@ def main():
         **dataloader_kwargs
     )
 
+    stft, _ = transforms.make_filterbanks(
+        n_fft=args.nfft,
+        n_hop=args.nhop,
+        sample_rate=train_dataset.sample_rate
+    )
     encoder = torch.nn.Sequential(
-        model.STFT(n_fft=args.nfft, n_hop=args.nhop),
+        stft,
         model.ComplexNorm(mono=args.nb_channels == 1)
     ).to(device)
 

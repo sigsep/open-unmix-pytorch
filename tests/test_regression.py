@@ -9,6 +9,7 @@ import torch
 from openunmix import model
 from openunmix import evaluate
 from openunmix import utils
+from openunmix import transforms
 
 
 test_track = 'Al James - Schoolboy Facination'
@@ -82,7 +83,11 @@ def test_spectrogram(mus):
     such as STFT centering would be subject to change.
     """
     track = [track for track in mus.tracks if track.name == test_track][0]
-    encoder = torch.nn.Sequential(model.STFT(), model.ComplexNorm())
+
+    stft, _ = transforms.make_filterbanks(
+        n_fft=4096, n_hop=1024, sample_rate=track.rate
+    )
+    encoder = torch.nn.Sequential(stft, model.ComplexNorm(power=1, mono=False))
     audio = torch.as_tensor(track.audio, dtype=torch.float32, device='cpu')
     audio = utils.preprocess(audio, track.rate, track.rate)
     ref = torch.load(spec_path)
