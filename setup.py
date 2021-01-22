@@ -23,7 +23,7 @@ setup(
         "torch>=1.7.0",
     ],
     extras_require={
-        "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1"],
+        "tests": ["pytest", "musdb==0.3.2", "museval==0.3.1", "onnx"],
         "stempeg": ["stempeg"],
         'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
     },

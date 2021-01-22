@@ -335,7 +335,7 @@ class Separator(nn.Module):
         targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
 
         # inverse STFT
-        estimates = self.istft(targets_stft, length=audio.shape[-1])
+        estimates = self.istft(targets_stft, length=audio.shape[2])
 
         return estimates
 
