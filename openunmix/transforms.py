@@ -2,33 +2,55 @@ from typing import Optional
 
 import torch
 import torchaudio
-from asteroid_filterbanks.enc_dec import Encoder, Decoder
-from asteroid_filterbanks.transforms import to_torchaudio, from_torchaudio
-from asteroid_filterbanks import torch_stft_fb
 from torch import Tensor
 import torch.nn as nn
+
+try:
+    from asteroid_filterbanks.enc_dec import Encoder, Decoder
+    from asteroid_filterbanks.transforms import to_torchaudio, from_torchaudio
+    from asteroid_filterbanks import torch_stft_fb
+except ImportError:
+    pass
 
 
 def make_filterbanks(
     n_fft=4096,
     n_hop=1024,
     center=False,
-    sample_rate=44100.0
+    sample_rate=44100.0,
+    method='torch'
 ):
     window = nn.Parameter(
         torch.hann_window(n_fft),
         requires_grad=False
     )
-    fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
-        n_fft=n_fft,
-        hop_length=n_hop,
-        win_length=n_fft,
-        window=window,
-        center=center,
-        sample_rate=sample_rate
-    )
-    encoder = AsteroidSTFT(fb)
-    decoder = AsteroidISTFT(fb)
+
+    if method == 'torch':
+        encoder = TorchSTFT(
+            n_fft=n_fft,
+            n_hop=n_hop,
+            window=window,
+            center=center
+        )
+        decoder = TorchISTFT(
+            n_fft=n_fft,
+            n_hop=n_hop,
+            window=window,
+            center=center
+        )
+    elif method == 'asteroid':
+        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+            n_fft=n_fft,
+            hop_length=n_hop,
+            win_length=n_fft,
+            window=window,
+            center=center,
+            sample_rate=sample_rate
+        )
+        encoder = AsteroidSTFT(fb)
+        decoder = AsteroidISTFT(fb)
+    else:
+        raise NotImplementedError
     return encoder, decoder
 
 
@@ -69,18 +91,23 @@ class TorchSTFT(nn.Module):
             reconstruction of the signal. However, during training
             of spectrogram models, it can safely turned off.
             Defaults to `true`
+        window (nn.Parameter, optional): window function
     """
     def __init__(
         self,
         n_fft=4096,
         n_hop=1024,
-        center=False
+        center=False,
+        window=None
     ):
         super(TorchSTFT, self).__init__()
-        self.window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
+        if window is not None:
+            self.window = nn.Parameter(
+                torch.hann_window(n_fft),
+                requires_grad=False
+            )
+        else:
+            self.window = window
         self.n_fft = n_fft
         self.n_hop = n_hop
         self.center = center
@@ -143,7 +170,8 @@ class TorchISTFT(nn.Module):
         n_fft: int = 4096,
         n_hop: int = 1024,
         center: bool = False,
-        sample_rate: float = 44100.0
+        sample_rate: float = 44100.0,
+        window: Optional[nn.Parameter] = None
     ) -> None:
         super(TorchISTFT, self).__init__()
 
@@ -152,10 +180,13 @@ class TorchISTFT(nn.Module):
         self.center = center
         self.sample_rate = sample_rate
 
-        self.window = nn.Parameter(
-            torch.hann_window(n_fft),
-            requires_grad=False
-        )
+        if window is not None:
+            self.window = nn.Parameter(
+                torch.hann_window(n_fft),
+                requires_grad=False
+            )
+        else:
+            self.window = window
 
     def forward(self, X: Tensor, length: Optional[int] = None) -> Tensor:
         shape = X.size()

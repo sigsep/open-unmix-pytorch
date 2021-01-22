@@ -29,17 +29,22 @@ def hop(request, nfft):
     return(nfft // request.param)
 
 
+@pytest.fixture(params=['torch', 'asteroid'])
+def method(request):
+    return(request.param)
+
+
 @pytest.fixture
 def audio(request, nb_samples, nb_channels, nb_timesteps):
     return torch.rand((nb_samples, nb_channels, nb_timesteps))
 
 
-def test_stft(audio, nfft, hop):
+def test_stft(audio, nfft, hop, method):
     # we should only test for center=True as
     # False doesn't pass COLA
     # https://github.com/pytorch/audio/issues/500
     stft, istft = transforms.make_filterbanks(
-        n_fft=nfft, n_hop=hop, center=True
+        n_fft=nfft, n_hop=hop, center=True, method=method
     )
 
     X = stft(audio)
