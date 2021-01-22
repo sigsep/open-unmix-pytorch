@@ -25,6 +25,12 @@ spec_path = os.path.join(
 )
 
 
+
+@pytest.fixture(params=['torch', 'asteroid'])
+def method(request):
+    return(request.param)
+
+
 @pytest.fixture()
 def mus():
     return musdb.DB(download=True)
@@ -75,7 +81,7 @@ def test_estimate_and_evaluate(mus):
             assert np.allclose(ref, est, atol=1e-01)
 
 
-def test_spectrogram(mus):
+def test_spectrogram(mus, method):
     """Regression test for spectrogram transform
 
     Loads pre-computed transform and compare to current spectrogram
@@ -85,7 +91,7 @@ def test_spectrogram(mus):
     track = [track for track in mus.tracks if track.name == test_track][0]
 
     stft, _ = transforms.make_filterbanks(
-        n_fft=4096, n_hop=1024, sample_rate=track.rate
+        n_fft=4096, n_hop=1024, sample_rate=track.rate, method=method
     )
     encoder = torch.nn.Sequential(stft, model.ComplexNorm(power=1, mono=False))
     audio = torch.as_tensor(track.audio, dtype=torch.float32, device='cpu')
