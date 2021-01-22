@@ -4,7 +4,7 @@ import torch
 from openunmix import transforms
 
 
-@pytest.fixture(params=[4096, 4096*5])
+@pytest.fixture(params=[4096, 44100])
 def nb_timesteps(request):
     return int(request.param)
 
