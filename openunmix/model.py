@@ -200,6 +200,11 @@ class Separator(nn.Module):
             localization of sources.
             None means not batching but using the whole signal. It comes at the
             price of a much larger memory usage.
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
     """
     def __init__(
         self,
@@ -211,7 +216,8 @@ class Separator(nn.Module):
         n_fft: int = 4096,
         n_hop: int = 1024,
         nb_channels: int = 2,
-        wiener_win_len: Optional[int] = 300
+        wiener_win_len: Optional[int] = 300,
+        filterbank: str = 'torch'
     ):
         super(Separator, self).__init__()
 
@@ -224,7 +230,9 @@ class Separator(nn.Module):
         self.stft, self.istft = make_filterbanks(
             n_fft=n_fft,
             n_hop=n_hop,
-            center=True
+            center=True,
+            method=filterbank,
+            sample_rate=sample_rate
         )
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 

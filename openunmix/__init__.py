@@ -50,7 +50,8 @@ def umxse(
     residual=False,
     niter=1,
     device='cpu',
-    pretrained=True
+    pretrained=True,
+    filterbank='torch'
 ):
     """
     Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
@@ -67,6 +68,11 @@ def umxse(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
 
     Reference:
         Uhlich, Stefan, & Mitsufuji, Yuki. (2020).
@@ -88,7 +94,8 @@ def umxse(
         n_fft=1024,
         n_hop=512,
         nb_channels=1,
-        sample_rate=16000.0
+        sample_rate=16000.0,
+        filterbank=filterbank
     ).to(device)
 
     return separator
@@ -148,7 +155,8 @@ def umxhq(
     residual=False,
     niter=1,
     device='cpu',
-    pretrained=True
+    pretrained=True,
+    filterbank='torch'
 ):
     """
     Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
@@ -163,6 +171,11 @@ def umxhq(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
     """
 
     from . model import Separator
@@ -172,6 +185,7 @@ def umxhq(
         device=device,
         pretrained=pretrained
     )
+
     separator = Separator(
         target_models=target_models,
         niter=niter,
@@ -179,7 +193,8 @@ def umxhq(
         n_fft=4096,
         n_hop=1024,
         nb_channels=2,
-        sample_rate=44100.0
+        sample_rate=44100.0,
+        filterbank=filterbank
     ).to(device)
 
     return separator
@@ -240,6 +255,7 @@ def umx(
     niter=1,
     device='cpu',
     pretrained=True,
+    filterbank='torch'
 ):
     """
     Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
@@ -254,6 +270,11 @@ def umx(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
 
     """
 
@@ -271,7 +292,8 @@ def umx(
         n_fft=4096,
         n_hop=1024,
         nb_channels=2,
-        sample_rate=44100.0
+        sample_rate=44100.0,
+        filterbank=filterbank
     ).to(device)
 
     return separator
