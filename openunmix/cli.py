@@ -2,6 +2,8 @@ from pathlib import Path
 import torch
 import torchaudio
 import json
+import numpy as np
+
 
 from openunmix import utils
 from openunmix import predict
@@ -171,7 +173,8 @@ def separate():
                 input_file,
                 start=args.start,
                 duration=duration,
-                sample_rate=separator.sample_rate
+                sample_rate=separator.sample_rate,
+                dtype=np.float32
             )
             audio = torch.tensor(audio)
         else:

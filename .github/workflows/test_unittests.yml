@@ -54,12 +54,10 @@ jobs:
         # chmod +x ./tests/cli_test.sh
         # ./tests/cli_test.sh
 
-    # - name: CLI tests
-    #   run: |
-    #     chmod +x ./tests/cli_test.sh
-    #     ./tests/cli_test.sh
-    #   env:
-    #     ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+    - name: CLI tests
+      run: |
+        chmod +x ./tests/cli_test.sh
+        ./tests/cli_test.sh
 
     - name: Coverage report
       run: |
