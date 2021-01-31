@@ -25,13 +25,13 @@ setup(
         "asteroid": ["asteroid-filterbanks>=0.3.2"],
         "tests": [
             "pytest",
-            "musdb==0.3.2",
-            "museval==0.3.1",
+            "musdb>=0.4.0",
+            "museval<=0.4.0",
             "onnx",
             "asteroid-filterbanks>=0.3.2"
         ],
         "stempeg": ["stempeg"],
-        'evaluation':  ['musdb==0.3.1', 'museval==0.3.1'],
+        'evaluation':  ['musdb<=0.4.0', 'museval<=0.4.0'],
     },
     entry_points={"console_scripts": ["umx=openunmix.cli:separate"]},
     packages=find_packages(),
