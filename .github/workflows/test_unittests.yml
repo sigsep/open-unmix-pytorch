@@ -58,8 +58,6 @@ jobs:
       run: |
         chmod +x ./tests/cli_test.sh
         ./tests/cli_test.sh
-      env:
-        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
     - name: Coverage report
       run: |
