@@ -20,5 +20,5 @@ dependencies:
     - norbert>=0.2.0
     - museval==0.3.1
     - asteroid-filterbanks==0.3.2
-
+    - gitpython
 
