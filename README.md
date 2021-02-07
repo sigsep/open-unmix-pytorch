@@ -6,15 +6,17 @@
 
 [![Build Status](https://travis-ci.com/sigsep/open-unmix-pytorch.svg?branch=master)](https://travis-ci.com/sigsep/open-unmix-pytorch) [![Docker hub](https://img.shields.io/docker/cloud/build/faroit/open-unmix-pytorch)](https://cloud.docker.com/u/faroit/repository/docker/faroit/open-unmix-pytorch)
 
-This repository contains the PyTorch (1.6+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
+This repository contains the PyTorch (1.6+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the freely available [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
 ## News:
+
+- 31/01/2021: 
 
 - 06/05/2020: We also added a pre-trained speech enhancement model (`umxse`) provided by Sony. For more information we refer [to this site](https://sigsep.github.io/open-unmix/se)
 
 __Related Projects:__ open-unmix-pytorch | [open-unmix-nnabla](https://github.com/sigsep/open-unmix-nnabla) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
-## The Model for one source
+## The Model (for one source)
 
 ![](https://docs.google.com/drawings/d/e/2PACX-1vTPoQiPwmdfET4pZhue1RvG7oEUJz7eUeQvCu6vzYeKRwHl6by4RRTnphImSKM0k5KXw9rZ1iIFnpGW/pub?w=959&h=308)
 
@@ -26,13 +28,9 @@ Each _Open-Unmix_ source model is based on a three-layer bidirectional deep LSTM
 
 __Open-Unmix__ operates in the time-frequency domain to perform its prediction. The input of the model is either:
 
-* __A time domain__ signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch, `nb_channels` is 1 or 2 for mono or stereo audio, respectively, and `nb_timesteps` is the number of audio samples in the recording.
+* __`models.Separator`:__ A time domain signal tensor of shape `(nb_samples, nb_channels, nb_timesteps)`, where `nb_samples` are the samples in a batch, `nb_channels` is 1 or 2 for mono or stereo audio, respectively, and `nb_timesteps` is the number of audio samples in the recording. In this case, the model computes STFTs with either `torch` or `asteroid_filteranks` on the fly.
 
- In that case, the model computes spectrograms with `torch.STFT` on the fly.
-
-* Alternatively _open-unmix_ also takes **magnitude spectrograms** directly (e.g. when pre-computed and loaded from disk).
-
- In that case, the input is of shape `(nb_frames, nb_samples, nb_channels, nb_bins)`, where `nb_frames` and `nb_bins` are the time and frequency-dimensions of a Short-Time-Fourier-Transform.
+* __`models.OpenUnmix`:__ The core open-unmix takes **magnitude spectrograms** directly (e.g. when pre-computed and loaded from disk). In that case, the input is of shape `(nb_frames, nb_samples, nb_channels, nb_bins)`, where `nb_frames` and `nb_bins` are the time and frequency-dimensions of a Short-Time-Fourier-Transform.
 
 The input spectrogram is _standardized_ using the global mean and standard deviation for every frequency bin across all frames. Furthermore, we apply batch normalization in multiple stages of the model to make the training more robust against gain variation.
 
@@ -51,29 +49,29 @@ After applying the LSTM, the signal is decoded back to its original input dimens
 
 ## Putting source models together: the `Separator`
 
-For inference, this branch enables a `Separator` pytorch Module, that puts together one _Open-unmix_ model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`.
-The filtering is a rewriting in torch of the [numpy implementation](https://github.com/sigsep/norbert) used in the main branch.
-
+`models.Separator` puts together _Open-unmix_ spectrogram model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`.
+The filtering is differentiable (but parameter-free) version of [norbert](https://github.com/sigsep/norbert). The separator is currently currently only used during training.
 
 ## Getting started
 
 ### Installation
+### Training
 
 For installation we recommend to use the [Anaconda](https://anaconda.org/) python distribution. To create a conda environment for _open-unmix_, simply run:
 
-`conda env create -f environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
+`conda env create -f scripts/environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
 
 ### Using Docker
 
 We also provide a docker container as an alternative to anaconda. That way performing separation of a local track in `~/Music/track1.wav` can be performed in a single line:
 
 ```
-docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch python test.py "/data/track1.wav" --outdir /data/track1
+docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch umx "/data/track1.wav" --outdir /data/track1
 ```
 
-### Applying pre-trained models on audio files
+### Pre-trained models
 
-We provide two pre-trained music separation models:
+We provide three core pre-trained music separation models. All three models are end-to-end models that take waveform inputs and output the separated waveforms.
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
@@ -89,39 +87,46 @@ Furthermore, we provide a model for speech enhancement trained by [Sony Corporat
 
   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3786908.svg)](https://doi.org/10.5281/zenodo.3786908)
 
+All three models are also available as spectrogram (core) models, which take magnitude spectrogram inputs and ouput separated spectrograms.
+These models can be loaded using `umxhq_spec`, `umx_spec` and `umxse_spec`.
+
 To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
 ```bash
-python test.py input_file.wav --model umxhq
+umx input_file.wav --model umxhq
 ```
 
 A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
-We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to
-experiment with open-unmix and to separate files online without any installation setup.
 
-### Creating a Separator through torch.hub
+We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
 
-A pre-trained Separator can be loaded from other pytorch based repositories using torch.hub.load:
+### Using the openunmix Separator within other models
 
-```python
-separator = torch.hub.load('sigsep/open-unmix-pytorch:torchfilters', 'separator',device=device)
-```
-
-This object may then simply be used for separation of some `audio` (ndarray or Tensor), sampled at a sampling rate `rate`, through:
+We also provide a torch.hub compatible modules that can be loaded using:
 
 ```python
-estimates, rate = separator(audio, rate)
+separator = torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', device=device)
 ```
+
+Where, `umxhq` specifies the pre-trained model.
+This object may then simply be used for separation of some `audio` (ndarray or Tensor, provided as at a sampling rate `separator.sample_rate`) through:
+
+```python
+estimates = separator(audio, ...)
+# returns estimates as tensor
+``` 
 
 ### Load user-trained models (only music separation models)
 
-When a path instead of a model-name is provided to `--model` the pre-trained model will be loaded from disk.
+When a path instead of a model-name is provided to `--model`, pre-trained `Separator` will be loaded from disk.
+E.g. The following files are assumed to present when loading `--model mymodel --targets vocals`
 
-```bash
-python test.py --model /path/to/model/root/directory input_file.wav
-```
+* `mymodel/separator.json`
+* `mymodel/vocals.pth`
+* `mymodel/vocals.json`
 
-Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated, unless the `residual-model` option is selected, in which case an additional source will be produced, containing an estimate of all that is not the targets in the mixtures.
+
+Note that the separator usually joins multiple models for each target and performs separation using all models. E.g. if the separator contains `vocals` and `drums` models, two output files are generated, unless the `--residual` option is selected, in which case an additional source will be produced, containing an estimate of all that is not the targets in the mixtures.
 
 ### Evaluation using `museval`
 
