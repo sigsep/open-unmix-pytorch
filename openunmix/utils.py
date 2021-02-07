@@ -205,7 +205,7 @@ def load_separator(
         model_str_or_path (str): Model name or path to model _parent_ directory
             E.g. The following files are assumed to present when
             loading `model_str_or_path='mymodel', targets=['vocals']`
-            'mymodel/separator', mymodel/vocals.pth', 'mymodel/vocals.json'.
+            'mymodel/separator.json', mymodel/vocals.pth', 'mymodel/vocals.json'.
             Defaults to `umxhq`.
         targets (list of str or None): list of target names. When loading a
             pre-trained model, all `targets` can be None as all targets
