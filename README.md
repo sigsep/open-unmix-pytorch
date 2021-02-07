@@ -55,15 +55,20 @@ The filtering is differentiable (but parameter-free) version of [norbert](https:
 ## Getting started
 
 ### Installation
-### Training
 
-For installation we recommend to use the [Anaconda](https://anaconda.org/) python distribution. To create a conda environment for _open-unmix_, simply run:
+To use the pre-trained models, just install `openunmix` via pip:
 
-`conda env create -f scripts/environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
+```
+pip install openunmix
+```
 
-### Using Docker
+Note, that the pypi version of openunmix uses [torchaudio] to load and save audio files. To increase the number of supported input and output file formats (such as STEMS export), please additionally install [stempeg](https://github.com/faroit/stempeg).
 
-We also provide a docker container as an alternative to anaconda. That way performing separation of a local track in `~/Music/track1.wav` can be performed in a single line:
+Training is not part of the open-unmix package, please follow [docs/train.md] for more information.
+
+#### Using Docker
+
+We also provide a docker container. Performing separation of a local track in `~/Music/track1.wav` can be performed in a single line:
 
 ```
 docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch umx "/data/track1.wav" --outdir /data/track1
