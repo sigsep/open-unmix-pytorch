@@ -46,9 +46,9 @@ def load_audio(
 
     Args:
         path: Path of audio file
-        start: start position in seconds, defaults on the beginning
-        dur: end position in seconds, defaults to `None` (full file)
-        info: metadata object as called from `load_info`
+        start: start position in seconds, defaults on the beginning.
+        dur: end position in seconds, defaults to `None` (full file).
+        info: metadata object as called from `load_info`.
 
     Returns:
         Tensor: torch tensor waveform of shape `(num_channels, num_samples)`
@@ -59,7 +59,6 @@ def load_audio(
         # since we have to deal with fixed length audio
         sig, rate = torchaudio.load(path)
         return sig, rate
-        # otherwise loads a random excerpt
     else:
         if info is None:
             info = load_info(path)
