@@ -10,6 +10,7 @@ from openunmix import predict
 from openunmix import data
 
 import argparse
+import numpy as np
 
 
 def separate():
@@ -57,7 +58,6 @@ def separate():
     parser.add_argument(
         '--duration',
         type=float,
-        default=-1.0,
         help='Audio chunk duration in seconds, negative values load full track'
     )
 
@@ -164,15 +164,10 @@ def separate():
     # loop over the files
     for input_file in args.input:
         if args.audio_backend == 'stempeg':
-            if args.duration == -1:
-                duration = None
-            else:
-                duration = args.duration
-
             audio, rate = stempeg.read_stems(
                 input_file,
                 start=args.start,
-                duration=duration,
+                duration=args.duration,
                 sample_rate=separator.sample_rate,
                 dtype=np.float32
             )
@@ -221,7 +216,7 @@ def separate():
             )
         else:
             for target, estimate in estimates.items():
-                target_path = str(outdir / Path(target).with_suffix('.wav'))
+                target_path = str(outdir / Path(target).with_suffix(args.ext))
                 torchaudio.save(
                     target_path,
                     torch.squeeze(estimate).to('cpu'),
