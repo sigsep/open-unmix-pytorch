@@ -112,9 +112,7 @@ class EarlyStopping(object):
             self.is_better = lambda a, best: a > best + min_delta
 
 
-def load_target_models(
-    targets, model_str_or_path="umxhq", device="cpu", pretrained=True
-):
+def load_target_models(targets, model_str_or_path="umxhq", device="cpu", pretrained=True):
     """Core model loader
 
     target model path can be either <target>.pth, or <target>-sha256.pth
@@ -289,9 +287,7 @@ def preprocess(
         # swapping channel and time
         audio = audio.transpose(1, 2)
     if audio.shape[1] > 2:
-        warnings.warn(
-            "Channel count > 2!. Only the first two channels " "will be processed!"
-        )
+        warnings.warn("Channel count > 2!. Only the first two channels " "will be processed!")
         audio = audio[..., :2]
 
     if audio.shape[1] == 1:

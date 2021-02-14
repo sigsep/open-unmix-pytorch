@@ -1,5 +1,4 @@
 from openunmix import utils
-from openunmix import predict
 import torch.hub
 
 

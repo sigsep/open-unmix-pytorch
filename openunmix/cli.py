@@ -10,7 +10,6 @@ from openunmix import predict
 from openunmix import data
 
 import argparse
-import numpy as np
 
 
 def separate():
