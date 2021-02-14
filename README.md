@@ -136,7 +136,14 @@ estimates = separator(audio, ...)
 
 Note that this requires the audio to be in the right shape and sampling rate. For convenience we provide a pre-processing in `openunmix.utils.preprocess(..`)` that takes numpy audio and converts it to be used for open-unmix.
 
-Furthermore, `openunmix.separate.predice(audio, ...)` can be used to load a model and perform preprocessing and separation in one step.
+#### One-liner
+
+To perform model loading, preprocessing and separation in one step, just use:
+
+```python
+from openunmix import separate
+estimates = separate.predict(audio, ...)
+```
 
 ### Load user-trained models
 
