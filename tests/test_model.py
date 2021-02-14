@@ -1,10 +1,11 @@
 import pytest
-import model
 import torch
 
+from openunmix import model
 
-@pytest.fixture(params=[4096, 44100, 54321])
-def nb_timesteps(request):
+
+@pytest.fixture(params=[10, 100])
+def nb_frames(request):
     return int(request.param)
 
 
@@ -18,9 +19,14 @@ def nb_samples(request):
     return request.param
 
 
+@pytest.fixture(params=[111, 1024])
+def nb_bins(request):
+    return request.param
+
+
 @pytest.fixture
-def audio(request, nb_samples, nb_channels, nb_timesteps):
-    return torch.rand((nb_samples, nb_channels, nb_timesteps))
+def spectrogram(request, nb_samples, nb_channels, nb_bins, nb_frames):
+    return torch.rand((nb_samples, nb_channels, nb_bins, nb_frames))
 
 
 @pytest.fixture(params=[True, False])
@@ -28,46 +34,19 @@ def unidirectional(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 2])
-def nb_layers(request):
-    return request.param
-
-
-@pytest.fixture(params=[32, 512])
+@pytest.fixture(params=[32])
 def hidden_size(request):
     return request.param
 
 
-@pytest.fixture(params=[1024, 4096])
-def n_fft(request):
-    return request.param
-
-
-@pytest.fixture(params=[2, 4])
-def n_hop(request, n_fft):
-    return n_fft // request.param
-
-
-def test_shape(
-    audio,
-    nb_channels,
-    unidirectional,
-    nb_layers,
-    hidden_size,
-    n_fft,
-    n_hop
-):
+def test_shape(spectrogram, nb_bins, nb_channels, unidirectional, hidden_size):
     unmix = model.OpenUnmix(
-        n_fft=n_fft,
-        n_hop=n_hop,
+        nb_bins=nb_bins,
         nb_channels=nb_channels,
-        input_is_spectrogram=True,
         unidirectional=unidirectional,
-        nb_layers=nb_layers,
-        hidden_size=hidden_size
+        nb_layers=1,  # speed up training
+        hidden_size=hidden_size,
     )
     unmix.eval()
-    spec = torch.nn.Sequential(unmix.stft, unmix.spec)
-    X = spec(audio)
-    Y = unmix(X)
-    assert X.shape == Y.shape
+    Y = unmix(spectrogram)
+    assert spectrogram.shape == Y.shape

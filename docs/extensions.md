@@ -22,10 +22,10 @@ In case you want to create your own dataset we provide a template for the open-u
 
 ```python
 from utils import load_audio, load_info
-class TemplateDataset(torch.utils.data.Dataset):
+class TemplateDataset(UnmixDataset):
     """A template dataset class for you to implement custom datasets."""
 
-    def __init__(self, root, split='train'):
+    def __init__(self, root, split='train', sample_rate=44100, seq_dur=None):
         """Initialize the dataset
         """
         self.root = root
@@ -49,10 +49,10 @@ class TemplateDataset(torch.utils.data.Dataset):
 
 We think that recurrent models provide the best trade-off between good results, fast training and flexibility of training due to its ability to learn from arbitrary durations of audio and different audio representations. If you want to try different models you can easily build upon our model template below:
 
-### Template Model
+### Template Spectrogram Model
 
 ```python
-from model import Spectrogram, STFT, NoOp
+from model import Spectrogram, STFT
 class Model(nn.Module):
     def __init__(
         self,
@@ -60,7 +60,7 @@ class Model(nn.Module):
         n_hop=1024,
         nb_channels=2,
         input_is_spectrogram=False,
-        sample_rate=44100,
+        sample_rate=44100.0,
     ):
         """
         Input:  (batch, channel, sample)
@@ -69,16 +69,6 @@ class Model(nn.Module):
         """
 
         super(OpenUnmix, self).__init__()
-        self.stft = STFT(n_fft=n_fft, n_hop=n_hop)
-        self.spec = Spectrogram(power=power, mono=(nb_channels == 1))
-        # register sample_rate to check at inference time
-        self.register_buffer('sample_rate', torch.tensor(sample_rate))
-
-        if input_is_spectrogram:
-            self.transform = NoOp()
-        else:
-            self.transform = nn.Sequential(self.stft, self.spec)
-
 
     def forward(self, mix):
         # transform to spectrogram on the fly

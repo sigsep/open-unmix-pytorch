@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>openunmix.model API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>openunmix.model</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L0-L345" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">from typing import Optional
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import Tensor
+from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
+from .filtering import wiener
+from .transforms import make_filterbanks, ComplexNorm
+
+
+class OpenUnmix(nn.Module):
+    &#34;&#34;&#34;OpenUnmix Core spectrogram based separation module.
+
+    Args:
+        nb_bins (int): Number of input time-frequency bins (Default: `4096`).
+        nb_channels (int): Number of input audio channels (Default: `2`).
+        hidden_size (int): Size for bottleneck layers (Default: `512`).
+        nb_layers (int): Number of Bi-LSTM layers (Default: `3`).
+        unidirectional (bool): Use causal model useful for realtime purpose.
+            (Default `False`)
+        input_mean (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to zeros(nb_bins)
+        input_scale (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to ones(nb_bins)
+        max_bin (int or None): Internal frequency bin threshold to
+            reduce high frequency content. Defaults to `None` which results
+            in `nb_bins`
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        nb_bins=4096,
+        nb_channels=2,
+        hidden_size=512,
+        nb_layers=3,
+        unidirectional=False,
+        input_mean=None,
+        input_scale=None,
+        max_bin=None,
+    ):
+        super(OpenUnmix, self).__init__()
+
+        self.nb_output_bins = nb_bins
+        if max_bin:
+            self.nb_bins = max_bin
+        else:
+            self.nb_bins = self.nb_output_bins
+
+        self.hidden_size = hidden_size
+
+        self.fc1 = Linear(self.nb_bins * nb_channels, hidden_size, bias=False)
+
+        self.bn1 = BatchNorm1d(hidden_size)
+
+        if unidirectional:
+            lstm_hidden_size = hidden_size
+        else:
+            lstm_hidden_size = hidden_size // 2
+
+        self.lstm = LSTM(
+            input_size=hidden_size,
+            hidden_size=lstm_hidden_size,
+            num_layers=nb_layers,
+            bidirectional=not unidirectional,
+            batch_first=False,
+            dropout=0.4 if nb_layers &gt; 1 else 0,
+        )
+
+        fc2_hiddensize = hidden_size * 2
+        self.fc2 = Linear(in_features=fc2_hiddensize, out_features=hidden_size, bias=False)
+
+        self.bn2 = BatchNorm1d(hidden_size)
+
+        self.fc3 = Linear(
+            in_features=hidden_size,
+            out_features=self.nb_output_bins * nb_channels,
+            bias=False,
+        )
+
+        self.bn3 = BatchNorm1d(self.nb_output_bins * nb_channels)
+
+        if input_mean is not None:
+            input_mean = torch.from_numpy(-input_mean[: self.nb_bins]).float()
+        else:
+            input_mean = torch.zeros(self.nb_bins)
+
+        if input_scale is not None:
+            input_scale = torch.from_numpy(1.0 / input_scale[: self.nb_bins]).float()
+        else:
+            input_scale = torch.ones(self.nb_bins)
+
+        self.input_mean = Parameter(input_mean)
+        self.input_scale = Parameter(input_scale)
+
+        self.output_scale = Parameter(torch.ones(self.nb_output_bins).float())
+        self.output_mean = Parameter(torch.ones(self.nb_output_bins).float())
+
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+        self.eval()
+
+    def forward(self, x: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Args:
+            x: input spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
+
+        Returns:
+            Tensor: filtered spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
+        &#34;&#34;&#34;
+
+        # permute so that batch is last for lstm
+        x = x.permute(3, 0, 1, 2)
+        # get current spectrogram shape
+        nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+
+        mix = x.detach().clone()
+
+        # crop
+        x = x[..., : self.nb_bins]
+        # shift and scale input to mean=0 std=1 (across all bins)
+        x += self.input_mean
+        x *= self.input_scale
+
+        # to (nb_frames*nb_samples, nb_channels*nb_bins)
+        # and encode to (nb_frames*nb_samples, hidden_size)
+        x = self.fc1(x.reshape(-1, nb_channels * self.nb_bins))
+        # normalize every instance in a batch
+        x = self.bn1(x)
+        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
+        # squash range ot [-1, 1]
+        x = torch.tanh(x)
+
+        # apply 3-layers of stacked LSTM
+        lstm_out = self.lstm(x)
+
+        # lstm skip connection
+        x = torch.cat([x, lstm_out[0]], -1)
+
+        # first dense stage + batch norm
+        x = self.fc2(x.reshape(-1, x.shape[-1]))
+        x = self.bn2(x)
+
+        x = F.relu(x)
+
+        # second dense stage + layer norm
+        x = self.fc3(x)
+        x = self.bn3(x)
+
+        # reshape back to original dim
+        x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
+
+        # apply output scaling
+        x *= self.output_scale
+        x += self.output_mean
+
+        # since our output is non-negative, we can apply RELU
+        x = F.relu(x) * mix
+        # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+        return x.permute(1, 2, 3, 0)
+
+
+class Separator(nn.Module):
+    &#34;&#34;&#34;
+    Separator class to encapsulate all the stereo filtering
+    as a torch Module, to enable end-to-end learning.
+
+    Args:
+        targets (dict of str: nn.Module): dictionary of target models
+            the spectrogram models to be used by the Separator.
+        niter (int): Number of EM steps for refining initial estimates in a
+            post-processing stage. Zeroed if only one target is estimated.
+            defaults to `1`.
+        residual (bool): adds an additional residual target, obtained by
+            subtracting the other estimated targets from the mixture,
+            before any potential EM post-processing.
+            Defaults to `False`.
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        target_models: dict,
+        niter: int = 0,
+        softmask: bool = False,
+        residual: bool = False,
+        sample_rate: float = 44100.0,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        nb_channels: int = 2,
+        wiener_win_len: Optional[int] = 300,
+        filterbank: str = &#34;torch&#34;,
+    ):
+        super(Separator, self).__init__()
+
+        # saving parameters
+        self.niter = niter
+        self.residual = residual
+        self.softmask = softmask
+        self.wiener_win_len = wiener_win_len
+
+        self.stft, self.istft = make_filterbanks(
+            n_fft=n_fft,
+            n_hop=n_hop,
+            center=True,
+            method=filterbank,
+            sample_rate=sample_rate,
+        )
+        self.complexnorm = ComplexNorm(mono=nb_channels == 1)
+
+        # registering the targets models
+        self.target_models = nn.ModuleDict(target_models)
+        # adding till https://github.com/pytorch/pytorch/issues/38963
+        self.nb_targets = len(self.target_models)
+        # get the sample_rate as the sample_rate of the first model
+        # (tacitly assume it&#39;s the same for all targets)
+        self.register_buffer(&#34;sample_rate&#34;, torch.as_tensor(sample_rate))
+
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+        self.eval()
+
+    def forward(self, audio: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;Performing the separation on audio input
+
+        Args:
+            audio (Tensor): [shape=(nb_samples, nb_channels, nb_timesteps)]
+                mixture audio waveform
+
+        Returns:
+            Tensor: stacked tensor of separated waveforms
+                shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
+        &#34;&#34;&#34;
+
+        nb_sources = self.nb_targets
+        nb_samples = audio.shape[0]
+
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        mix_stft = self.stft(audio)
+        X = self.complexnorm(mix_stft)
+
+        # initializing spectrograms variable
+        spectrograms = torch.zeros(X.shape + (nb_sources,), dtype=audio.dtype, device=X.device)
+
+        for j, (target_name, target_module) in enumerate(self.target_models.items()):
+            # apply current model to get the source spectrogram
+            target_spectrogram = target_module(X.detach().clone())
+            spectrograms[..., j] = target_spectrogram
+
+        # transposing it as
+        # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
+        spectrograms = spectrograms.permute(0, 3, 2, 1, 4)
+
+        # rearranging it into:
+        # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
+        # into filtering methods
+        mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
+
+        # create an additional target if we need to build a residual
+        if self.residual:
+            # we add an additional target
+            nb_sources += 1
+
+        if nb_sources == 1 and self.niter &gt; 0:
+            raise Exception(
+                &#34;Cannot use EM if only one target is estimated.&#34;
+                &#34;Provide two targets or create an additional &#34;
+                &#34;one with `--residual`&#34;
+            )
+
+        nb_frames = spectrograms.shape[1]
+        targets_stft = torch.zeros(
+            mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device
+        )
+        for sample in range(nb_samples):
+            pos = 0
+            if self.wiener_win_len:
+                wiener_win_len = self.wiener_win_len
+            else:
+                wiener_win_len = nb_frames
+            while pos &lt; nb_frames:
+                cur_frame = torch.arange(pos, min(nb_frames, pos + wiener_win_len))
+                pos = int(cur_frame[-1]) + 1
+
+                targets_stft[sample, cur_frame] = wiener(
+                    spectrograms[sample, cur_frame],
+                    mix_stft[sample, cur_frame],
+                    self.niter,
+                    softmask=self.softmask,
+                    residual=self.residual,
+                )
+
+        # getting to (nb_samples, nb_targets, channel, fft_size, n_frames, 2)
+        targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
+
+        # inverse STFT
+        estimates = self.istft(targets_stft, length=audio.shape[2])
+
+        return estimates
+
+    def to_dict(self, estimates: Tensor, aggregate_dict: Optional[dict] = None) -&gt; dict:
+        &#34;&#34;&#34;Convert estimates as stacked tensor to dictionary
+
+        Args:
+            estimates (Tensor): separated targets of shape
+                (nb_samples, nb_targets, nb_channels, nb_timesteps)
+            aggregate_dict (dict or None)
+
+        Returns:
+            (dict of str: Tensor):
+        &#34;&#34;&#34;
+        estimates_dict = {}
+        for k, target in enumerate(self.target_models):
+            estimates_dict[target] = estimates[:, k, ...]
+
+        # in the case of residual, we added another source
+        if self.residual:
+            estimates_dict[&#34;residual&#34;] = estimates[:, -1, ...]
+
+        if aggregate_dict is not None:
+            new_estimates = {}
+            for key in aggregate_dict:
+                new_estimates[key] = torch.tensor(0.0)
+                for target in aggregate_dict[key]:
+                    new_estimates[key] = new_estimates[key] + estimates_dict[target]
+            estimates_dict = new_estimates
+        return estimates_dict</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="openunmix.model.OpenUnmix"><code class="flex name class">
+<span>class <span class="ident">OpenUnmix</span></span>
+<span>(</span><span>nb_bins=4096, nb_channels=2, hidden_size=512, nb_layers=3, unidirectional=False, input_mean=None, input_scale=None, max_bin=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>OpenUnmix Core spectrogram based separation module.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>nb_bins</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of input time-frequency bins (Default: <code>4096</code>).</dd>
+<dt><strong><code>nb_channels</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of input audio channels (Default: <code>2</code>).</dd>
+<dt><strong><code>hidden_size</code></strong> :&ensp;<code>int</code></dt>
+<dd>Size for bottleneck layers (Default: <code>512</code>).</dd>
+<dt><strong><code>nb_layers</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of Bi-LSTM layers (Default: <code>3</code>).</dd>
+<dt><strong><code>unidirectional</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Use causal model useful for realtime purpose.
+(Default <code>False</code>)</dd>
+<dt><strong><code>input_mean</code></strong> :&ensp;<code>ndarray</code> or <code>None</code></dt>
+<dd>global data mean of shape <code>(nb_bins, )</code>.
+Defaults to zeros(nb_bins)</dd>
+<dt><strong><code>input_scale</code></strong> :&ensp;<code>ndarray</code> or <code>None</code></dt>
+<dd>global data mean of shape <code>(nb_bins, )</code>.
+Defaults to ones(nb_bins)</dd>
+<dt><strong><code>max_bin</code></strong> :&ensp;<code>int</code> or <code>None</code></dt>
+<dd>Internal frequency bin threshold to
+reduce high frequency content. Defaults to <code>None</code> which results
+in <code>nb_bins</code></dd>
+</dl>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L12-L165" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class OpenUnmix(nn.Module):
+    &#34;&#34;&#34;OpenUnmix Core spectrogram based separation module.
+
+    Args:
+        nb_bins (int): Number of input time-frequency bins (Default: `4096`).
+        nb_channels (int): Number of input audio channels (Default: `2`).
+        hidden_size (int): Size for bottleneck layers (Default: `512`).
+        nb_layers (int): Number of Bi-LSTM layers (Default: `3`).
+        unidirectional (bool): Use causal model useful for realtime purpose.
+            (Default `False`)
+        input_mean (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to zeros(nb_bins)
+        input_scale (ndarray or None): global data mean of shape `(nb_bins, )`.
+            Defaults to ones(nb_bins)
+        max_bin (int or None): Internal frequency bin threshold to
+            reduce high frequency content. Defaults to `None` which results
+            in `nb_bins`
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        nb_bins=4096,
+        nb_channels=2,
+        hidden_size=512,
+        nb_layers=3,
+        unidirectional=False,
+        input_mean=None,
+        input_scale=None,
+        max_bin=None,
+    ):
+        super(OpenUnmix, self).__init__()
+
+        self.nb_output_bins = nb_bins
+        if max_bin:
+            self.nb_bins = max_bin
+        else:
+            self.nb_bins = self.nb_output_bins
+
+        self.hidden_size = hidden_size
+
+        self.fc1 = Linear(self.nb_bins * nb_channels, hidden_size, bias=False)
+
+        self.bn1 = BatchNorm1d(hidden_size)
+
+        if unidirectional:
+            lstm_hidden_size = hidden_size
+        else:
+            lstm_hidden_size = hidden_size // 2
+
+        self.lstm = LSTM(
+            input_size=hidden_size,
+            hidden_size=lstm_hidden_size,
+            num_layers=nb_layers,
+            bidirectional=not unidirectional,
+            batch_first=False,
+            dropout=0.4 if nb_layers &gt; 1 else 0,
+        )
+
+        fc2_hiddensize = hidden_size * 2
+        self.fc2 = Linear(in_features=fc2_hiddensize, out_features=hidden_size, bias=False)
+
+        self.bn2 = BatchNorm1d(hidden_size)
+
+        self.fc3 = Linear(
+            in_features=hidden_size,
+            out_features=self.nb_output_bins * nb_channels,
+            bias=False,
+        )
+
+        self.bn3 = BatchNorm1d(self.nb_output_bins * nb_channels)
+
+        if input_mean is not None:
+            input_mean = torch.from_numpy(-input_mean[: self.nb_bins]).float()
+        else:
+            input_mean = torch.zeros(self.nb_bins)
+
+        if input_scale is not None:
+            input_scale = torch.from_numpy(1.0 / input_scale[: self.nb_bins]).float()
+        else:
+            input_scale = torch.ones(self.nb_bins)
+
+        self.input_mean = Parameter(input_mean)
+        self.input_scale = Parameter(input_scale)
+
+        self.output_scale = Parameter(torch.ones(self.nb_output_bins).float())
+        self.output_mean = Parameter(torch.ones(self.nb_output_bins).float())
+
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+        self.eval()
+
+    def forward(self, x: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Args:
+            x: input spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
+
+        Returns:
+            Tensor: filtered spectrogram of shape
+                `(nb_samples, nb_channels, nb_bins, nb_frames)`
+        &#34;&#34;&#34;
+
+        # permute so that batch is last for lstm
+        x = x.permute(3, 0, 1, 2)
+        # get current spectrogram shape
+        nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+
+        mix = x.detach().clone()
+
+        # crop
+        x = x[..., : self.nb_bins]
+        # shift and scale input to mean=0 std=1 (across all bins)
+        x += self.input_mean
+        x *= self.input_scale
+
+        # to (nb_frames*nb_samples, nb_channels*nb_bins)
+        # and encode to (nb_frames*nb_samples, hidden_size)
+        x = self.fc1(x.reshape(-1, nb_channels * self.nb_bins))
+        # normalize every instance in a batch
+        x = self.bn1(x)
+        x = x.reshape(nb_frames, nb_samples, self.hidden_size)
+        # squash range ot [-1, 1]
+        x = torch.tanh(x)
+
+        # apply 3-layers of stacked LSTM
+        lstm_out = self.lstm(x)
+
+        # lstm skip connection
+        x = torch.cat([x, lstm_out[0]], -1)
+
+        # first dense stage + batch norm
+        x = self.fc2(x.reshape(-1, x.shape[-1]))
+        x = self.bn2(x)
+
+        x = F.relu(x)
+
+        # second dense stage + layer norm
+        x = self.fc3(x)
+        x = self.bn3(x)
+
+        # reshape back to original dim
+        x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
+
+        # apply output scaling
+        x *= self.output_scale
+        x += self.output_mean
+
+        # since our output is non-negative, we can apply RELU
+        x = F.relu(x) * mix
+        # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+        return x.permute(1, 2, 3, 0)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.model.OpenUnmix.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.model.OpenUnmix.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.model.OpenUnmix.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, x: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong></dt>
+<dd>input spectrogram of shape
+<code>(nb_samples, nb_channels, nb_bins, nb_frames)</code></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tensor</code></dt>
+<dd>filtered spectrogram of shape
+<code>(nb_samples, nb_channels, nb_bins, nb_frames)</code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L106-L165" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, x: Tensor) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Args:
+        x: input spectrogram of shape
+            `(nb_samples, nb_channels, nb_bins, nb_frames)`
+
+    Returns:
+        Tensor: filtered spectrogram of shape
+            `(nb_samples, nb_channels, nb_bins, nb_frames)`
+    &#34;&#34;&#34;
+
+    # permute so that batch is last for lstm
+    x = x.permute(3, 0, 1, 2)
+    # get current spectrogram shape
+    nb_frames, nb_samples, nb_channels, nb_bins = x.data.shape
+
+    mix = x.detach().clone()
+
+    # crop
+    x = x[..., : self.nb_bins]
+    # shift and scale input to mean=0 std=1 (across all bins)
+    x += self.input_mean
+    x *= self.input_scale
+
+    # to (nb_frames*nb_samples, nb_channels*nb_bins)
+    # and encode to (nb_frames*nb_samples, hidden_size)
+    x = self.fc1(x.reshape(-1, nb_channels * self.nb_bins))
+    # normalize every instance in a batch
+    x = self.bn1(x)
+    x = x.reshape(nb_frames, nb_samples, self.hidden_size)
+    # squash range ot [-1, 1]
+    x = torch.tanh(x)
+
+    # apply 3-layers of stacked LSTM
+    lstm_out = self.lstm(x)
+
+    # lstm skip connection
+    x = torch.cat([x, lstm_out[0]], -1)
+
+    # first dense stage + batch norm
+    x = self.fc2(x.reshape(-1, x.shape[-1]))
+    x = self.bn2(x)
+
+    x = F.relu(x)
+
+    # second dense stage + layer norm
+    x = self.fc3(x)
+    x = self.bn3(x)
+
+    # reshape back to original dim
+    x = x.reshape(nb_frames, nb_samples, nb_channels, self.nb_output_bins)
+
+    # apply output scaling
+    x *= self.output_scale
+    x += self.output_mean
+
+    # since our output is non-negative, we can apply RELU
+    x = F.relu(x) * mix
+    # permute back to (nb_samples, nb_channels, nb_bins, nb_frames)
+    return x.permute(1, 2, 3, 0)</code></pre>
+</details>
+</dd>
+<dt id="openunmix.model.OpenUnmix.freeze"><code class="name flex">
+<span>def <span class="ident">freeze</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L99-L104" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def freeze(self):
+    # set all parameters as not requiring gradient, more RAM-efficient
+    # at test time
+    for p in self.parameters():
+        p.requires_grad = False
+    self.eval()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="openunmix.model.Separator"><code class="flex name class">
+<span>class <span class="ident">Separator</span></span>
+<span>(</span><span>target_models: dict, niter: int = 0, softmask: bool = False, residual: bool = False, sample_rate: float = 44100.0, n_fft: int = 4096, n_hop: int = 1024, nb_channels: int = 2, wiener_win_len: Union[int, NoneType] = 300, filterbank: str = 'torch')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Separator class to encapsulate all the stereo filtering
+as a torch Module, to enable end-to-end learning.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt>targets (dict of str: nn.Module): dictionary of target models</dt>
+<dt>the spectrogram models to be used by the Separator.</dt>
+<dt><strong><code>niter</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of EM steps for refining initial estimates in a
+post-processing stage. Zeroed if only one target is estimated.
+defaults to <code>1</code>.</dd>
+<dt><strong><code>residual</code></strong> :&ensp;<code>bool</code></dt>
+<dd>adds an additional residual target, obtained by
+subtracting the other estimated targets from the mixture,
+before any potential EM post-processing.
+Defaults to <code>False</code>.</dd>
+<dt><strong><code>wiener_win_len</code></strong> :&ensp;<code>int</code> or <code>None</code></dt>
+<dd>The size of the excerpts
+(number of frames) on which to apply filtering
+independently. This means assuming time varying stereo models and
+localization of sources.
+None means not batching but using the whole signal. It comes at the
+price of a much larger memory usage.</dd>
+<dt><strong><code>filterbank</code></strong> :&ensp;<code>str</code></dt>
+<dd>filterbank implementation method.
+Supported are <code>['torch', 'asteroid']</code>. <code>torch</code> is about 30% faster
+compared to <code>asteroid</code> on large FFT sizes such as 4096. However,
+asteroids stft can be exported to onnx, which makes is practical
+for deployment.</dd>
+</dl>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L168-L346" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class Separator(nn.Module):
+    &#34;&#34;&#34;
+    Separator class to encapsulate all the stereo filtering
+    as a torch Module, to enable end-to-end learning.
+
+    Args:
+        targets (dict of str: nn.Module): dictionary of target models
+            the spectrogram models to be used by the Separator.
+        niter (int): Number of EM steps for refining initial estimates in a
+            post-processing stage. Zeroed if only one target is estimated.
+            defaults to `1`.
+        residual (bool): adds an additional residual target, obtained by
+            subtracting the other estimated targets from the mixture,
+            before any potential EM post-processing.
+            Defaults to `False`.
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        target_models: dict,
+        niter: int = 0,
+        softmask: bool = False,
+        residual: bool = False,
+        sample_rate: float = 44100.0,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        nb_channels: int = 2,
+        wiener_win_len: Optional[int] = 300,
+        filterbank: str = &#34;torch&#34;,
+    ):
+        super(Separator, self).__init__()
+
+        # saving parameters
+        self.niter = niter
+        self.residual = residual
+        self.softmask = softmask
+        self.wiener_win_len = wiener_win_len
+
+        self.stft, self.istft = make_filterbanks(
+            n_fft=n_fft,
+            n_hop=n_hop,
+            center=True,
+            method=filterbank,
+            sample_rate=sample_rate,
+        )
+        self.complexnorm = ComplexNorm(mono=nb_channels == 1)
+
+        # registering the targets models
+        self.target_models = nn.ModuleDict(target_models)
+        # adding till https://github.com/pytorch/pytorch/issues/38963
+        self.nb_targets = len(self.target_models)
+        # get the sample_rate as the sample_rate of the first model
+        # (tacitly assume it&#39;s the same for all targets)
+        self.register_buffer(&#34;sample_rate&#34;, torch.as_tensor(sample_rate))
+
+    def freeze(self):
+        # set all parameters as not requiring gradient, more RAM-efficient
+        # at test time
+        for p in self.parameters():
+            p.requires_grad = False
+        self.eval()
+
+    def forward(self, audio: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;Performing the separation on audio input
+
+        Args:
+            audio (Tensor): [shape=(nb_samples, nb_channels, nb_timesteps)]
+                mixture audio waveform
+
+        Returns:
+            Tensor: stacked tensor of separated waveforms
+                shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
+        &#34;&#34;&#34;
+
+        nb_sources = self.nb_targets
+        nb_samples = audio.shape[0]
+
+        # getting the STFT of mix:
+        # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+        mix_stft = self.stft(audio)
+        X = self.complexnorm(mix_stft)
+
+        # initializing spectrograms variable
+        spectrograms = torch.zeros(X.shape + (nb_sources,), dtype=audio.dtype, device=X.device)
+
+        for j, (target_name, target_module) in enumerate(self.target_models.items()):
+            # apply current model to get the source spectrogram
+            target_spectrogram = target_module(X.detach().clone())
+            spectrograms[..., j] = target_spectrogram
+
+        # transposing it as
+        # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
+        spectrograms = spectrograms.permute(0, 3, 2, 1, 4)
+
+        # rearranging it into:
+        # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
+        # into filtering methods
+        mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
+
+        # create an additional target if we need to build a residual
+        if self.residual:
+            # we add an additional target
+            nb_sources += 1
+
+        if nb_sources == 1 and self.niter &gt; 0:
+            raise Exception(
+                &#34;Cannot use EM if only one target is estimated.&#34;
+                &#34;Provide two targets or create an additional &#34;
+                &#34;one with `--residual`&#34;
+            )
+
+        nb_frames = spectrograms.shape[1]
+        targets_stft = torch.zeros(
+            mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device
+        )
+        for sample in range(nb_samples):
+            pos = 0
+            if self.wiener_win_len:
+                wiener_win_len = self.wiener_win_len
+            else:
+                wiener_win_len = nb_frames
+            while pos &lt; nb_frames:
+                cur_frame = torch.arange(pos, min(nb_frames, pos + wiener_win_len))
+                pos = int(cur_frame[-1]) + 1
+
+                targets_stft[sample, cur_frame] = wiener(
+                    spectrograms[sample, cur_frame],
+                    mix_stft[sample, cur_frame],
+                    self.niter,
+                    softmask=self.softmask,
+                    residual=self.residual,
+                )
+
+        # getting to (nb_samples, nb_targets, channel, fft_size, n_frames, 2)
+        targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
+
+        # inverse STFT
+        estimates = self.istft(targets_stft, length=audio.shape[2])
+
+        return estimates
+
+    def to_dict(self, estimates: Tensor, aggregate_dict: Optional[dict] = None) -&gt; dict:
+        &#34;&#34;&#34;Convert estimates as stacked tensor to dictionary
+
+        Args:
+            estimates (Tensor): separated targets of shape
+                (nb_samples, nb_targets, nb_channels, nb_timesteps)
+            aggregate_dict (dict or None)
+
+        Returns:
+            (dict of str: Tensor):
+        &#34;&#34;&#34;
+        estimates_dict = {}
+        for k, target in enumerate(self.target_models):
+            estimates_dict[target] = estimates[:, k, ...]
+
+        # in the case of residual, we added another source
+        if self.residual:
+            estimates_dict[&#34;residual&#34;] = estimates[:, -1, ...]
+
+        if aggregate_dict is not None:
+            new_estimates = {}
+            for key in aggregate_dict:
+                new_estimates[key] = torch.tensor(0.0)
+                for target in aggregate_dict[key]:
+                    new_estimates[key] = new_estimates[key] + estimates_dict[target]
+            estimates_dict = new_estimates
+        return estimates_dict</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.model.Separator.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.model.Separator.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.model.Separator.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, audio: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Performing the separation on audio input</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>audio</code></strong> :&ensp;<code>Tensor</code></dt>
+<dd>[shape=(nb_samples, nb_channels, nb_timesteps)]
+mixture audio waveform</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tensor</code></dt>
+<dd>stacked tensor of separated waveforms
+shape <code>(nb_samples, nb_targets, nb_channels, nb_timesteps)</code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L241-L318" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, audio: Tensor) -&gt; Tensor:
+    &#34;&#34;&#34;Performing the separation on audio input
+
+    Args:
+        audio (Tensor): [shape=(nb_samples, nb_channels, nb_timesteps)]
+            mixture audio waveform
+
+    Returns:
+        Tensor: stacked tensor of separated waveforms
+            shape `(nb_samples, nb_targets, nb_channels, nb_timesteps)`
+    &#34;&#34;&#34;
+
+    nb_sources = self.nb_targets
+    nb_samples = audio.shape[0]
+
+    # getting the STFT of mix:
+    # (nb_samples, nb_channels, nb_bins, nb_frames, 2)
+    mix_stft = self.stft(audio)
+    X = self.complexnorm(mix_stft)
+
+    # initializing spectrograms variable
+    spectrograms = torch.zeros(X.shape + (nb_sources,), dtype=audio.dtype, device=X.device)
+
+    for j, (target_name, target_module) in enumerate(self.target_models.items()):
+        # apply current model to get the source spectrogram
+        target_spectrogram = target_module(X.detach().clone())
+        spectrograms[..., j] = target_spectrogram
+
+    # transposing it as
+    # (nb_samples, nb_frames, nb_bins,{1,nb_channels}, nb_sources)
+    spectrograms = spectrograms.permute(0, 3, 2, 1, 4)
+
+    # rearranging it into:
+    # (nb_samples, nb_frames, nb_bins, nb_channels, 2) to feed
+    # into filtering methods
+    mix_stft = mix_stft.permute(0, 3, 2, 1, 4)
+
+    # create an additional target if we need to build a residual
+    if self.residual:
+        # we add an additional target
+        nb_sources += 1
+
+    if nb_sources == 1 and self.niter &gt; 0:
+        raise Exception(
+            &#34;Cannot use EM if only one target is estimated.&#34;
+            &#34;Provide two targets or create an additional &#34;
+            &#34;one with `--residual`&#34;
+        )
+
+    nb_frames = spectrograms.shape[1]
+    targets_stft = torch.zeros(
+        mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device
+    )
+    for sample in range(nb_samples):
+        pos = 0
+        if self.wiener_win_len:
+            wiener_win_len = self.wiener_win_len
+        else:
+            wiener_win_len = nb_frames
+        while pos &lt; nb_frames:
+            cur_frame = torch.arange(pos, min(nb_frames, pos + wiener_win_len))
+            pos = int(cur_frame[-1]) + 1
+
+            targets_stft[sample, cur_frame] = wiener(
+                spectrograms[sample, cur_frame],
+                mix_stft[sample, cur_frame],
+                self.niter,
+                softmask=self.softmask,
+                residual=self.residual,
+            )
+
+    # getting to (nb_samples, nb_targets, channel, fft_size, n_frames, 2)
+    targets_stft = targets_stft.permute(0, 5, 3, 2, 1, 4).contiguous()
+
+    # inverse STFT
+    estimates = self.istft(targets_stft, length=audio.shape[2])
+
+    return estimates</code></pre>
+</details>
+</dd>
+<dt id="openunmix.model.Separator.freeze"><code class="name flex">
+<span>def <span class="ident">freeze</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L234-L239" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def freeze(self):
+    # set all parameters as not requiring gradient, more RAM-efficient
+    # at test time
+    for p in self.parameters():
+        p.requires_grad = False
+    self.eval()</code></pre>
+</details>
+</dd>
+<dt id="openunmix.model.Separator.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self, estimates: torch.Tensor, aggregate_dict: Union[dict, NoneType] = None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convert estimates as stacked tensor to dictionary</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>estimates</code></strong> :&ensp;<code>Tensor</code></dt>
+<dd>separated targets of shape
+(nb_samples, nb_targets, nb_channels, nb_timesteps)</dd>
+</dl>
+<p>aggregate_dict (dict or None)</p>
+<h2 id="returns">Returns</h2>
+<p>(dict of str: Tensor):</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/model.py#L320-L346" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def to_dict(self, estimates: Tensor, aggregate_dict: Optional[dict] = None) -&gt; dict:
+    &#34;&#34;&#34;Convert estimates as stacked tensor to dictionary
+
+    Args:
+        estimates (Tensor): separated targets of shape
+            (nb_samples, nb_targets, nb_channels, nb_timesteps)
+        aggregate_dict (dict or None)
+
+    Returns:
+        (dict of str: Tensor):
+    &#34;&#34;&#34;
+    estimates_dict = {}
+    for k, target in enumerate(self.target_models):
+        estimates_dict[target] = estimates[:, k, ...]
+
+    # in the case of residual, we added another source
+    if self.residual:
+        estimates_dict[&#34;residual&#34;] = estimates[:, -1, ...]
+
+    if aggregate_dict is not None:
+        new_estimates = {}
+        for key in aggregate_dict:
+            new_estimates[key] = torch.tensor(0.0)
+            for target in aggregate_dict[key]:
+                new_estimates[key] = new_estimates[key] + estimates_dict[target]
+        estimates_dict = new_estimates
+    return estimates_dict</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="openunmix" href="index.html">openunmix</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="openunmix.model.OpenUnmix" href="#openunmix.model.OpenUnmix">OpenUnmix</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.model.OpenUnmix.dump_patches" href="#openunmix.model.OpenUnmix.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.model.OpenUnmix.forward" href="#openunmix.model.OpenUnmix.forward">forward</a></code></li>
+<li><code><a title="openunmix.model.OpenUnmix.freeze" href="#openunmix.model.OpenUnmix.freeze">freeze</a></code></li>
+<li><code><a title="openunmix.model.OpenUnmix.training" href="#openunmix.model.OpenUnmix.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="openunmix.model.Separator" href="#openunmix.model.Separator">Separator</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.model.Separator.dump_patches" href="#openunmix.model.Separator.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.model.Separator.forward" href="#openunmix.model.Separator.forward">forward</a></code></li>
+<li><code><a title="openunmix.model.Separator.freeze" href="#openunmix.model.Separator.freeze">freeze</a></code></li>
+<li><code><a title="openunmix.model.Separator.to_dict" href="#openunmix.model.Separator.to_dict">to_dict</a></code></li>
+<li><code><a title="openunmix.model.Separator.training" href="#openunmix.model.Separator.training">training</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>

@@ -1,6 +1,18 @@
 # Training Open-Unmix
 
-Both models, `umxhq` and `umx` that are provided with pre-trained weights, can be trained using the default parameters of the `train.py` function.
+> This documentation refers to the standard training procedure for _Open-unmix_, where each target is trained independently. It has not been updated for the end-to-end training capabilities that the `Separator` module allows. Please contribute if you try this.
+
+Both models, `umxhq` and `umx` that are provided with pre-trained weights, can be trained using the default parameters of the `scripts/train.py` function.
+
+## Installation
+
+The train function is not part of the python package, thus we suggest to use [Anaconda](https://anaconda.org/) to install the training requirments, also because the environment would allow reproducible results.
+
+To create a conda environment for _open-unmix_, simply run:
+
+`conda env create -f scripts/environment-X.yml` where `X` is either [`cpu-linux`, `gpu-linux-cuda10`, `cpu-osx`], depending on your system. For now, we haven't tested windows support.
+
+## Training API
 
 The [MUSDB18](https://sigsep.github.io/datasets/musdb.html) and [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html) are the largest freely available datasets for professionally produced music tracks (~10h duration) of different styles. They come with isolated `drums`, `bass`, `vocals` and `others` stems. _MUSDB18_ contains two subsets: "train", composed of 100 songs, and "test", composed of 50 songs.
 
@@ -32,7 +44,7 @@ Some of the parameters for the MUSDB sampling can be controlled using the follow
 |---------------------|-----------------------------------------------|--------------|
 | `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `True`      |
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
-| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing | `gain channelswap`       |
+| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing, available augmentations: `[gain, channelswap]`| no augmentations       |
 
 ## Training and Model Parameters
 
@@ -61,6 +73,7 @@ An extensive list of additional training parameters allows researchers to quickl
 | `--nb-workers <int>`      | Number of (parallel) workers for data-loader, can be safely increased for wav files   | `0` |
 | `--quiet`                  | disable print and progress bar during training                                   | not set         |
 | `--seed <int>`             | Initial seed to set the random initialization                                   | `42`            |
+| `--audio-backend <str>`         | choose audio loading backend, either `sox` or `soundfile` | `soundfile` for training, `sox` for inference |
 
 ### Training details of `umxhq`
 
@@ -145,7 +158,7 @@ train/vocals/track11.wav ---------------------> output
 |`--ext <str>` | File extension | `.wav` |
 |`--nb-train-samples <str>` | Number of samples drawn for training | `1000` |
 |`--nb-valid-samples <str>` | Number of samples drawn for validation | `100` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 
@@ -181,7 +194,7 @@ train/1/vocals.wav -------------------> output
 |`--target-file <str>` | Target file (includes extension) | `None` |
 |`--interferer-files list[<str>]` | list of interfering sources | `None` |
 |`--random-track-mix` | Applies random track mixing | `False` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 
@@ -194,7 +207,7 @@ python train.py  --root /data --dataset trackfolder_fix --target-file vocals.fla
 A dataset of that assumes audio sources to be stored in track folder where each track has a _variable_ number of sources. The users specifies the target file-name (`target_file`) and the extension of sources to used for mixing. A linear mix is performed on the fly by summing all sources in a track folder.
 
 Since the number of sources differ per track, while target is fixed, a random track mix augmentation cannot be used.
-Also make sure, that you do not provide the mixture file among the sources! This dataset maximizes the number of tracks that can be used since it doesn't require the presence of a fixed number of sources per track. However, it is required to 
+Also make sure, that you do not provide the mixture file among the sources! This dataset maximizes the number of tracks that can be used since it doesn't require the presence of a fixed number of sources per track. However, it is required to
 have the target file to be present. To increase the dataset utilization even further users can enable the `--silence-missing-targets` option that outputs silence to missing targets.
 
 #### File structure
@@ -217,7 +230,7 @@ train/1/vocals.wav -----------------------> output
 |`--silence-missing-targets` | if a target is not among the list of sources it will be filled with zero | not set |
 |`random interferer mixing` | use _random track_ for the inference track to increase generalization of the model. | not set |
 |`--ext <str>` | File extension that is used to find the interfering files | `.wav` |
-|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | `['gain', 'channelswap']` |
+|`--source-augmentations list[<str>]` | List of augmentation functions that are processed in the order of the list | |
 
 #### Example
 

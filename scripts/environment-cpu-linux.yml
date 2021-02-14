@@ -1,0 +1,23 @@
+name: umx-cpu
+
+channels:
+  - conda-forge
+  - pytorch
+
+dependencies:
+  - python=3.7
+  - numpy=1.18
+  - scipy=1.4
+  - pytorch==1.7.0
+  - cpuonly
+  - torchaudio==0.7.0
+  - tqdm
+  - scikit-learn=0.22
+  - ffmpeg
+  - libsndfile
+  - pip
+  - pip:
+    - musdb==0.3.1
+    - museval==0.3.1
+    - asteroid-filterbanks==0.3.2
+    - gitpython

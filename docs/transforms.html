@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>openunmix.transforms API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>openunmix.transforms</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L0-L208" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">from typing import Optional
+
+import torch
+import torchaudio
+from torch import Tensor
+import torch.nn as nn
+
+try:
+    from asteroid_filterbanks.enc_dec import Encoder, Decoder
+    from asteroid_filterbanks.transforms import to_torchaudio, from_torchaudio
+    from asteroid_filterbanks import torch_stft_fb
+except ImportError:
+    pass
+
+
+def make_filterbanks(n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method=&#34;torch&#34;):
+    window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+
+    if method == &#34;torch&#34;:
+        encoder = TorchSTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+        decoder = TorchISTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+    elif method == &#34;asteroid&#34;:
+        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+            n_fft=n_fft,
+            hop_length=n_hop,
+            win_length=n_fft,
+            window=window,
+            center=center,
+            sample_rate=sample_rate,
+        )
+        encoder = AsteroidSTFT(fb)
+        decoder = AsteroidISTFT(fb)
+    else:
+        raise NotImplementedError
+    return encoder, decoder
+
+
+class AsteroidSTFT(nn.Module):
+    def __init__(self, fb):
+        super(AsteroidSTFT, self).__init__()
+        self.enc = Encoder(fb)
+
+    def forward(self, x):
+        aux = self.enc(x)
+        return to_torchaudio(aux)
+
+
+class AsteroidISTFT(nn.Module):
+    def __init__(self, fb):
+        super(AsteroidISTFT, self).__init__()
+        self.dec = Decoder(fb)
+
+    def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+        aux = from_torchaudio(X)
+        return self.dec(aux, length=length)
+
+
+class TorchSTFT(nn.Module):
+    &#34;&#34;&#34;Multichannel Short-Time-Fourier Forward transform
+    uses hard coded hann_window.
+    Args:
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+        window (nn.Parameter, optional): window function
+    &#34;&#34;&#34;
+
+    def __init__(self, n_fft=4096, n_hop=1024, center=False, window=None):
+        super(TorchSTFT, self).__init__()
+        if window is not None:
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+        else:
+            self.window = window
+        self.n_fft = n_fft
+        self.n_hop = n_hop
+        self.center = center
+
+    def forward(self, x: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;STFT forward path
+        Args:
+            x (Tensor): audio waveform of
+                shape (nb_samples, nb_channels, nb_timesteps)
+        Returns:
+            STFT (Tensor): complex stft of
+                shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+                last axis is stacked real and imaginary
+        &#34;&#34;&#34;
+
+        shape = x.size()
+        nb_samples, nb_channels, nb_timesteps = shape
+
+        # pack batch
+        x = x.view(-1, shape[-1])
+
+        stft_f = torch.stft(
+            x,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
+            pad_mode=&#34;reflect&#34;,
+        )
+
+        # unpack batch
+        stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
+        return stft_f
+
+
+class TorchISTFT(nn.Module):
+    &#34;&#34;&#34;Multichannel Inverse-Short-Time-Fourier functional
+    wrapper for torch.istft to support batches
+    Args:
+        STFT (Tensor): complex stft of
+            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+            last axis is stacked real and imaginary
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        window (callable, optional): window function
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+        length (int, optional): audio signal length to crop the signal
+    Returns:
+        x (Tensor): audio waveform of
+            shape (nb_samples, nb_channels, nb_timesteps)
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        center: bool = False,
+        sample_rate: float = 44100.0,
+        window: Optional[nn.Parameter] = None,
+    ) -&gt; None:
+        super(TorchISTFT, self).__init__()
+
+        self.n_fft = n_fft
+        self.n_hop = n_hop
+        self.center = center
+        self.sample_rate = sample_rate
+
+        if window is not None:
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+        else:
+            self.window = window
+
+    def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+        shape = X.size()
+        X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
+
+        y = torch.istft(
+            X,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
+            length=length,
+        )
+
+        y = y.reshape(shape[:-3] + y.shape[-1:])
+
+        return y
+
+
+class ComplexNorm(nn.Module):
+    r&#34;&#34;&#34;Compute the norm of complex tensor input.
+
+    Extension of `torchaudio.functional.complex_norm` with mono
+
+    Args:
+        power (float): Power of the norm. (Default: `1.0`).
+        mono (bool): Downmix to single channel after applying power norm
+            to maximize
+    &#34;&#34;&#34;
+
+    def __init__(self, power: float = 1.0, mono: bool = False):
+        super(ComplexNorm, self).__init__()
+        self.power = power
+        self.mono = mono
+
+    def forward(self, spec: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Args:
+            spec: complex_tensor (Tensor): Tensor shape of
+                `(..., complex=2)`
+
+        Returns:
+            Tensor: Power/Mag of input
+                `(...,)`
+        &#34;&#34;&#34;
+        # take the magnitude
+        spec = torchaudio.functional.complex_norm(spec, power=self.power)
+
+        # downmix in the mag domain to preserve energy
+        if self.mono:
+            spec = torch.mean(spec, 1, keepdim=True)
+
+        return spec</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="openunmix.transforms.make_filterbanks"><code class="name flex">
+<span>def <span class="ident">make_filterbanks</span></span>(<span>n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method='torch')</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L16-L35" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def make_filterbanks(n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method=&#34;torch&#34;):
+    window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+
+    if method == &#34;torch&#34;:
+        encoder = TorchSTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+        decoder = TorchISTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+    elif method == &#34;asteroid&#34;:
+        fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
+            n_fft=n_fft,
+            hop_length=n_hop,
+            win_length=n_fft,
+            window=window,
+            center=center,
+            sample_rate=sample_rate,
+        )
+        encoder = AsteroidSTFT(fb)
+        decoder = AsteroidISTFT(fb)
+    else:
+        raise NotImplementedError
+    return encoder, decoder</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="openunmix.transforms.AsteroidISTFT"><code class="flex name class">
+<span>class <span class="ident">AsteroidISTFT</span></span>
+<span>(</span><span>fb)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes::</p>
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>:ivar training: Boolean represents whether this module is in training or
+evaluation mode.
+:vartype training: bool</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L48-L55" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class AsteroidISTFT(nn.Module):
+    def __init__(self, fb):
+        super(AsteroidISTFT, self).__init__()
+        self.dec = Decoder(fb)
+
+    def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+        aux = from_torchaudio(X)
+        return self.dec(aux, length=length)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.transforms.AsteroidISTFT.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.transforms.AsteroidISTFT.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.transforms.AsteroidISTFT.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, X: torch.Tensor, length: Union[int, NoneType] = None) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the :class:<code>Module</code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L53-L55" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+    aux = from_torchaudio(X)
+    return self.dec(aux, length=length)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="openunmix.transforms.AsteroidSTFT"><code class="flex name class">
+<span>class <span class="ident">AsteroidSTFT</span></span>
+<span>(</span><span>fb)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes::</p>
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>:ivar training: Boolean represents whether this module is in training or
+evaluation mode.
+:vartype training: bool</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L38-L45" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class AsteroidSTFT(nn.Module):
+    def __init__(self, fb):
+        super(AsteroidSTFT, self).__init__()
+        self.enc = Encoder(fb)
+
+    def forward(self, x):
+        aux = self.enc(x)
+        return to_torchaudio(aux)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.transforms.AsteroidSTFT.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.transforms.AsteroidSTFT.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.transforms.AsteroidSTFT.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, x) ‑> Callable[..., Any]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the :class:<code>Module</code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L43-L45" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, x):
+    aux = self.enc(x)
+    return to_torchaudio(aux)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="openunmix.transforms.ComplexNorm"><code class="flex name class">
+<span>class <span class="ident">ComplexNorm</span></span>
+<span>(</span><span>power: float = 1.0, mono: bool = False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Compute the norm of complex tensor input.</p>
+<p>Extension of <code>torchaudio.functional.complex_norm</code> with mono</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>power</code></strong> :&ensp;<code>float</code></dt>
+<dd>Power of the norm. (Default: <code>1.0</code>).</dd>
+<dt><strong><code>mono</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Downmix to single channel after applying power norm
+to maximize</dd>
+</dl>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L176-L209" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class ComplexNorm(nn.Module):
+    r&#34;&#34;&#34;Compute the norm of complex tensor input.
+
+    Extension of `torchaudio.functional.complex_norm` with mono
+
+    Args:
+        power (float): Power of the norm. (Default: `1.0`).
+        mono (bool): Downmix to single channel after applying power norm
+            to maximize
+    &#34;&#34;&#34;
+
+    def __init__(self, power: float = 1.0, mono: bool = False):
+        super(ComplexNorm, self).__init__()
+        self.power = power
+        self.mono = mono
+
+    def forward(self, spec: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Args:
+            spec: complex_tensor (Tensor): Tensor shape of
+                `(..., complex=2)`
+
+        Returns:
+            Tensor: Power/Mag of input
+                `(...,)`
+        &#34;&#34;&#34;
+        # take the magnitude
+        spec = torchaudio.functional.complex_norm(spec, power=self.power)
+
+        # downmix in the mag domain to preserve energy
+        if self.mono:
+            spec = torch.mean(spec, 1, keepdim=True)
+
+        return spec</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.transforms.ComplexNorm.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.transforms.ComplexNorm.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.transforms.ComplexNorm.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, spec: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>spec</code></strong></dt>
+<dd>complex_tensor (Tensor): Tensor shape of
+<code>(..., complex=2)</code></dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tensor</code></dt>
+<dd>Power/Mag of input
+<code>(&hellip;,)</code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L192-L209" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, spec: Tensor) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Args:
+        spec: complex_tensor (Tensor): Tensor shape of
+            `(..., complex=2)`
+
+    Returns:
+        Tensor: Power/Mag of input
+            `(...,)`
+    &#34;&#34;&#34;
+    # take the magnitude
+    spec = torchaudio.functional.complex_norm(spec, power=self.power)
+
+    # downmix in the mag domain to preserve energy
+    if self.mono:
+        spec = torch.mean(spec, 1, keepdim=True)
+
+    return spec</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="openunmix.transforms.TorchISTFT"><code class="flex name class">
+<span>class <span class="ident">TorchISTFT</span></span>
+<span>(</span><span>n_fft: int = 4096, n_hop: int = 1024, center: bool = False, sample_rate: float = 44100.0, window: Union[torch.nn.parameter.Parameter, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Multichannel Inverse-Short-Time-Fourier functional
+wrapper for torch.istft to support batches</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>STFT</code></strong> :&ensp;<code>Tensor</code></dt>
+<dd>complex stft of
+shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+last axis is stacked real and imaginary</dd>
+<dt><strong><code>n_fft</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>transform FFT size. Defaults to 4096.</dd>
+<dt><strong><code>n_hop</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>transform hop size. Defaults to 1024.</dd>
+<dt><strong><code>window</code></strong> :&ensp;<code>callable</code>, optional</dt>
+<dd>window function</dd>
+<dt><strong><code>center</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, the signals first window is
+zero padded. Centering is required for a perfect
+reconstruction of the signal. However, during training
+of spectrogram models, it can safely turned off.
+Defaults to <code>true</code></dd>
+<dt><strong><code>length</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>audio signal length to crop the signal</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>x (Tensor): audio waveform of
+shape (nb_samples, nb_channels, nb_timesteps)
+Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L115-L173" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class TorchISTFT(nn.Module):
+    &#34;&#34;&#34;Multichannel Inverse-Short-Time-Fourier functional
+    wrapper for torch.istft to support batches
+    Args:
+        STFT (Tensor): complex stft of
+            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+            last axis is stacked real and imaginary
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        window (callable, optional): window function
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+        length (int, optional): audio signal length to crop the signal
+    Returns:
+        x (Tensor): audio waveform of
+            shape (nb_samples, nb_channels, nb_timesteps)
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        center: bool = False,
+        sample_rate: float = 44100.0,
+        window: Optional[nn.Parameter] = None,
+    ) -&gt; None:
+        super(TorchISTFT, self).__init__()
+
+        self.n_fft = n_fft
+        self.n_hop = n_hop
+        self.center = center
+        self.sample_rate = sample_rate
+
+        if window is not None:
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+        else:
+            self.window = window
+
+    def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+        shape = X.size()
+        X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
+
+        y = torch.istft(
+            X,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
+            length=length,
+        )
+
+        y = y.reshape(shape[:-3] + y.shape[-1:])
+
+        return y</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.transforms.TorchISTFT.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.transforms.TorchISTFT.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.transforms.TorchISTFT.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, X: torch.Tensor, length: Union[int, NoneType] = None) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the :class:<code>Module</code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L156-L173" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, X: Tensor, length: Optional[int] = None) -&gt; Tensor:
+    shape = X.size()
+    X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
+
+    y = torch.istft(
+        X,
+        n_fft=self.n_fft,
+        hop_length=self.n_hop,
+        window=self.window,
+        center=self.center,
+        normalized=False,
+        onesided=True,
+        length=length,
+    )
+
+    y = y.reshape(shape[:-3] + y.shape[-1:])
+
+    return y</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="openunmix.transforms.TorchSTFT"><code class="flex name class">
+<span>class <span class="ident">TorchSTFT</span></span>
+<span>(</span><span>n_fft=4096, n_hop=1024, center=False, window=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Multichannel Short-Time-Fourier Forward transform
+uses hard coded hann_window.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>n_fft</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>transform FFT size. Defaults to 4096.</dd>
+<dt><strong><code>n_hop</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>transform hop size. Defaults to 1024.</dd>
+<dt><strong><code>center</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, the signals first window is
+zero padded. Centering is required for a perfect
+reconstruction of the signal. However, during training
+of spectrogram models, it can safely turned off.
+Defaults to <code>true</code></dd>
+<dt><strong><code>window</code></strong> :&ensp;<code>nn.Parameter</code>, optional</dt>
+<dd>window function</dd>
+</dl>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L58-L112" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">class TorchSTFT(nn.Module):
+    &#34;&#34;&#34;Multichannel Short-Time-Fourier Forward transform
+    uses hard coded hann_window.
+    Args:
+        n_fft (int, optional): transform FFT size. Defaults to 4096.
+        n_hop (int, optional): transform hop size. Defaults to 1024.
+        center (bool, optional): If True, the signals first window is
+            zero padded. Centering is required for a perfect
+            reconstruction of the signal. However, during training
+            of spectrogram models, it can safely turned off.
+            Defaults to `true`
+        window (nn.Parameter, optional): window function
+    &#34;&#34;&#34;
+
+    def __init__(self, n_fft=4096, n_hop=1024, center=False, window=None):
+        super(TorchSTFT, self).__init__()
+        if window is not None:
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
+        else:
+            self.window = window
+        self.n_fft = n_fft
+        self.n_hop = n_hop
+        self.center = center
+
+    def forward(self, x: Tensor) -&gt; Tensor:
+        &#34;&#34;&#34;STFT forward path
+        Args:
+            x (Tensor): audio waveform of
+                shape (nb_samples, nb_channels, nb_timesteps)
+        Returns:
+            STFT (Tensor): complex stft of
+                shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+                last axis is stacked real and imaginary
+        &#34;&#34;&#34;
+
+        shape = x.size()
+        nb_samples, nb_channels, nb_timesteps = shape
+
+        # pack batch
+        x = x.view(-1, shape[-1])
+
+        stft_f = torch.stft(
+            x,
+            n_fft=self.n_fft,
+            hop_length=self.n_hop,
+            window=self.window,
+            center=self.center,
+            normalized=False,
+            onesided=True,
+            pad_mode=&#34;reflect&#34;,
+        )
+
+        # unpack batch
+        stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
+        return stft_f</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="openunmix.transforms.TorchSTFT.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="openunmix.transforms.TorchSTFT.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="openunmix.transforms.TorchSTFT.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, x: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>STFT forward path</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong> :&ensp;<code>Tensor</code></dt>
+<dd>audio waveform of
+shape (nb_samples, nb_channels, nb_timesteps)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>STFT (Tensor): complex stft of
+shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+last axis is stacked real and imaginary</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/transforms.py#L82-L112" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def forward(self, x: Tensor) -&gt; Tensor:
+    &#34;&#34;&#34;STFT forward path
+    Args:
+        x (Tensor): audio waveform of
+            shape (nb_samples, nb_channels, nb_timesteps)
+    Returns:
+        STFT (Tensor): complex stft of
+            shape (nb_samples, nb_channels, nb_bins, nb_frames, complex=2)
+            last axis is stacked real and imaginary
+    &#34;&#34;&#34;
+
+    shape = x.size()
+    nb_samples, nb_channels, nb_timesteps = shape
+
+    # pack batch
+    x = x.view(-1, shape[-1])
+
+    stft_f = torch.stft(
+        x,
+        n_fft=self.n_fft,
+        hop_length=self.n_hop,
+        window=self.window,
+        center=self.center,
+        normalized=False,
+        onesided=True,
+        pad_mode=&#34;reflect&#34;,
+    )
+
+    # unpack batch
+    stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
+    return stft_f</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="openunmix" href="index.html">openunmix</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="openunmix.transforms.make_filterbanks" href="#openunmix.transforms.make_filterbanks">make_filterbanks</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="openunmix.transforms.AsteroidISTFT" href="#openunmix.transforms.AsteroidISTFT">AsteroidISTFT</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.transforms.AsteroidISTFT.dump_patches" href="#openunmix.transforms.AsteroidISTFT.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.transforms.AsteroidISTFT.forward" href="#openunmix.transforms.AsteroidISTFT.forward">forward</a></code></li>
+<li><code><a title="openunmix.transforms.AsteroidISTFT.training" href="#openunmix.transforms.AsteroidISTFT.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="openunmix.transforms.AsteroidSTFT" href="#openunmix.transforms.AsteroidSTFT">AsteroidSTFT</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.transforms.AsteroidSTFT.dump_patches" href="#openunmix.transforms.AsteroidSTFT.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.transforms.AsteroidSTFT.forward" href="#openunmix.transforms.AsteroidSTFT.forward">forward</a></code></li>
+<li><code><a title="openunmix.transforms.AsteroidSTFT.training" href="#openunmix.transforms.AsteroidSTFT.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="openunmix.transforms.ComplexNorm" href="#openunmix.transforms.ComplexNorm">ComplexNorm</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.transforms.ComplexNorm.dump_patches" href="#openunmix.transforms.ComplexNorm.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.transforms.ComplexNorm.forward" href="#openunmix.transforms.ComplexNorm.forward">forward</a></code></li>
+<li><code><a title="openunmix.transforms.ComplexNorm.training" href="#openunmix.transforms.ComplexNorm.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="openunmix.transforms.TorchISTFT" href="#openunmix.transforms.TorchISTFT">TorchISTFT</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.transforms.TorchISTFT.dump_patches" href="#openunmix.transforms.TorchISTFT.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.transforms.TorchISTFT.forward" href="#openunmix.transforms.TorchISTFT.forward">forward</a></code></li>
+<li><code><a title="openunmix.transforms.TorchISTFT.training" href="#openunmix.transforms.TorchISTFT.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="openunmix.transforms.TorchSTFT" href="#openunmix.transforms.TorchSTFT">TorchSTFT</a></code></h4>
+<ul class="">
+<li><code><a title="openunmix.transforms.TorchSTFT.dump_patches" href="#openunmix.transforms.TorchSTFT.dump_patches">dump_patches</a></code></li>
+<li><code><a title="openunmix.transforms.TorchSTFT.forward" href="#openunmix.transforms.TorchSTFT.forward">forward</a></code></li>
+<li><code><a title="openunmix.transforms.TorchSTFT.training" href="#openunmix.transforms.TorchSTFT.training">training</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>
