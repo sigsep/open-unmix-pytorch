@@ -92,25 +92,25 @@ Furthermore, we provide a model for speech enhancement trained by [Sony Corporat
 To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
 ```bash
-python test.py input_file.wav --model umxhq
+umx input_file.wav --model umxhq
 ```
 
 A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
 We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to
 experiment with open-unmix and to separate files online without any installation setup.
 
-### Creating a Separator through torch.hub
+### Interface with separator fron python via torch.hub
 
-A pre-trained Separator can be loaded from other pytorch based repositories using torch.hub.load:
+A pre-trained `Separator` can be loaded from pytorch based code using torch.hub.load:
 
 ```python
-separator = torch.hub.load('sigsep/open-unmix-pytorch:torchfilters', 'separator',device=device)
+separator = torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq')
 ```
 
-This object may then simply be used for separation of some `audio` (ndarray or Tensor), sampled at a sampling rate `rate`, through:
+This object may then simply be used for separation of some `audio` (`torch.Tensor` of shape ), sampled at a sampling rate `rate`, through:
 
 ```python
-estimates, rate = separator(audio, rate)
+audio_stimates = separator(audio)
 ```
 
 ### Load user-trained models (only music separation models)
@@ -118,10 +118,10 @@ estimates, rate = separator(audio, rate)
 When a path instead of a model-name is provided to `--model` the pre-trained model will be loaded from disk.
 
 ```bash
-python test.py --model /path/to/model/root/directory input_file.wav
+umx --model /path/to/model/root/directory input_file.wav
 ```
 
-Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated, unless the `residual-model` option is selected, in which case an additional source will be produced, containing an estimate of all that is not the targets in the mixtures.
+Note that `model` usually contains individual models for each target and performs separation using all models. E.g. if `model_path` contains `vocals` and `drums` models, two output files are generated, unless the `--residual-model` option is selected, in which case an additional source will be produced, containing an estimate of all that is not the targets in the mixtures.
 
 ### Evaluation using `museval`
 

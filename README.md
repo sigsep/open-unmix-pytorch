@@ -1,22 +1,23 @@
 #  _Open-Unmix_ for PyTorch
 
-[![status](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d/status.svg)](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open-unmix-a-reference-implementation-for/music-source-separation-on-musdb18)](https://paperswithcode.com/sota/music-source-separation-on-musdb18?p=open-unmix-a-reference-implementation-for)
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) [![Gitter](https://badges.gitter.im/sigsep/open-unmix.svg)](https://gitter.im/sigsep/open-unmix?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Google group : Open-Unmix](https://img.shields.io/badge/discuss-on%20google%20groups-orange.svg)](https://groups.google.com/forum/#!forum/open-unmix)
-
+[![status](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d/status.svg)](https://joss.theoj.org/papers/571753bc54c5d6dd36382c3d801de41d) 
 [![Build Status](https://travis-ci.com/sigsep/open-unmix-pytorch.svg?branch=master)](https://travis-ci.com/sigsep/open-unmix-pytorch) [![Docker hub](https://img.shields.io/docker/cloud/build/faroit/open-unmix-pytorch)](https://cloud.docker.com/u/faroit/repository/docker/faroit/open-unmix-pytorch)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open-unmix-a-reference-implementation-for/music-source-separation-on-musdb18)](https://paperswithcode.com/sota/music-source-separation-on-musdb18?p=open-unmix-a-reference-implementation-for)
 
 This repository contains the PyTorch (1.6+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the freely available [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
-## News:
+## ⭐️ News 
 
-- 31/01/2021: 
+- 31/01/2021: We released the new version of open-unmix as a python package. This comes with: a fully differentiable version of [norbert](https://github.com/sigsep/norbert), improved audio loading pipeline and large number of bug fixes. See [release notes]() for further info.
 
-- 06/05/2020: We also added a pre-trained speech enhancement model (`umxse`) provided by Sony. For more information we refer [to this site](https://sigsep.github.io/open-unmix/se)
+- 06/05/2020: We added a pre-trained [speech enhancement model (`umxse`)](https://sigsep.github.io/open-unmix/se) provided by Sony.
+
+- 13/03/2020: Open-unmix was awarded 2nd place in the [PyTorch Global Summer Hackathon 2020](https://devpost.com/software/open-unmix).
 
 __Related Projects:__ open-unmix-pytorch | [open-unmix-nnabla](https://github.com/sigsep/open-unmix-nnabla) | [musdb](https://github.com/sigsep/sigsep-mus-db) | [museval](https://github.com/sigsep/sigsep-mus-eval) | [norbert](https://github.com/sigsep/norbert)
 
-## The Model (for one source)
+## 🧠 The Model (for one source)
 
 ![](https://docs.google.com/drawings/d/e/2PACX-1vTPoQiPwmdfET4pZhue1RvG7oEUJz7eUeQvCu6vzYeKRwHl6by4RRTnphImSKM0k5KXw9rZ1iIFnpGW/pub?w=959&h=308)
 
@@ -52,11 +53,11 @@ After applying the LSTM, the signal is decoded back to its original input dimens
 `models.Separator` puts together _Open-unmix_ spectrogram model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`.
 The filtering is differentiable (but parameter-free) version of [norbert](https://github.com/sigsep/norbert). The separator is currently currently only used during training.
 
-## Getting started
+## 🏁 Getting started
 
 ### Installation
 
-To use the pre-trained models, just install `openunmix` via pip:
+`openunmix` can be installed from pypi using:
 
 ```
 pip install openunmix
@@ -105,23 +106,39 @@ A more detailed list of the parameters used for the separation is given in the [
 
 We provide a [jupyter notebook on google colab](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ) to experiment with open-unmix and to separate files online without any installation setup.
 
-### Using the openunmix Separator within other models
+### Using pre-trained models from within python
 
-We also provide a torch.hub compatible modules that can be loaded using:
+We implementes several ways to load pre-trained models and use them from within your python projects:
+#### When the package is installed
+
+Loading a pre-trained models is as simple as loading
+
+```python
+separator = openunmix.umxhq(...)
+```
+#### torch.hub
+
+We also provide a torch.hub compatible modules that can be loaded. Note that this does _not_ even require to install the open-unmix packagen and should generally work when the pytorch version is the same.
 
 ```python
 separator = torch.hub.load('sigsep/open-unmix-pytorch', 'umxhq', device=device)
 ```
 
-Where, `umxhq` specifies the pre-trained model.
-This object may then simply be used for separation of some `audio` (ndarray or Tensor, provided as at a sampling rate `separator.sample_rate`) through:
+Where, `umxhq` specifies the pre-trained model. 
+#### Performing separation
+
+With a created separator object, one can perform separation of some `audio` (torch.Tensor of shape `(channels, length)`, provided as at a sampling rate `separator.sample_rate`) through:
 
 ```python
 estimates = separator(audio, ...)
 # returns estimates as tensor
-``` 
+```
 
-### Load user-trained models (only music separation models)
+Note that this requires the audio to be in the right shape and sampling rate. For convenience we provide a pre-processing in `openunmix.utils.preprocess(..`)` that takes numpy audio and converts it to be used for open-unmix.
+
+Furthermore, `openunmix.separate.predice(audio, ...)` can be used to load a model and perform preprocessing and separation in one step.
+
+### Load user-trained models
 
 When a path instead of a model-name is provided to `--model`, pre-trained `Separator` will be loaded from disk.
 E.g. The following files are assumed to present when loading `--model mymodel --targets vocals`

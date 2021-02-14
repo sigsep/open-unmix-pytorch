@@ -28,6 +28,13 @@ def separate():
     )
 
     parser.add_argument(
+        '--model',
+        default='umxhq',
+        type=str,
+        help='path to mode base directory of pretrained models'
+    )
+
+    parser.add_argument(
         '--targets',
         nargs='+',
         type=str,
@@ -59,13 +66,6 @@ def separate():
         '--duration',
         type=float,
         help='Audio chunk duration in seconds, negative values load full track'
-    )
-
-    parser.add_argument(
-        '--model',
-        default='umxhq',
-        type=str,
-        help='path to mode base directory of pretrained models'
     )
 
     parser.add_argument(

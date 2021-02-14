@@ -1,6 +1,6 @@
 from openunmix import utils
+from openunmix import predict
 import torch.hub
-from .predict import separate
 
 
 def umxse_spec(targets=None, device='cpu', pretrained=True):
