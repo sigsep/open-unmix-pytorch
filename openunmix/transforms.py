@@ -14,38 +14,21 @@ except ImportError:
 
 
 def make_filterbanks(
-    n_fft=4096,
-    n_hop=1024,
-    center=False,
-    sample_rate=44100.0,
-    method='torch'
+    n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method="torch"
 ):
-    window = nn.Parameter(
-        torch.hann_window(n_fft),
-        requires_grad=False
-    )
+    window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
 
-    if method == 'torch':
-        encoder = TorchSTFT(
-            n_fft=n_fft,
-            n_hop=n_hop,
-            window=window,
-            center=center
-        )
-        decoder = TorchISTFT(
-            n_fft=n_fft,
-            n_hop=n_hop,
-            window=window,
-            center=center
-        )
-    elif method == 'asteroid':
+    if method == "torch":
+        encoder = TorchSTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+        decoder = TorchISTFT(n_fft=n_fft, n_hop=n_hop, window=window, center=center)
+    elif method == "asteroid":
         fb = torch_stft_fb.TorchSTFTFB.from_torch_args(
             n_fft=n_fft,
             hop_length=n_hop,
             win_length=n_fft,
             window=window,
             center=center,
-            sample_rate=sample_rate
+            sample_rate=sample_rate,
         )
         encoder = AsteroidSTFT(fb)
         decoder = AsteroidISTFT(fb)
@@ -55,10 +38,7 @@ def make_filterbanks(
 
 
 class AsteroidSTFT(nn.Module):
-    def __init__(
-        self,
-        fb
-    ):
+    def __init__(self, fb):
         super(AsteroidSTFT, self).__init__()
         self.enc = Encoder(fb)
 
@@ -68,10 +48,7 @@ class AsteroidSTFT(nn.Module):
 
 
 class AsteroidISTFT(nn.Module):
-    def __init__(
-        self,
-        fb
-    ):
+    def __init__(self, fb):
         super(AsteroidISTFT, self).__init__()
         self.dec = Decoder(fb)
 
@@ -93,19 +70,11 @@ class TorchSTFT(nn.Module):
             Defaults to `true`
         window (nn.Parameter, optional): window function
     """
-    def __init__(
-        self,
-        n_fft=4096,
-        n_hop=1024,
-        center=False,
-        window=None
-    ):
+
+    def __init__(self, n_fft=4096, n_hop=1024, center=False, window=None):
         super(TorchSTFT, self).__init__()
         if window is not None:
-            self.window = nn.Parameter(
-                torch.hann_window(n_fft),
-                requires_grad=False
-            )
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
         else:
             self.window = window
         self.n_fft = n_fft
@@ -137,7 +106,7 @@ class TorchSTFT(nn.Module):
             center=self.center,
             normalized=False,
             onesided=True,
-            pad_mode='reflect'
+            pad_mode="reflect",
         )
 
         # unpack batch
@@ -165,13 +134,14 @@ class TorchISTFT(nn.Module):
         x (Tensor): audio waveform of
             shape (nb_samples, nb_channels, nb_timesteps)
     """
+
     def __init__(
         self,
         n_fft: int = 4096,
         n_hop: int = 1024,
         center: bool = False,
         sample_rate: float = 44100.0,
-        window: Optional[nn.Parameter] = None
+        window: Optional[nn.Parameter] = None,
     ) -> None:
         super(TorchISTFT, self).__init__()
 
@@ -181,10 +151,7 @@ class TorchISTFT(nn.Module):
         self.sample_rate = sample_rate
 
         if window is not None:
-            self.window = nn.Parameter(
-                torch.hann_window(n_fft),
-                requires_grad=False
-            )
+            self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
         else:
             self.window = window
 
@@ -200,7 +167,7 @@ class TorchISTFT(nn.Module):
             center=self.center,
             normalized=False,
             onesided=True,
-            length=length
+            length=length,
         )
 
         y = y.reshape(shape[:-3] + y.shape[-1:])
@@ -219,11 +186,7 @@ class ComplexNorm(nn.Module):
             to maximize
     """
 
-    def __init__(
-        self,
-        power: float = 1.0,
-        mono: bool = False
-    ):
+    def __init__(self, power: float = 1.0, mono: bool = False):
         super(ComplexNorm, self).__init__()
         self.power = power
         self.mono = mono
@@ -239,9 +202,7 @@ class ComplexNorm(nn.Module):
                 `(...,)`
         """
         # take the magnitude
-        spec = torchaudio.functional.complex_norm(
-            spec, power=self.power
-        )
+        spec = torchaudio.functional.complex_norm(spec, power=self.power)
 
         # downmix in the mag domain to preserve energy
         if self.mono:

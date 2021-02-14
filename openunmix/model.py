@@ -5,8 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LSTM, BatchNorm1d, Linear, Parameter
-from . filtering import wiener
-from . transforms import make_filterbanks, ComplexNorm
+from .filtering import wiener
+from .transforms import make_filterbanks, ComplexNorm
 
 
 class OpenUnmix(nn.Module):
@@ -27,6 +27,7 @@ class OpenUnmix(nn.Module):
             reduce high frequency content. Defaults to `None` which results
             in `nb_bins`
     """
+
     def __init__(
         self,
         nb_bins=4096,
@@ -36,7 +37,7 @@ class OpenUnmix(nn.Module):
         unidirectional=False,
         input_mean=None,
         input_scale=None,
-        max_bin=None
+        max_bin=None,
     ):
         super(OpenUnmix, self).__init__()
 
@@ -48,10 +49,7 @@ class OpenUnmix(nn.Module):
 
         self.hidden_size = hidden_size
 
-        self.fc1 = Linear(
-            self.nb_bins*nb_channels, hidden_size,
-            bias=False
-        )
+        self.fc1 = Linear(self.nb_bins * nb_channels, hidden_size, bias=False)
 
         self.bn1 = BatchNorm1d(hidden_size)
 
@@ -71,44 +69,34 @@ class OpenUnmix(nn.Module):
 
         fc2_hiddensize = hidden_size * 2
         self.fc2 = Linear(
-            in_features=fc2_hiddensize,
-            out_features=hidden_size,
-            bias=False
+            in_features=fc2_hiddensize, out_features=hidden_size, bias=False
         )
 
         self.bn2 = BatchNorm1d(hidden_size)
 
         self.fc3 = Linear(
             in_features=hidden_size,
-            out_features=self.nb_output_bins*nb_channels,
-            bias=False
+            out_features=self.nb_output_bins * nb_channels,
+            bias=False,
         )
 
-        self.bn3 = BatchNorm1d(self.nb_output_bins*nb_channels)
+        self.bn3 = BatchNorm1d(self.nb_output_bins * nb_channels)
 
         if input_mean is not None:
-            input_mean = torch.from_numpy(
-                -input_mean[:self.nb_bins]
-            ).float()
+            input_mean = torch.from_numpy(-input_mean[: self.nb_bins]).float()
         else:
             input_mean = torch.zeros(self.nb_bins)
 
         if input_scale is not None:
-            input_scale = torch.from_numpy(
-                1.0/input_scale[:self.nb_bins]
-            ).float()
+            input_scale = torch.from_numpy(1.0 / input_scale[: self.nb_bins]).float()
         else:
             input_scale = torch.ones(self.nb_bins)
 
         self.input_mean = Parameter(input_mean)
         self.input_scale = Parameter(input_scale)
 
-        self.output_scale = Parameter(
-            torch.ones(self.nb_output_bins).float()
-        )
-        self.output_mean = Parameter(
-            torch.ones(self.nb_output_bins).float()
-        )
+        self.output_scale = Parameter(torch.ones(self.nb_output_bins).float())
+        self.output_mean = Parameter(torch.ones(self.nb_output_bins).float())
 
     def freeze(self):
         # set all parameters as not requiring gradient, more RAM-efficient
@@ -136,14 +124,14 @@ class OpenUnmix(nn.Module):
         mix = x.detach().clone()
 
         # crop
-        x = x[..., :self.nb_bins]
+        x = x[..., : self.nb_bins]
         # shift and scale input to mean=0 std=1 (across all bins)
         x += self.input_mean
         x *= self.input_scale
 
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
-        x = self.fc1(x.reshape(-1, nb_channels*self.nb_bins))
+        x = self.fc1(x.reshape(-1, nb_channels * self.nb_bins))
         # normalize every instance in a batch
         x = self.bn1(x)
         x = x.reshape(nb_frames, nb_samples, self.hidden_size)
@@ -206,6 +194,7 @@ class Separator(nn.Module):
             asteroids stft can be exported to onnx, which makes is practical
             for deployment.
     """
+
     def __init__(
         self,
         target_models: dict,
@@ -217,7 +206,7 @@ class Separator(nn.Module):
         n_hop: int = 1024,
         nb_channels: int = 2,
         wiener_win_len: Optional[int] = 300,
-        filterbank: str = 'torch'
+        filterbank: str = "torch",
     ):
         super(Separator, self).__init__()
 
@@ -232,7 +221,7 @@ class Separator(nn.Module):
             n_hop=n_hop,
             center=True,
             method=filterbank,
-            sample_rate=sample_rate
+            sample_rate=sample_rate,
         )
         self.complexnorm = ComplexNorm(mono=nb_channels == 1)
 
@@ -242,7 +231,7 @@ class Separator(nn.Module):
         self.nb_targets = len(self.target_models)
         # get the sample_rate as the sample_rate of the first model
         # (tacitly assume it's the same for all targets)
-        self.register_buffer('sample_rate', torch.as_tensor(sample_rate))
+        self.register_buffer("sample_rate", torch.as_tensor(sample_rate))
 
     def freeze(self):
         # set all parameters as not requiring gradient, more RAM-efficient
@@ -273,14 +262,10 @@ class Separator(nn.Module):
 
         # initializing spectrograms variable
         spectrograms = torch.zeros(
-            X.shape + (nb_sources,),
-            dtype=audio.dtype,
-            device=X.device
+            X.shape + (nb_sources,), dtype=audio.dtype, device=X.device
         )
 
-        for j, (target_name, target_module) in enumerate(
-            self.target_models.items()
-        ):
+        for j, (target_name, target_module) in enumerate(self.target_models.items()):
             # apply current model to get the source spectrogram
             target_spectrogram = target_module(X.detach().clone())
             spectrograms[..., j] = target_spectrogram
@@ -300,15 +285,15 @@ class Separator(nn.Module):
             nb_sources += 1
 
         if nb_sources == 1 and self.niter > 0:
-            raise Exception('Cannot use EM if only one target is estimated.'
-                            'Provide two targets or create an additional '
-                            'one with `--residual`')
+            raise Exception(
+                "Cannot use EM if only one target is estimated."
+                "Provide two targets or create an additional "
+                "one with `--residual`"
+            )
 
         nb_frames = spectrograms.shape[1]
         targets_stft = torch.zeros(
-            mix_stft.shape + (nb_sources,),
-            dtype=audio.dtype,
-            device=mix_stft.device
+            mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device
         )
         for sample in range(nb_samples):
             pos = 0
@@ -317,10 +302,7 @@ class Separator(nn.Module):
             else:
                 wiener_win_len = nb_frames
             while pos < nb_frames:
-                cur_frame = torch.arange(
-                    pos,
-                    min(nb_frames, pos+wiener_win_len)
-                )
+                cur_frame = torch.arange(pos, min(nb_frames, pos + wiener_win_len))
                 pos = int(cur_frame[-1]) + 1
 
                 targets_stft[sample, cur_frame] = wiener(
@@ -328,7 +310,7 @@ class Separator(nn.Module):
                     mix_stft[sample, cur_frame],
                     self.niter,
                     softmask=self.softmask,
-                    residual=self.residual
+                    residual=self.residual,
                 )
 
         # getting to (nb_samples, nb_targets, channel, fft_size, n_frames, 2)
@@ -339,11 +321,7 @@ class Separator(nn.Module):
 
         return estimates
 
-    def to_dict(
-        self,
-        estimates: Tensor,
-        aggregate_dict: Optional[dict] = None
-    ) -> dict:
+    def to_dict(self, estimates: Tensor, aggregate_dict: Optional[dict] = None) -> dict:
         """Convert estimates as stacked tensor to dictionary
 
         Args:
@@ -360,14 +338,13 @@ class Separator(nn.Module):
 
         # in the case of residual, we added another source
         if self.residual:
-            estimates_dict['residual'] = estimates[:, -1, ...]
+            estimates_dict["residual"] = estimates[:, -1, ...]
 
         if aggregate_dict is not None:
             new_estimates = {}
             for key in aggregate_dict:
                 new_estimates[key] = torch.tensor(0.0)
                 for target in aggregate_dict[key]:
-                    new_estimates[key] = new_estimates[key] + \
-                        estimates_dict[target]
+                    new_estimates[key] = new_estimates[key] + estimates_dict[target]
             estimates_dict = new_estimates
         return estimates_dict
