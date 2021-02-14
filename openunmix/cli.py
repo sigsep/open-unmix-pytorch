@@ -182,7 +182,7 @@ def separate():
             # convert torch dict to numpy dict
             estimates_numpy = {}
             for target, estimate in estimates.items():
-                estimates_numpy[target] = torch.squeeze(estimate).detach().numpy().T
+                estimates_numpy[target] = torch.squeeze(estimate).detach().cpu().numpy().T
 
             stempeg.write_stems(
                 target_path,
