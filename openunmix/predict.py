@@ -1,6 +1,4 @@
-import torchaudio
 from openunmix import utils
-import torch
 
 
 def separate(
@@ -14,7 +12,7 @@ def separate(
     aggregate_dict=None,
     separator=None,
     device=None,
-    filterbank='torch'
+    filterbank="torch",
 ):
     """
     Open Unmix functional interface
@@ -63,15 +61,14 @@ def separate(
             wiener_win_len=wiener_win_len,
             device=device,
             pretrained=True,
-            filterbank=filterbank
+            filterbank=filterbank,
         )
         separator.freeze()
         if device:
             separator.to(device)
 
     if rate is None:
-        raise Exception(
-            'rate` must be provided.')
+        raise Exception("rate` must be provided.")
 
     if device:
         audio = audio.to(device)
@@ -79,8 +76,5 @@ def separate(
 
     # getting the separated signals
     estimates = separator(audio)
-    estimates = separator.to_dict(
-        estimates,
-        aggregate_dict=aggregate_dict
-    )
+    estimates = separator.to_dict(estimates, aggregate_dict=aggregate_dict)
     return estimates

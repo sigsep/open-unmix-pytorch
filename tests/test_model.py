@@ -39,19 +39,13 @@ def hidden_size(request):
     return request.param
 
 
-def test_shape(
-    spectrogram,
-    nb_bins,
-    nb_channels,
-    unidirectional,
-    hidden_size
-):
+def test_shape(spectrogram, nb_bins, nb_channels, unidirectional, hidden_size):
     unmix = model.OpenUnmix(
         nb_bins=nb_bins,
         nb_channels=nb_channels,
         unidirectional=unidirectional,
         nb_layers=1,  # speed up training
-        hidden_size=hidden_size
+        hidden_size=hidden_size,
     )
     unmix.eval()
     Y = unmix(spectrogram)

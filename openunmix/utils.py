@@ -14,11 +14,7 @@ import openunmix
 from openunmix import model
 
 
-def bandwidth_to_max_bin(
-    rate: float,
-    n_fft: int,
-    bandwidth: float
-) -> np.ndarray:
+def bandwidth_to_max_bin(rate: float, n_fft: int, bandwidth: float) -> np.ndarray:
     """Convert bandwidth to maximum bin count
 
     Assuming lapped transforms such as STFT
@@ -31,20 +27,12 @@ def bandwidth_to_max_bin(
     Returns:
         np.ndarray: maximum frequency bin
     """
-    freqs = np.linspace(
-        0, rate / 2, n_fft // 2 + 1,
-        endpoint=True
-    )
+    freqs = np.linspace(0, rate / 2, n_fft // 2 + 1, endpoint=True)
 
     return np.max(np.where(freqs <= bandwidth)[0]) + 1
 
 
-def save_checkpoint(
-    state: dict,
-    is_best: bool,
-    path: str,
-    target: str
-):
+def save_checkpoint(state: dict, is_best: bool, path: str, target: str):
     """Convert bandwidth to maximum bin count
 
     Assuming lapped transforms such as STFT
@@ -56,20 +44,15 @@ def save_checkpoint(
         target (str): target name
     """
     # save full checkpoint including optimizer
-    torch.save(
-        state,
-        os.path.join(path, target + '.chkpnt')
-    )
+    torch.save(state, os.path.join(path, target + ".chkpnt"))
     if is_best:
         # save just the weights
-        torch.save(
-            state['state_dict'],
-            os.path.join(path, target + '.pth')
-        )
+        torch.save(state["state_dict"], os.path.join(path, target + ".pth"))
 
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -88,7 +71,8 @@ class AverageMeter(object):
 
 class EarlyStopping(object):
     """Early Stopping Monitor"""
-    def __init__(self, mode='min', min_delta=0, patience=10):
+
+    def __init__(self, mode="min", min_delta=0, patience=10):
         self.mode = mode
         self.min_delta = min_delta
         self.patience = patience
@@ -120,20 +104,15 @@ class EarlyStopping(object):
         return False
 
     def _init_is_better(self, mode, min_delta):
-        if mode not in {'min', 'max'}:
-            raise ValueError('mode ' + mode + ' is unknown!')
-        if mode == 'min':
+        if mode not in {"min", "max"}:
+            raise ValueError("mode " + mode + " is unknown!")
+        if mode == "min":
             self.is_better = lambda a, best: a < best - min_delta
-        if mode == 'max':
+        if mode == "max":
             self.is_better = lambda a, best: a > best + min_delta
 
 
-def load_target_models(
-    targets,
-    model_str_or_path='umxhq',
-    device='cpu',
-    pretrained=True
-):
+def load_target_models(targets, model_str_or_path="umxhq", device="cpu", pretrained=True):
     """Core model loader
 
     target model path can be either <target>.pth, or <target>-sha256.pth
@@ -153,33 +132,26 @@ def load_target_models(
             hub_loader = getattr(openunmix, model_str_or_path + "_spec")
             err = io.StringIO()
             with redirect_stderr(err):
-                return hub_loader(
-                    targets=targets,
-                    device=device,
-                    pretrained=pretrained
-                )
+                return hub_loader(targets=targets, device=device, pretrained=pretrained)
             print(err.getvalue())
         except AttributeError:
-            raise NameError('Model does not exist on torchhub')
+            raise NameError("Model does not exist on torchhub")
             # assume model is a path to a local model_str_or_path directory
     else:
         models = {}
         for target in targets:
             # load model from disk
-            with open(Path(model_path, target + '.json'), 'r') as stream:
+            with open(Path(model_path, target + ".json"), "r") as stream:
                 results = json.load(stream)
 
             target_model_path = next(Path(model_path).glob("%s*.pth" % target))
-            state = torch.load(
-                target_model_path,
-                map_location=device
-            )
+            state = torch.load(target_model_path, map_location=device)
 
             models[target] = model.OpenUnmix(
-                nb_bins=results['args']['nfft'] // 2 + 1,
-                nb_channels=results['args']['nb_channels'],
-                hidden_size=results['args']['hidden_size'],
-                max_bin=state['input_mean'].shape[0]
+                nb_bins=results["args"]["nfft"] // 2 + 1,
+                nb_channels=results["args"]["nb_channels"],
+                hidden_size=results["args"]["hidden_size"],
+                max_bin=state["input_mean"].shape[0],
             )
 
             if pretrained:
@@ -190,14 +162,14 @@ def load_target_models(
 
 
 def load_separator(
-    model_str_or_path: str = 'umxhq',
+    model_str_or_path: str = "umxhq",
     targets: Optional[list] = None,
     niter: int = 1,
     residual: bool = False,
     wiener_win_len: Optional[int] = 300,
-    device: Union[str, torch.device] = 'cpu',
+    device: Union[str, torch.device] = "cpu",
     pretrained: bool = True,
-    filterbank: str = 'torch'
+    filterbank: str = "torch",
 ):
     """Separator loader
 
@@ -241,12 +213,10 @@ def load_separator(
             raise UserWarning("For custom models, please specify the targets")
 
         target_models = load_target_models(
-            targets=targets,
-            model_str_or_path=model_path,
-            pretrained=pretrained
+            targets=targets, model_str_or_path=model_path, pretrained=pretrained
         )
 
-        with open(Path(model_path, 'separator.json'), 'r') as stream:
+        with open(Path(model_path, "separator.json"), "r") as stream:
             enc_conf = json.load(stream)
 
         separator = model.Separator(
@@ -254,11 +224,11 @@ def load_separator(
             niter=niter,
             residual=residual,
             wiener_win_len=wiener_win_len,
-            sample_rate=enc_conf['sample_rate'],
-            n_fft=enc_conf['nfft'],
-            n_hop=enc_conf['nhop'],
-            nb_channels=enc_conf['nb_channels'],
-            filterbank=filterbank
+            sample_rate=enc_conf["sample_rate"],
+            n_fft=enc_conf["nfft"],
+            n_hop=enc_conf["nhop"],
+            nb_channels=enc_conf["nb_channels"],
+            filterbank=filterbank,
         ).to(device)
 
     # otherwise we load the separator from torchhub
@@ -270,7 +240,7 @@ def load_separator(
             pretrained=True,
             niter=niter,
             residual=residual,
-            filterbank=filterbank
+            filterbank=filterbank,
         )
 
     return separator
@@ -279,7 +249,7 @@ def load_separator(
 def preprocess(
     audio: torch.Tensor,
     rate: Optional[float] = None,
-    model_rate: Optional[float] = None
+    model_rate: Optional[float] = None,
 ) -> torch.Tensor:
     """
     From an input tensor, convert it to a tensor of shape
@@ -317,10 +287,7 @@ def preprocess(
         # swapping channel and time
         audio = audio.transpose(1, 2)
     if audio.shape[1] > 2:
-        warnings.warn(
-            'Channel count > 2!. Only the first two channels '
-            'will be processed!'
-        )
+        warnings.warn("Channel count > 2!. Only the first two channels " "will be processed!")
         audio = audio[..., :2]
 
     if audio.shape[1] == 1:
@@ -328,13 +295,11 @@ def preprocess(
         audio = torch.repeat_interleave(audio, 2, dim=1)
 
     if rate != model_rate:
-        print('resampling')
+        print("resampling")
         # we have to resample to model samplerate if needed
         # this makes sure we resample input only once
         resampler = torchaudio.transforms.Resample(
-            orig_freq=rate,
-            new_freq=model_rate,
-            resampling_method='sinc_interpolation'
+            orig_freq=rate, new_freq=model_rate, resampling_method="sinc_interpolation"
         ).to(audio.device)
         audio = resampler(audio)
     return audio
