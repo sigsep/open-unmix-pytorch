@@ -9,7 +9,7 @@ This repository contains the PyTorch (1.6+) implementation of __Open-Unmix__, a 
 
 ## ⭐️ News 
 
-- 31/01/2021: We released the new version of open-unmix as a python package. This comes with: a fully differentiable version of [norbert](https://github.com/sigsep/norbert), improved audio loading pipeline and large number of bug fixes. See [release notes]() for further info.
+- 14/02/2021: We released the new version of open-unmix as a python package. This comes with: a fully differentiable version of [norbert](https://github.com/sigsep/norbert), improved audio loading pipeline and large number of bug fixes. See [release notes]() for further info.
 
 - 06/05/2020: We added a pre-trained [speech enhancement model (`umxse`)](https://sigsep.github.io/open-unmix/se) provided by Sony.
 
