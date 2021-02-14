@@ -125,9 +125,7 @@ def main():
     # Training Parameters
     parser.add_argument("--epochs", type=int, default=1000)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument(
-        "--lr", type=float, default=0.001, help="learning rate, defaults to 1e-3"
-    )
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate, defaults to 1e-3")
     parser.add_argument(
         "--patience",
         type=int,
@@ -146,9 +144,7 @@ def main():
         default=0.3,
         help="gamma of learning rate scheduler decay",
     )
-    parser.add_argument(
-        "--weight-decay", type=float, default=0.00001, help="weight decay"
-    )
+    parser.add_argument("--weight-decay", type=float, default=0.00001, help="weight decay")
     parser.add_argument(
         "--seed", type=int, default=42, metavar="S", help="random seed (default: 42)"
     )
@@ -158,8 +154,7 @@ def main():
         "--seq-dur",
         type=float,
         default=6.0,
-        help="Sequence duration in seconds"
-        "value of <=0.0 will use full/variable length",
+        help="Sequence duration in seconds" "value of <=0.0 will use full/variable length",
     )
     parser.add_argument(
         "--unidirectional",
@@ -167,9 +162,7 @@ def main():
         default=False,
         help="Use unidirectional LSTM",
     )
-    parser.add_argument(
-        "--nfft", type=int, default=4096, help="STFT fft size and window size"
-    )
+    parser.add_argument("--nfft", type=int, default=4096, help="STFT fft size and window size")
     parser.add_argument("--nhop", type=int, default=1024, help="STFT hop size")
     parser.add_argument(
         "--hidden-size",
@@ -213,9 +206,7 @@ def main():
     torchaudio.set_audio_backend(args.audio_backend)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)
-    dataloader_kwargs = (
-        {"num_workers": args.nb_workers, "pin_memory": True} if use_cuda else {}
-    )
+    dataloader_kwargs = {"num_workers": args.nb_workers, "pin_memory": True} if use_cuda else {}
 
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     repo = Repo(repo_dir)
@@ -236,16 +227,12 @@ def main():
     train_sampler = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, **dataloader_kwargs
     )
-    valid_sampler = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=1, **dataloader_kwargs
-    )
+    valid_sampler = torch.utils.data.DataLoader(valid_dataset, batch_size=1, **dataloader_kwargs)
 
     stft, _ = transforms.make_filterbanks(
         n_fft=args.nfft, n_hop=args.nhop, sample_rate=train_dataset.sample_rate
     )
-    encoder = torch.nn.Sequential(
-        stft, model.ComplexNorm(mono=args.nb_channels == 1)
-    ).to(device)
+    encoder = torch.nn.Sequential(stft, model.ComplexNorm(mono=args.nb_channels == 1)).to(device)
 
     separator_conf = {
         "nfft": args.nfft,
@@ -263,9 +250,7 @@ def main():
     else:
         scaler_mean, scaler_std = get_statistics(args, encoder, train_dataset)
 
-    max_bin = utils.bandwidth_to_max_bin(
-        train_dataset.sample_rate, args.nfft, args.bandwidth
-    )
+    max_bin = utils.bandwidth_to_max_bin(train_dataset.sample_rate, args.nfft, args.bandwidth)
 
     unmix = model.OpenUnmix(
         input_mean=scaler_mean,
@@ -276,9 +261,7 @@ def main():
         max_bin=max_bin,
     ).to(device)
 
-    optimizer = torch.optim.Adam(
-        unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay
-    )
+    optimizer = torch.optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,

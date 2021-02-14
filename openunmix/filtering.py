@@ -49,9 +49,7 @@ def _norm(x: torch.Tensor) -> torch.Tensor:
     return torch.abs(x[..., 0]) ** 2 + torch.abs(x[..., 1]) ** 2
 
 
-def _mul_add(
-    a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None
-) -> torch.Tensor:
+def _mul_add(a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None) -> torch.Tensor:
     """Element-wise multiplication of two complex Tensors described
     through their real and imaginary parts.
     The result is added to the `out` tensor"""
@@ -70,9 +68,7 @@ def _mul_add(
     return out
 
 
-def _mul(
-    a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None
-) -> torch.Tensor:
+def _mul(a: torch.Tensor, b: torch.Tensor, out: Optional[torch.Tensor] = None) -> torch.Tensor:
     """Element-wise multiplication of two complex Tensors described
     through their real and imaginary parts
     can work in place in case out is a only"""
@@ -267,24 +263,18 @@ def expectation_maximization(
 
     # allocate the spatial covariance matrices
     R = [
-        torch.zeros(
-            (nb_bins, nb_channels, nb_channels, 2), dtype=x.dtype, device=x.device
-        )
+        torch.zeros((nb_bins, nb_channels, nb_channels, 2), dtype=x.dtype, device=x.device)
         for j in range(nb_sources)
     ]
     weight: torch.Tensor = torch.zeros((nb_bins,), dtype=x.dtype, device=x.device)
 
-    v: torch.Tensor = torch.zeros(
-        (nb_frames, nb_bins, nb_sources), dtype=x.dtype, device=x.device
-    )
+    v: torch.Tensor = torch.zeros((nb_frames, nb_bins, nb_sources), dtype=x.dtype, device=x.device)
     for it in range(iterations):
         # constructing the mixture covariance matrix. Doing it with a loop
         # to avoid storing anytime in RAM the whole 6D tensor
 
         # update the PSD as the average spectrogram over channels
-        v = torch.mean(
-            torch.abs(y[..., 0, :]) ** 2 + torch.abs(y[..., 1, :]) ** 2, dim=-2
-        )
+        v = torch.mean(torch.abs(y[..., 0, :]) ** 2 + torch.abs(y[..., 1, :]) ** 2, dim=-2)
 
         # update spatial covariance matrices (weighted update)
         for j in range(nb_sources):
@@ -342,9 +332,7 @@ def expectation_maximization(
 
                 # apply it to the mixture
                 for i in range(nb_channels):
-                    y[t, ..., j] = _mul_add(
-                        gain[..., i, :], x[t, ..., i, None, :], y[t, ..., j]
-                    )
+                    y[t, ..., j] = _mul_add(gain[..., i, :], x[t, ..., i, None, :], y[t, ..., j])
 
     return y, v, R
 
@@ -450,12 +438,7 @@ def wiener(
             mix_stft[..., None]
             * (
                 targets_spectrograms
-                / (
-                    eps
-                    + torch.sum(targets_spectrograms, dim=-1, keepdim=True).to(
-                        mix_stft.dtype
-                    )
-                )
+                / (eps + torch.sum(targets_spectrograms, dim=-1, keepdim=True).to(mix_stft.dtype))
             )[..., None, :]
         )
     else:

@@ -68,9 +68,7 @@ class OpenUnmix(nn.Module):
         )
 
         fc2_hiddensize = hidden_size * 2
-        self.fc2 = Linear(
-            in_features=fc2_hiddensize, out_features=hidden_size, bias=False
-        )
+        self.fc2 = Linear(in_features=fc2_hiddensize, out_features=hidden_size, bias=False)
 
         self.bn2 = BatchNorm1d(hidden_size)
 
@@ -261,9 +259,7 @@ class Separator(nn.Module):
         X = self.complexnorm(mix_stft)
 
         # initializing spectrograms variable
-        spectrograms = torch.zeros(
-            X.shape + (nb_sources,), dtype=audio.dtype, device=X.device
-        )
+        spectrograms = torch.zeros(X.shape + (nb_sources,), dtype=audio.dtype, device=X.device)
 
         for j, (target_name, target_module) in enumerate(self.target_models.items()):
             # apply current model to get the source spectrogram

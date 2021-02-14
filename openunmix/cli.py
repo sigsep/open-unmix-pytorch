@@ -20,9 +20,7 @@ def separate():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument(
-        "input", type=str, nargs="+", help="List of paths to wav/flac files."
-    )
+    parser.add_argument("input", type=str, nargs="+", help="List of paths to wav/flac files.")
 
     parser.add_argument(
         "--model",
@@ -52,9 +50,7 @@ def separate():
         help="Output extension which sets the audio format",
     )
 
-    parser.add_argument(
-        "--start", type=float, default=0.0, help="Audio chunk start in seconds"
-    )
+    parser.add_argument("--start", type=float, default=0.0, help="Audio chunk start in seconds")
 
     parser.add_argument(
         "--duration",
@@ -163,9 +159,7 @@ def separate():
             )
             audio = torch.tensor(audio)
         else:
-            audio, rate = data.load_audio(
-                input_file, start=args.start, dur=args.duration
-            )
+            audio, rate = data.load_audio(input_file, start=args.start, dur=args.duration)
         estimates = predict.separate(
             audio=audio,
             rate=rate,

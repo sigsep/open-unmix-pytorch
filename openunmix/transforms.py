@@ -13,9 +13,7 @@ except ImportError:
     pass
 
 
-def make_filterbanks(
-    n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method="torch"
-):
+def make_filterbanks(n_fft=4096, n_hop=1024, center=False, sample_rate=44100.0, method="torch"):
     window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
 
     if method == "torch":

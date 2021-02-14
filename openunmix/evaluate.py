@@ -82,15 +82,11 @@ if __name__ == "__main__":
         help="Results path where audio evaluation results are stored",
     )
 
-    parser.add_argument(
-        "--evaldir", type=str, help="Results path for museval estimates"
-    )
+    parser.add_argument("--evaldir", type=str, help="Results path for museval estimates")
 
     parser.add_argument("--root", type=str, help="Path to MUSDB18")
 
-    parser.add_argument(
-        "--subset", type=str, default="test", help="MUSDB subset (`train`/`test`)"
-    )
+    parser.add_argument("--subset", type=str, default="test", help="MUSDB subset (`train`/`test`)")
 
     parser.add_argument("--cores", type=int, default=1)
 
