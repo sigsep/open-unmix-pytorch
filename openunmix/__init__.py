@@ -1,3 +1,10 @@
+"""
+![sigsep logo](https://sigsep.github.io/hero.png)
+Open-Unmix is a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. Open-Unmix provides ready-to-use models that allow users to separate pop music into four stems: vocals, drums, bass and the remaining other instruments. The models were pre-trained on the MUSDB18 dataset. See details at apply pre-trained model.
+
+This is the python package API documentation. 
+Please checkout [the open-unmix website](https://sigsep.github.io/open-unmix) for more information.
+"""
 from openunmix import utils
 import torch.hub
 

@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>openunmix API documentation</title>
+<meta name="description" content="![sigsep logo](https://sigsep.github.io/hero.png)
+Open-Unmix is a deep neural network reference implementation for music source separation, applicable …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Package <code>openunmix</code></h1>
+</header>
+<section id="section-intro">
+<p><img alt="sigsep logo" src="https://sigsep.github.io/hero.png">
+Open-Unmix is a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. Open-Unmix provides ready-to-use models that allow users to separate pop music into four stems: vocals, drums, bass and the remaining other instruments. The models were pre-trained on the MUSDB18 dataset. See details at apply pre-trained model.</p>
+<p>This is the python package API documentation.
+Please checkout <a href="https://sigsep.github.io/open-unmix">the open-unmix website</a> for more information.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L0-L260" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+![sigsep logo](https://sigsep.github.io/hero.png)
+Open-Unmix is a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. Open-Unmix provides ready-to-use models that allow users to separate pop music into four stems: vocals, drums, bass and the remaining other instruments. The models were pre-trained on the MUSDB18 dataset. See details at apply pre-trained model.
+
+This is the python package API documentation. 
+Please checkout [the open-unmix website](https://sigsep.github.io/open-unmix) for more information.
+&#34;&#34;&#34;
+from openunmix import utils
+import torch.hub
+
+
+def umxse_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    target_urls = {
+        &#34;speech&#34;: &#34;https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth&#34;,
+        &#34;noise&#34;: &#34;https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth&#34;,
+    }
+
+    from .model import OpenUnmix
+
+    if targets is None:
+        targets = [&#34;speech&#34;, &#34;noise&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=16000.0, n_fft=1024, bandwidth=16000)
+
+    # load open unmix models speech enhancement models
+    target_models = {}
+    for target in targets:
+        target_unmix = OpenUnmix(
+            nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
+
+
+def umxse(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
+    trained on the 28-speaker version of Voicebank+Demand
+    (Sampling rate: 16kHz)
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;speech&#39;, &#39;noise&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+
+    Reference:
+        Uhlich, Stefan, &amp; Mitsufuji, Yuki. (2020).
+        Open-Unmix for Speech Enhancement (UMX SE).
+        Zenodo. http://doi.org/10.5281/zenodo.3786908
+    &#34;&#34;&#34;
+    from .model import Separator
+
+    target_models = umxse_spec(targets=targets, device=device, pretrained=pretrained)
+
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=1024,
+        n_hop=512,
+        nb_channels=1,
+        sample_rate=16000.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator
+
+
+def umxhq_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    from .model import OpenUnmix
+
+    # set urls for weights
+    target_urls = {
+        &#34;bass&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth&#34;,
+        &#34;drums&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/drums-9619578f.pth&#34;,
+        &#34;other&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth&#34;,
+        &#34;vocals&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth&#34;,
+    }
+
+    if targets is None:
+        targets = [&#34;vocals&#34;, &#34;drums&#34;, &#34;bass&#34;, &#34;other&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=44100.0, n_fft=4096, bandwidth=16000)
+
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
+
+
+def umxhq(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;vocals&#39;, &#39;drums&#39;, &#39;bass&#39;, &#39;other&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+    &#34;&#34;&#34;
+
+    from .model import Separator
+
+    target_models = umxhq_spec(targets=targets, device=device, pretrained=pretrained)
+
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator
+
+
+def umx_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    from .model import OpenUnmix
+
+    # set urls for weights
+    target_urls = {
+        &#34;bass&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth&#34;,
+        &#34;drums&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/drums-5a48008b.pth&#34;,
+        &#34;other&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth&#34;,
+        &#34;vocals&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth&#34;,
+    }
+
+    if targets is None:
+        targets = [&#34;vocals&#34;, &#34;drums&#34;, &#34;bass&#34;, &#34;other&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=44100.0, n_fft=4096, bandwidth=16000)
+
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
+
+
+def umx(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;vocals&#39;, &#39;drums&#39;, &#39;bass&#39;, &#39;other&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+
+    &#34;&#34;&#34;
+
+    from .model import Separator
+
+    target_models = umx_spec(targets=targets, device=device, pretrained=pretrained)
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator</code></pre>
+</details>
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="openunmix.cli" href="cli.html">openunmix.cli</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.data" href="data.html">openunmix.data</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.evaluate" href="evaluate.html">openunmix.evaluate</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.filtering" href="filtering.html">openunmix.filtering</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.model" href="model.html">openunmix.model</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.predict" href="predict.html">openunmix.predict</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.transforms" href="transforms.html">openunmix.transforms</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="openunmix.utils" href="utils.html">openunmix.utils</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="openunmix.umx"><code class="name flex">
+<span>def <span class="ident">umx</span></span>(<span>targets=None, residual=False, niter=1, device='cpu', pretrained=True, filterbank='torch')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>targets</code></strong> :&ensp;<code>str</code></dt>
+<dd>select the targets for the source to be separated.
+a list including: ['vocals', 'drums', 'bass', 'other'].
+If you don't pick them all, you probably want to
+activate the <code>residual=True</code> option.
+Defaults to all available targets per model.</dd>
+<dt><strong><code>pretrained</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If True, returns a model pre-trained on MUSDB18-HQ</dd>
+<dt><strong><code>residual</code></strong> :&ensp;<code>bool</code></dt>
+<dd>if True, a "garbage" target is created</dd>
+<dt><strong><code>niter</code></strong> :&ensp;<code>int</code></dt>
+<dd>the number of post-processingiterations, defaults to 0</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>selects device to be used for inference</dd>
+<dt><strong><code>filterbank</code></strong> :&ensp;<code>str</code></dt>
+<dd>filterbank implementation method.
+Supported are <code>['torch', 'asteroid']</code>. <code>torch</code> is about 30% faster
+compared to <code>asteroid</code> on large FFT sizes such as 4096. However,
+asteroids stft can be exported to onnx, which makes is practical
+for deployment.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L218-L261" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umx(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;vocals&#39;, &#39;drums&#39;, &#39;bass&#39;, &#39;other&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+
+    &#34;&#34;&#34;
+
+    from .model import Separator
+
+    target_models = umx_spec(targets=targets, device=device, pretrained=pretrained)
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator</code></pre>
+</details>
+</dd>
+<dt id="openunmix.umx_spec"><code class="name flex">
+<span>def <span class="ident">umx_spec</span></span>(<span>targets=None, device='cpu', pretrained=True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L181-L215" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umx_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    from .model import OpenUnmix
+
+    # set urls for weights
+    target_urls = {
+        &#34;bass&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth&#34;,
+        &#34;drums&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/drums-5a48008b.pth&#34;,
+        &#34;other&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth&#34;,
+        &#34;vocals&#34;: &#34;https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth&#34;,
+    }
+
+    if targets is None:
+        targets = [&#34;vocals&#34;, &#34;drums&#34;, &#34;bass&#34;, &#34;other&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=44100.0, n_fft=4096, bandwidth=16000)
+
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models</code></pre>
+</details>
+</dd>
+<dt id="openunmix.umxhq"><code class="name flex">
+<span>def <span class="ident">umxhq</span></span>(<span>targets=None, residual=False, niter=1, device='cpu', pretrained=True, filterbank='torch')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>targets</code></strong> :&ensp;<code>str</code></dt>
+<dd>select the targets for the source to be separated.
+a list including: ['vocals', 'drums', 'bass', 'other'].
+If you don't pick them all, you probably want to
+activate the <code>residual=True</code> option.
+Defaults to all available targets per model.</dd>
+<dt><strong><code>pretrained</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If True, returns a model pre-trained on MUSDB18-HQ</dd>
+<dt><strong><code>residual</code></strong> :&ensp;<code>bool</code></dt>
+<dd>if True, a "garbage" target is created</dd>
+<dt><strong><code>niter</code></strong> :&ensp;<code>int</code></dt>
+<dd>the number of post-processingiterations, defaults to 0</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>selects device to be used for inference</dd>
+<dt><strong><code>filterbank</code></strong> :&ensp;<code>str</code></dt>
+<dd>filterbank implementation method.
+Supported are <code>['torch', 'asteroid']</code>. <code>torch</code> is about 30% faster
+compared to <code>asteroid</code> on large FFT sizes such as 4096. However,
+asteroids stft can be exported to onnx, which makes is practical
+for deployment.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L135-L178" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umxhq(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix 2-channel/stereo BiLSTM Model trained on MUSDB18-HQ
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;vocals&#39;, &#39;drums&#39;, &#39;bass&#39;, &#39;other&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+    &#34;&#34;&#34;
+
+    from .model import Separator
+
+    target_models = umxhq_spec(targets=targets, device=device, pretrained=pretrained)
+
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator</code></pre>
+</details>
+</dd>
+<dt id="openunmix.umxhq_spec"><code class="name flex">
+<span>def <span class="ident">umxhq_spec</span></span>(<span>targets=None, device='cpu', pretrained=True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L98-L132" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umxhq_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    from .model import OpenUnmix
+
+    # set urls for weights
+    target_urls = {
+        &#34;bass&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth&#34;,
+        &#34;drums&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/drums-9619578f.pth&#34;,
+        &#34;other&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth&#34;,
+        &#34;vocals&#34;: &#34;https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth&#34;,
+    }
+
+    if targets is None:
+        targets = [&#34;vocals&#34;, &#34;drums&#34;, &#34;bass&#34;, &#34;other&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=44100.0, n_fft=4096, bandwidth=16000)
+
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models</code></pre>
+</details>
+</dd>
+<dt id="openunmix.umxse"><code class="name flex">
+<span>def <span class="ident">umxse</span></span>(<span>targets=None, residual=False, niter=1, device='cpu', pretrained=True, filterbank='torch')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
+trained on the 28-speaker version of Voicebank+Demand
+(Sampling rate: 16kHz)</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>targets</code></strong> :&ensp;<code>str</code></dt>
+<dd>select the targets for the source to be separated.
+a list including: ['speech', 'noise'].
+If you don't pick them all, you probably want to
+activate the <code>residual=True</code> option.
+Defaults to all available targets per model.</dd>
+<dt><strong><code>pretrained</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If True, returns a model pre-trained on MUSDB18-HQ</dd>
+<dt><strong><code>residual</code></strong> :&ensp;<code>bool</code></dt>
+<dd>if True, a "garbage" target is created</dd>
+<dt><strong><code>niter</code></strong> :&ensp;<code>int</code></dt>
+<dd>the number of post-processingiterations, defaults to 0</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>selects device to be used for inference</dd>
+<dt><strong><code>filterbank</code></strong> :&ensp;<code>str</code></dt>
+<dd>filterbank implementation method.
+Supported are <code>['torch', 'asteroid']</code>. <code>torch</code> is about 30% faster
+compared to <code>asteroid</code> on large FFT sizes such as 4096. However,
+asteroids stft can be exported to onnx, which makes is practical
+for deployment.</dd>
+</dl>
+<h2 id="reference">Reference</h2>
+<p>Uhlich, Stefan, &amp; Mitsufuji, Yuki. (2020).
+Open-Unmix for Speech Enhancement (UMX SE).
+Zenodo. <a href="http://doi.org/10.5281/zenodo.3786908">http://doi.org/10.5281/zenodo.3786908</a></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L46-L95" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umxse(
+    targets=None,
+    residual=False,
+    niter=1,
+    device=&#34;cpu&#34;,
+    pretrained=True,
+    filterbank=&#34;torch&#34;,
+):
+    &#34;&#34;&#34;
+    Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
+    trained on the 28-speaker version of Voicebank+Demand
+    (Sampling rate: 16kHz)
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: [&#39;speech&#39;, &#39;noise&#39;].
+                If you don&#39;t pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a &#34;garbage&#34; target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `[&#39;torch&#39;, &#39;asteroid&#39;]`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+
+    Reference:
+        Uhlich, Stefan, &amp; Mitsufuji, Yuki. (2020).
+        Open-Unmix for Speech Enhancement (UMX SE).
+        Zenodo. http://doi.org/10.5281/zenodo.3786908
+    &#34;&#34;&#34;
+    from .model import Separator
+
+    target_models = umxse_spec(targets=targets, device=device, pretrained=pretrained)
+
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=1024,
+        n_hop=512,
+        nb_channels=1,
+        sample_rate=16000.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator</code></pre>
+</details>
+</dd>
+<dt id="openunmix.umxse_spec"><code class="name flex">
+<span>def <span class="ident">umxse_spec</span></span>(<span>targets=None, device='cpu', pretrained=True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+<a href="https://github.com/sigsep/open-unmix-pytorch/blob/b436d5f7d40c2b8ff0b2500e9d953fa47929b261/openunmix/__init__.py#L12-L43" class="git-link">Browse git</a>
+</summary>
+<pre><code class="python">def umxse_spec(targets=None, device=&#34;cpu&#34;, pretrained=True):
+    target_urls = {
+        &#34;speech&#34;: &#34;https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth&#34;,
+        &#34;noise&#34;: &#34;https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth&#34;,
+    }
+
+    from .model import OpenUnmix
+
+    if targets is None:
+        targets = [&#34;speech&#34;, &#34;noise&#34;]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=16000.0, n_fft=1024, bandwidth=16000)
+
+    # load open unmix models speech enhancement models
+    target_models = {}
+    for target in targets:
+        target_unmix = OpenUnmix(
+            nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="openunmix.cli" href="cli.html">openunmix.cli</a></code></li>
+<li><code><a title="openunmix.data" href="data.html">openunmix.data</a></code></li>
+<li><code><a title="openunmix.evaluate" href="evaluate.html">openunmix.evaluate</a></code></li>
+<li><code><a title="openunmix.filtering" href="filtering.html">openunmix.filtering</a></code></li>
+<li><code><a title="openunmix.model" href="model.html">openunmix.model</a></code></li>
+<li><code><a title="openunmix.predict" href="predict.html">openunmix.predict</a></code></li>
+<li><code><a title="openunmix.transforms" href="transforms.html">openunmix.transforms</a></code></li>
+<li><code><a title="openunmix.utils" href="utils.html">openunmix.utils</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="openunmix.umx" href="#openunmix.umx">umx</a></code></li>
+<li><code><a title="openunmix.umx_spec" href="#openunmix.umx_spec">umx_spec</a></code></li>
+<li><code><a title="openunmix.umxhq" href="#openunmix.umxhq">umxhq</a></code></li>
+<li><code><a title="openunmix.umxhq_spec" href="#openunmix.umxhq_spec">umxhq_spec</a></code></li>
+<li><code><a title="openunmix.umxse" href="#openunmix.umxse">umxse</a></code></li>
+<li><code><a title="openunmix.umxse_spec" href="#openunmix.umxse_spec">umxse_spec</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>
