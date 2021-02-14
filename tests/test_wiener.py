@@ -52,13 +52,7 @@ def mix(request, nb_frames, nb_channels, nb_bins):
 
 
 def test_wiener(target, mix, iterations, softmask, residual):
-    output = wiener(
-        target,
-        mix,
-        iterations=iterations,
-        softmask=softmask,
-        residual=residual
-    )
+    output = wiener(target, mix, iterations=iterations, softmask=softmask, residual=residual)
     # nb_frames, nb_bins, nb_channels, 2, nb_sources
     assert output.shape[:3] == mix.shape[:3]
     assert output.shape[3] == 2

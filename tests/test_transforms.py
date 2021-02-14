@@ -26,12 +26,12 @@ def nfft(request):
 
 @pytest.fixture(params=[2, 4])
 def hop(request, nfft):
-    return(nfft // request.param)
+    return nfft // request.param
 
 
-@pytest.fixture(params=['torch', 'asteroid'])
+@pytest.fixture(params=["torch", "asteroid"])
 def method(request):
-    return(request.param)
+    return request.param
 
 
 @pytest.fixture
@@ -43,13 +43,9 @@ def test_stft(audio, nfft, hop, method):
     # we should only test for center=True as
     # False doesn't pass COLA
     # https://github.com/pytorch/audio/issues/500
-    stft, istft = transforms.make_filterbanks(
-        n_fft=nfft, n_hop=hop, center=True, method=method
-    )
+    stft, istft = transforms.make_filterbanks(n_fft=nfft, n_hop=hop, center=True, method=method)
 
     X = stft(audio)
     X = X.detach()
     out = istft(X, length=audio.shape[-1])
-    assert np.sqrt(
-        np.mean((audio.detach().numpy() - out.detach().numpy())**2)
-    ) < 1e-6
+    assert np.sqrt(np.mean((audio.detach().numpy() - out.detach().numpy()) ** 2)) < 1e-6

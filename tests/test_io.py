@@ -8,7 +8,7 @@ from openunmix import data
 
 audio_path = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
-    'data/test.wav',
+    "data/test.wav",
 )
 
 
