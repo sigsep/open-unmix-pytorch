@@ -54,7 +54,7 @@ After applying the LSTM, the signal is decoded back to its original input dimens
 ## 🤹‍♀️ Putting source models together: the `Separator`
 
 `models.Separator` puts together _Open-unmix_ spectrogram model for each desired target, and combines their output through a multichannel generalized Wiener filter, before application of inverse STFTs using `torchaudio`.
-The filtering is differentiable (but parameter-free) version of [norbert](https://github.com/sigsep/norbert). The separator is currently currently only used during training.
+The filtering is differentiable (but parameter-free) version of [norbert](https://github.com/sigsep/norbert). The separator is currently currently only used during inference.
 
 ## 🏁 Getting started
 
