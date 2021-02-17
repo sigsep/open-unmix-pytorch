@@ -7,7 +7,6 @@ import torch
 import torch.utils.data
 import torchaudio
 import tqdm
-from torchaudio.datasets.utils import bg_iterator
 
 
 def load_info(path: str) -> dict:
@@ -970,6 +969,5 @@ if __name__ == "__main__":
         num_workers=4,
     )
 
-    train_sampler = bg_iterator(train_sampler, 4)
     for x, y in tqdm.tqdm(train_sampler):
-        pass
+        print(x.shape)
