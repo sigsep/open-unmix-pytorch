@@ -124,8 +124,8 @@ class OpenUnmix(nn.Module):
         # crop
         x = x[..., : self.nb_bins]
         # shift and scale input to mean=0 std=1 (across all bins)
-        x += self.input_mean
-        x *= self.input_scale
+        x = x + self.input_mean
+        x = x * self.input_scale
 
         # to (nb_frames*nb_samples, nb_channels*nb_bins)
         # and encode to (nb_frames*nb_samples, hidden_size)
