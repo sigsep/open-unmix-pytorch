@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        pytorch-version: ["1.7.0"]
+        pytorch-version: ["1.8.0"]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 10
@@ -34,6 +34,8 @@ jobs:
         python -m pip install coverage codecov --upgrade-strategy only-if-needed --quiet
         if [ $TORCH_INSTALL == "1.7.0" ]; then
           INSTALL="torch==1.7.0+cpu torchaudio==0.7.0 -f https://download.pytorch.org/whl/torch_stable.html"
+        elif [ $TORCH_INSTALL == "1.8.0" ]; then
+          INSTALL="torch==1.8.0+cpu torchaudio==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html"
         else
           INSTALL="--pre torch torchaudio -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html"
         fi
