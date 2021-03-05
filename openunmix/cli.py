@@ -113,7 +113,6 @@ def separate():
         "for deployment.",
     )
     args = parser.parse_args()
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
 
     if args.audio_backend != "stempeg":
         torchaudio.set_audio_backend(args.audio_backend)

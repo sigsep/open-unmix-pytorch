@@ -940,7 +940,6 @@ if __name__ == "__main__":
 
     args, _ = parser.parse_known_args()
 
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(args.audio_backend)
 
     train_dataset, valid_dataset, args = load_datasets(parser, args)

@@ -17,7 +17,6 @@ def test_musdb():
 
 
 def test_trackfolder_fix(torch_backend):
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(torch_backend)
 
     train_dataset = data.FixedSourcesTrackFolderDataset(
@@ -33,7 +32,6 @@ def test_trackfolder_fix(torch_backend):
 
 
 def test_trackfolder_var(torch_backend):
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(torch_backend)
 
     train_dataset = data.VariableSourcesTrackFolderDataset(
@@ -48,7 +46,6 @@ def test_trackfolder_var(torch_backend):
 
 
 def test_sourcefolder(torch_backend):
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(torch_backend)
 
     train_dataset = data.SourceFolderDataset(
