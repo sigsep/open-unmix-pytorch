@@ -172,7 +172,7 @@ def separate():
             else:
                 outdir = Path(Path(input_file).stem + "_" + model_path.stem)
         else:
-            outdir = Path(args.outdir)
+            outdir = Path(args.outdir) / Path(input_file).stem
         outdir.mkdir(exist_ok=True, parents=True)
 
         # write out estimates
