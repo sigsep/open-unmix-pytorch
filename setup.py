@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-umx_version = "1.1.0"
+umx_version = "1.1.1"
 
 with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -18,8 +18,8 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy",
-        "torchaudio>=0.7.0",
-        "torch>=1.7.0",
+        "torchaudio>=0.8.0",
+        "torch>=1.8.0",
     ],
     extras_require={
         "asteroid": ["asteroid-filterbanks>=0.3.2"],
@@ -27,8 +27,9 @@ setup(
             "pytest",
             "musdb>=0.4.0",
             "museval>=0.4.0",
-            "onnx",
             "asteroid-filterbanks>=0.3.2",
+            "onnx",
+            "tqdm",
         ],
         "stempeg": ["stempeg"],
         "evaluation": ["musdb>=0.4.0", "museval>=0.4.0"],

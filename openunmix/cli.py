@@ -113,14 +113,13 @@ def separate():
         "for deployment.",
     )
     args = parser.parse_args()
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
 
     if args.audio_backend != "stempeg":
         torchaudio.set_audio_backend(args.audio_backend)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
+    print("Using ", device)
     # parsing the output dict
     aggregate_dict = None if args.aggregate is None else json.loads(args.aggregate)
 
@@ -173,7 +172,7 @@ def separate():
             else:
                 outdir = Path(Path(input_file).stem + "_" + model_path.stem)
         else:
-            outdir = Path(args.outdir)
+            outdir = Path(args.outdir) / Path(input_file).stem
         outdir.mkdir(exist_ok=True, parents=True)
 
         # write out estimates

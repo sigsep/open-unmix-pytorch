@@ -295,7 +295,7 @@ def preprocess(
         audio = torch.repeat_interleave(audio, 2, dim=1)
 
     if rate != model_rate:
-        print("resampling")
+        warnings.warn("resample to model sample rate")
         # we have to resample to model samplerate if needed
         # this makes sure we resample input only once
         resampler = torchaudio.transforms.Resample(

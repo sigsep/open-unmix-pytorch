@@ -202,7 +202,6 @@ def main():
 
     args, _ = parser.parse_known_args()
 
-    torchaudio.USE_SOUNDFILE_LEGACY_INTERFACE = False
     torchaudio.set_audio_backend(args.audio_backend)
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("Using GPU:", use_cuda)

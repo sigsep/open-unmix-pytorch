@@ -96,7 +96,7 @@ class TorchSTFT(nn.Module):
         # pack batch
         x = x.view(-1, shape[-1])
 
-        stft_f = torch.stft(
+        complex_stft = torch.stft(
             x,
             n_fft=self.n_fft,
             hop_length=self.n_hop,
@@ -105,8 +105,9 @@ class TorchSTFT(nn.Module):
             normalized=False,
             onesided=True,
             pad_mode="reflect",
+            return_complex=True,
         )
-
+        stft_f = torch.view_as_real(complex_stft)
         # unpack batch
         stft_f = stft_f.view(shape[:-1] + stft_f.shape[-3:])
         return stft_f
@@ -158,7 +159,7 @@ class TorchISTFT(nn.Module):
         X = X.reshape(-1, shape[-3], shape[-2], shape[-1])
 
         y = torch.istft(
-            X,
+            torch.view_as_complex(X),
             n_fft=self.n_fft,
             hop_length=self.n_hop,
             window=self.window,
