@@ -18,8 +18,8 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy",
-        "torchaudio>=0.7.0",
-        "torch>=1.7.0",
+        "torchaudio>=0.8.0",
+        "torch>=1.8.0",
     ],
     extras_require={
         "asteroid": ["asteroid-filterbanks>=0.3.2"],
