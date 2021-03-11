@@ -119,7 +119,7 @@ def separate():
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
+    print("Using ", device)
     # parsing the output dict
     aggregate_dict = None if args.aggregate is None else json.loads(args.aggregate)
 
