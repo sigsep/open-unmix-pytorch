@@ -1,4 +1,4 @@
-name: CI
+name: UMX
 # thanks for @mpariente for copying this workflow
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 # Trigger the workflow on push or pull request
@@ -6,7 +6,7 @@ on: [push, pull_request]
 
 jobs:
   src-test:
-    name: unit-tests
+    name: separation test
     runs-on: ubuntu-latest
     strategy:
       matrix:
