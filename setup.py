@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-umx_version = "1.1.1"
+umx_version = "1.1.2"
 
 with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -16,11 +16,7 @@ setup(
     long_description_content_type="text/markdown",
     license="MIT",
     python_requires=">=3.6",
-    install_requires=[
-        "numpy",
-        "torchaudio>=0.8.0",
-        "torch>=1.8.0",
-    ],
+    install_requires=["numpy", "torchaudio>=0.8.0", "torch>=1.8.0", "tqdm"],
     extras_require={
         "asteroid": ["asteroid-filterbanks>=0.3.2"],
         "tests": [

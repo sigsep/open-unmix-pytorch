@@ -1,0 +1,37 @@
+name: UMX
+# thanks for @mpariente for copying this workflow
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+# Trigger the workflow on push or pull request
+on: [push, pull_request]
+
+jobs:
+  src-test:
+    name: separation test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install libnsdfile, ffmpeg and sox 
+      run: |
+        sudo apt update
+        sudo apt install libsndfile1-dev libsndfile1 ffmpeg sox
+    - name: Install package dependencies
+      run: |
+        python -m pip install --upgrade --user pip --quiet
+        python -m pip install .["stempeg"]
+        python --version
+        pip --version
+        python -m pip list
+
+    - name: CLI tests
+      run: |
+        umx https://samples.ffmpeg.org/A-codecs/wavpcm/test-96.wav --audio-backend stempeg
