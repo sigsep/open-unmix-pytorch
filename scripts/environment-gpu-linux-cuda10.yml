@@ -18,7 +18,7 @@ dependencies:
   - ffmpeg
   - pip
   - pip:
-    - musdb>=0.4.0,
+    - musdb>=0.4.0
     - museval>=0.4.0
     - asteroid-filterbanks>=0.3.2
     - gitpython
