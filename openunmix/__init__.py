@@ -259,3 +259,86 @@ def umx(
     ).to(device)
 
     return separator
+
+
+def umxl_spec(targets=None, device="cpu", pretrained=True):
+    from .model import OpenUnmix
+
+    # set urls for weights
+    target_urls = {
+        "bass": "tba",
+        "drums": "tba",
+        "other": "tba",
+        "vocals": "tba",
+    }
+
+    if targets is None:
+        targets = ["vocals", "drums", "bass", "other"]
+
+    # determine the maximum bin count for a 16khz bandwidth model
+    max_bin = utils.bandwidth_to_max_bin(rate=44100.0, n_fft=4096, bandwidth=16000)
+
+    target_models = {}
+    for target in targets:
+        # load open unmix model
+        target_unmix = OpenUnmix(
+            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=1024, max_bin=max_bin
+        )
+
+        # enable centering of stft to minimize reconstruction error
+        if pretrained:
+            state_dict = torch.hub.load_state_dict_from_url(
+                target_urls[target], map_location=device
+            )
+            target_unmix.load_state_dict(state_dict, strict=False)
+            target_unmix.eval()
+
+        target_unmix.to(device)
+        target_models[target] = target_unmix
+    return target_models
+
+
+def umxl(
+    targets=None,
+    residual=False,
+    niter=1,
+    device="cpu",
+    pretrained=True,
+    filterbank="torch",
+):
+    """
+    Open Unmix Extra, 2-channel/stereo BiLSTM Model trained on private dataset
+
+    Args:
+        targets (str): select the targets for the source to be separated.
+                a list including: ['vocals', 'drums', 'bass', 'other'].
+                If you don't pick them all, you probably want to
+                activate the `residual=True` option.
+                Defaults to all available targets per model.
+        pretrained (bool): If True, returns a model pre-trained on MUSDB18-HQ
+        residual (bool): if True, a "garbage" target is created
+        niter (int): the number of post-processingiterations, defaults to 0
+        device (str): selects device to be used for inference
+        filterbank (str): filterbank implementation method.
+            Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
+            compared to `asteroid` on large FFT sizes such as 4096. However,
+            asteroids stft can be exported to onnx, which makes is practical
+            for deployment.
+
+    """
+
+    from .model import Separator
+
+    target_models = umxl_spec(targets=targets, device=device, pretrained=pretrained)
+    separator = Separator(
+        target_models=target_models,
+        niter=niter,
+        residual=residual,
+        n_fft=4096,
+        n_hop=1024,
+        nb_channels=2,
+        sample_rate=44100.0,
+        filterbank=filterbank,
+    ).to(device)
+
+    return separator

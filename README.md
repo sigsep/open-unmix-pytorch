@@ -12,6 +12,7 @@ This repository contains the PyTorch (1.8+) implementation of __Open-Unmix__, a 
 
 ## ⭐️ News 
 
+- 03/07/2021: We added `umxl`, a model that was trained on extra data (~200h) which significantly improves the generalization performance.
 - 14/02/2021: We released the new version of open-unmix as a python package. This comes with: a fully differentiable version of [norbert](https://github.com/sigsep/norbert), improved audio loading pipeline and large number of bug fixes. See [release notes](https://github.com/sigsep/open-unmix-pytorch/releases/) for further info.
 
 - 06/05/2020: We added a pre-trained speech enhancement model `umxse` provided by Sony.
@@ -81,6 +82,10 @@ docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch umx "/data/track1.wav
 ### Pre-trained models
 
 We provide three core pre-trained music separation models. All three models are end-to-end models that take waveform inputs and output the separated waveforms.
+
+* __`umxl`__  trained on a private stems dataset (~200h) of mp3 compressed audio.
+
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.xzy.svg)](https://doi.org/10.5281/zenodo.xzy)
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
@@ -185,13 +190,13 @@ Note that
 
 #### Scores (Median of frames, Median of tracks)
 
-|target|SDR  |SIR  | SAR | ISR | SDR | SIR | SAR | ISR |
-|------|-----|-----|-----|-----|-----|-----|-----|-----|
-|`model`|UMX  |UMX  |UMX  |UMX |UMXHQ|UMXHQ|UMXHQ|UMXHQ|
-|vocals|6.32 |13.33| 6.52|11.93| 6.25|12.95| 6.50|12.70|
-|bass  |5.23 |10.93| 6.34| 9.23| 5.07|10.35| 6.02| 9.71|
-|drums |5.73 |11.12| 6.02|10.51| 6.04|11.65| 5.93|11.17|
-|other |4.02 |6.59 | 4.74| 9.31| 4.28| 7.10| 4.62| 8.78|
+|target|SDR  |SIR  | SAR | ISR | SDR | SIR | SAR | ISR | SDR |SIR  | SAR | ISR |
+|------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+|`model`|UMX  |UMX  |UMX  |UMX |UMXHQ|UMXHQ|UMXHQ|UMXHQ|UMXL |UMXL |UMXL |UMXL |
+|vocals|6.32 |13.33| 6.52|11.93| 6.25|12.95| 6.50|12.70|__7.21__ |14.65|7.38 |13.01|
+|bass  |5.23 |10.93| 6.34| 9.23| 5.07|10.35| 6.02| 9.71|__6.02__ |11.44|6.52 |9.05 |
+|drums |5.73 |11.12| 6.02|10.51| 6.04|11.65| 5.93|11.17|__7.15__ |11.24|7.07 |12.26|
+|other |4.02 |6.59 | 4.74| 9.31| 4.28| 7.10| 4.62| 8.78|__4.89__ |8.20 |5.88 |10.42|
 
 ## Training
 
