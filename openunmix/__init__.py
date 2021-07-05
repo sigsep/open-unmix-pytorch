@@ -266,10 +266,10 @@ def umxl_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "tba",
-        "drums": "tba",
-        "other": "tba",
-        "vocals": "tba",
+        "bass": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/bass-2ca1ce51.pth",
+        "drums": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/drums-69e0ebd4.pth",
+        "other": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/other-c8c5b3e6.pth",
+        "vocals": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/vocals-bccbd9aa.pth",
     }
 
     if targets is None:
@@ -307,7 +307,9 @@ def umxl(
     filterbank="torch",
 ):
     """
-    Open Unmix Extra, 2-channel/stereo BiLSTM Model trained on private dataset
+    Open Unmix Extra (UMX-L), 2-channel/stereo BLSTM Model trained on a private dataset
+    of ~400h of multi-track audio.
+    
 
     Args:
         targets (str): select the targets for the source to be separated.

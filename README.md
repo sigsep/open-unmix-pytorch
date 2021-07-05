@@ -83,9 +83,9 @@ docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch umx "/data/track1.wav
 
 We provide three core pre-trained music separation models. All three models are end-to-end models that take waveform inputs and output the separated waveforms.
 
-* __`umxl`__  trained on a private stems dataset (~200h) of mp3 compressed audio.
+* __`umxl`__  trained on private stems dataset of compressed stems. __Note, that the weights are only licensed for non-commercial use (CC BY-NC-SA 4.0).__
 
-  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.xzy.svg)](https://doi.org/10.5281/zenodo.xzy)
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5069601.svg)](https://doi.org/10.5281/zenodo.5069601)
 
 * __`umxhq` (default)__  trained on [MUSDB18-HQ](https://sigsep.github.io/datasets/musdb.html#uncompressed-wav) which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
 
