@@ -309,7 +309,7 @@ def umxl(
     """
     Open Unmix Extra (UMX-L), 2-channel/stereo BLSTM Model trained on a private dataset
     of ~400h of multi-track audio.
-    
+
 
     Args:
         targets (str): select the targets for the source to be separated.

@@ -62,4 +62,3 @@ def test_model_loading(model_fn):
     model = model_fn(niter=0, pretrained=True)
     Y = model(X)
     assert Y[:, 0, ...].shape == X.shape
-
