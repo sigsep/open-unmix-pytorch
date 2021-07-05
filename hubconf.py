@@ -14,3 +14,6 @@ from openunmix import umxhq
 
 from openunmix import umx_spec
 from openunmix import umx
+
+from openunmix import umxl_spec
+from openunmix import umxl

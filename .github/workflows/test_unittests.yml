@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7]
         pytorch-version: ["1.9.0"]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
