@@ -101,13 +101,13 @@ Furthermore, we provide a model for speech enhancement trained by [Sony Corporat
 
   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3786908.svg)](https://doi.org/10.5281/zenodo.3786908)
 
-All three models are also available as spectrogram (core) models, which take magnitude spectrogram inputs and ouput separated spectrograms.
-These models can be loaded using `umxhq_spec`, `umx_spec` and `umxse_spec`.
+All four models are also available as spectrogram (core) models, which take magnitude spectrogram inputs and ouput separated spectrograms.
+These models can be loaded using `umxl_spec`, `umxhq_spec`, `umx_spec` and `umxse_spec`.
 
 To separate audio files (`wav`, `flac`, `ogg` - but not `mp3`) files just run:
 
 ```bash
-umx input_file.wav --model umxhq
+umx input_file.wav --model umxl
 ```
 
 A more detailed list of the parameters used for the separation is given in the [inference.md](/docs/inference.md) document.
