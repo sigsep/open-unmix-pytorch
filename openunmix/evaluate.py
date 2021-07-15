@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model",
-        default="umxhq",
+        default="umxl",
         type=str,
         help="path to mode base directory of pretrained models",
     )

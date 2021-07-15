@@ -33,7 +33,7 @@ takes a numpy audio array or a `torch.Tensor` as input (the mixture) and separat
 Note, that for each target a separate model will be loaded. E.g. for `umx` and `umxhq` the supported targets are
 `['vocals', 'drums', 'bass', 'other']`. The models have to be passed to the separators `target_models` parameter.
 
-Both models `umx`, `umxhq` and `umxse` are downloaded automatically.
+Both models `umx`, `umxhq`, `umxl` and `umxse` are downloaded automatically.
 
 Here is an example for constructor for the `Separator` takes the following arguments, with suggested default values:
 

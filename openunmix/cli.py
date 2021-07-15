@@ -23,9 +23,9 @@ def separate():
 
     parser.add_argument(
         "--model",
-        default="umxhq",
+        default="umxl",
         type=str,
-        help="path to mode base directory of pretrained models, defaults to UMX-HQ",
+        help="path to mode base directory of pretrained models, defaults to UMX-L",
     )
 
     parser.add_argument(

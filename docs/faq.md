@@ -35,7 +35,7 @@ python scripts/train.py --root path/to/musdb18-wav --is-wav --target vocals
 
 This will get you down to 0.6s per batch on 4 workers, likely hitting the bandwidth of standard hard-drives. It can be further improved using an SSD, which brings it down to 0.4s per batch on a GTX1080Ti which this leads to 95% GPU utilization. thus data-loading will not be the bottleneck anymore.
 
-## Can I use the pre-trained models `umx` or `umxhq` without torchhub?
+## Can I use the pre-trained models without torchhub?
 
 for some reason the torchub automatic download might not work and you want to download the files offline and use them. For that you can download [umx](https://zenodo.org/record/3340804) or [umxhq](https://zenodo.org/record/3267291) from Zenodo and create a local folder of your choice (e.g. `umx-weights`) where the model is stored in a flat file hierarchy:
 
