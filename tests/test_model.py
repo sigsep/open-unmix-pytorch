@@ -58,7 +58,7 @@ def test_shape(spectrogram, nb_bins, nb_channels, unidirectional, hidden_size):
 
 @pytest.mark.parametrize("model_fn", [umx, umxhq, umxse, umxl])
 def test_model_loading(model_fn):
-    X = torch.rand((1, 2, 4096))
+    X = torch.rand((1, 2, 1024))
     model = model_fn(niter=0, pretrained=True)
     Y = model(X)
     assert Y[:, 0, ...].shape == X.shape
