@@ -4,7 +4,7 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open-unmix-a-reference-implementation-for/music-source-separation-on-musdb18)](https://paperswithcode.com/sota/music-source-separation-on-musdb18?p=open-unmix-a-reference-implementation-for)
 
-[![Build Status](https://github.com/sigsep/open-unmix-pytorch/workflows/CI/badge.svg)](https://github.com/faroit/openunmix/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush)
+[![Build Status](https://github.com/sigsep/open-unmix-pytorch/workflows/CI/badge.svg)](https://github.com/sigsep/openunmix/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush)
 [![Latest Version](https://img.shields.io/pypi/v/openunmix.svg)](https://pypi.python.org/pypi/openunmix)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/openunmix.svg)](https://pypi.python.org/pypi/openunmix)
 
