@@ -298,7 +298,7 @@ def expectation_maximization(
             t = torch.arange(pos, min(nb_frames, pos + batch_size))
             pos = int(t[-1]) + 1
 
-            y[t, ...] = torch.tensor(0.0, device=x.device)
+            y[t, ...] = torch.tensor(0.0, device=x.device, dtype=x.dtype)
 
             # compute mix covariance matrix
             Cxx = regularization
