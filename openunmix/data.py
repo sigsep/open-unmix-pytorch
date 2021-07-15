@@ -295,7 +295,9 @@ def load_datasets(
             help="loads wav instead of STEMS",
         )
         parser.add_argument("--samples-per-track", type=int, default=64)
-        parser.add_argument("--source-augmentations", type=str, nargs="+")
+        parser.add_argument(
+            "--source-augmentations", type=str, default=["gain", "channelswap"], nargs="+"
+        )
 
         args = parser.parse_args()
         dataset_kwargs = {

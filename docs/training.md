@@ -44,7 +44,7 @@ Some of the parameters for the MUSDB sampling can be controlled using the follow
 |---------------------|-----------------------------------------------|--------------|
 | `--is-wav`          | loads the decoded WAVs instead of STEMS for faster data loading. See [more details here](https://github.com/sigsep/sigsep-mus-db#using-wav-files-optional). | `True`      |
 | `--samples-per-track <int>` | sets the number of samples that are randomly drawn from each track  | `64`       |
-| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing, available augmentations: `[gain, channelswap]`| no augmentations       |
+| `--source-augmentations <list[str]>` | applies augmentations to each audio source before mixing, available augmentations: `[gain, channelswap]`| [gain, channelswap]       |
 
 ## Training and Model Parameters
 
