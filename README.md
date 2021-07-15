@@ -76,7 +76,7 @@ Training is not part of the open-unmix package, please follow [docs/train.md] fo
 We also provide a docker container. Performing separation of a local track in `~/Music/track1.wav` can be performed in a single line:
 
 ```
-docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch umx "/data/track1.wav" --outdir /data/track1
+docker run -v ~/Music/:/data -it faroit/open-unmix-pytorch "/data/track1.wav" --outdir /data/track1
 ```
 
 ### Pre-trained models
