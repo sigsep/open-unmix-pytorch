@@ -51,6 +51,11 @@ def mix(request, nb_frames, nb_channels, nb_bins):
     return torch.rand((nb_frames, nb_bins, nb_channels, 2))
 
 
+@pytest.fixture(params=[torch.float32, torch.float64])
+def dtype(request):
+    return request.param
+
+
 def test_wiener(target, mix, iterations, softmask, residual):
     output = wiener(target, mix, iterations=iterations, softmask=softmask, residual=residual)
     # nb_frames, nb_bins, nb_channels, 2, nb_sources
@@ -60,3 +65,8 @@ def test_wiener(target, mix, iterations, softmask, residual):
         assert output.shape[4] == target.shape[3] + 1
     else:
         assert output.shape[4] == target.shape[3]
+
+
+def test_dtype(target, mix, dtype):
+    output = wiener(target.to(dtype=dtype), mix.to(dtype=dtype), iterations=1)
+    assert output.dtype == dtype
