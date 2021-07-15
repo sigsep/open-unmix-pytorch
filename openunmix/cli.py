@@ -111,6 +111,12 @@ def separate():
         "asteroids stft can be exported to onnx, which makes is practical"
         "for deployment.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable log messages",
+    )
     args = parser.parse_args()
 
     if args.audio_backend != "stempeg" and args.audio_backend is not None:
@@ -118,7 +124,8 @@ def separate():
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    print("Using ", device)
+    if args.verbose:
+        print("Using ", device)
     # parsing the output dict
     aggregate_dict = None if args.aggregate is None else json.loads(args.aggregate)
 

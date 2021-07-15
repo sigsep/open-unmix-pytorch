@@ -180,14 +180,12 @@ class ComplexNorm(nn.Module):
     Extension of `torchaudio.functional.complex_norm` with mono
 
     Args:
-        power (float): Power of the norm. (Default: `1.0`).
         mono (bool): Downmix to single channel after applying power norm
             to maximize
     """
 
-    def __init__(self, power: float = 1.0, mono: bool = False):
+    def __init__(self, mono: bool = False):
         super(ComplexNorm, self).__init__()
-        self.power = power
         self.mono = mono
 
     def forward(self, spec: Tensor) -> Tensor:
@@ -201,7 +199,8 @@ class ComplexNorm(nn.Module):
                 `(...,)`
         """
         # take the magnitude
-        spec = torchaudio.functional.complex_norm(spec, power=self.power)
+
+        spec = torch.abs(torch.view_as_complex(spec))
 
         # downmix in the mag domain to preserve energy
         if self.mono:
