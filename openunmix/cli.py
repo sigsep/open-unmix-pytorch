@@ -64,9 +64,8 @@ def separate():
     parser.add_argument(
         "--audio-backend",
         type=str,
-        default="sox_io",
-        help="Set torchaudio backend "
-        "(`sox_io`, `sox`, `soundfile` or `stempeg`), defaults to `sox_io`",
+        help="Sets audio backend. Default to torchaudio's default backend: See https://pytorch.org/audio/stable/backend.html"
+        "(`sox_io`, `sox`, `soundfile` or `stempeg`)",
     )
 
     parser.add_argument(
@@ -114,7 +113,7 @@ def separate():
     )
     args = parser.parse_args()
 
-    if args.audio_backend != "stempeg":
+    if args.audio_backend != "stempeg" and args.audio_backend is not None:
         torchaudio.set_audio_backend(args.audio_backend)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
