@@ -3,7 +3,7 @@ import torch
 import torchaudio
 import json
 import numpy as np
-
+import tqdm
 
 from openunmix import utils
 from openunmix import predict
@@ -152,7 +152,7 @@ def separate():
             raise RuntimeError("Please install pip package `stempeg`")
 
     # loop over the files
-    for input_file in args.input:
+    for input_file in tqdm.tqdm(args.input):
         if args.audio_backend == "stempeg":
             audio, rate = stempeg.read_stems(
                 input_file,
