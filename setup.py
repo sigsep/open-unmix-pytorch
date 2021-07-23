@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-umx_version = "1.2.0"
+umx_version = "1.2.1"
 
 with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
