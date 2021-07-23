@@ -4,7 +4,7 @@ from openunmix import utils
 def separate(
     audio,
     rate=None,
-    model_str_or_path="umxhq",
+    model_str_or_path="umxl",
     targets=None,
     niter=1,
     residual=False,
@@ -28,7 +28,7 @@ def separate(
             `rate` must also be provided.
         rate: int or None: only used if audio is a Tensor. Otherwise,
             inferred from the file.
-        model_str_or_path: the pretrained model to use
+        model_str_or_path: the pretrained model to use, defaults to UMX-L
         targets (str): select the targets for the source to be separated.
             a list including: ['vocals', 'drums', 'bass', 'other'].
             If you don't pick them all, you probably want to
