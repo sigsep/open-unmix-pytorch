@@ -35,6 +35,7 @@ def train(args, unmix, encoder, device, train_sampler, optimizer):
         loss.backward()
         optimizer.step()
         losses.update(loss.item(), Y.size(1))
+        pbar.set_postfix(loss="{:.3f}".format(losses.avg))
     return losses.avg
 
 
@@ -114,7 +115,8 @@ def main():
         default="open-unmix",
         help="provide output path base folder name",
     )
-    parser.add_argument("--model", type=str, help="Path to checkpoint folder")
+    parser.add_argument("--model", type=str, help="Name or path of pretrained model to fine-tune")
+    parser.add_argument("--checkpoint", type=str, help="Path of checkpoint to resume training")
     parser.add_argument(
         "--audio-backend",
         type=str,
@@ -243,7 +245,7 @@ def main():
     with open(Path(target_path, "separator.json"), "w") as outfile:
         outfile.write(json.dumps(separator_conf, indent=4, sort_keys=True))
 
-    if args.model or args.debug:
+    if args.checkpoint or args.model or args.debug:
         scaler_mean = None
         scaler_std = None
     else:
@@ -251,14 +253,22 @@ def main():
 
     max_bin = utils.bandwidth_to_max_bin(train_dataset.sample_rate, args.nfft, args.bandwidth)
 
-    unmix = model.OpenUnmix(
-        input_mean=scaler_mean,
-        input_scale=scaler_std,
-        nb_bins=args.nfft // 2 + 1,
-        nb_channels=args.nb_channels,
-        hidden_size=args.hidden_size,
-        max_bin=max_bin,
-    ).to(device)
+    if args.model:
+        # fine tune model
+        print(f"Fine-tuning model from {args.model}")
+        unmix = utils.load_target_models(
+            args.target, model_str_or_path=args.model, device=device, pretrained=True
+        )[args.target]
+        unmix = unmix.to(device)
+    else:
+        unmix = model.OpenUnmix(
+            input_mean=scaler_mean,
+            input_scale=scaler_std,
+            nb_bins=args.nfft // 2 + 1,
+            nb_channels=args.nb_channels,
+            hidden_size=args.hidden_size,
+            max_bin=max_bin,
+        ).to(device)
 
     optimizer = torch.optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
@@ -271,9 +281,9 @@ def main():
 
     es = utils.EarlyStopping(patience=args.patience)
 
-    # if a model is specified: resume training
-    if args.model:
-        model_path = Path(args.model).expanduser()
+    # if a checkpoint is specified: resume training
+    if args.checkpoint:
+        model_path = Path(args.checkpoint).expanduser()
         with open(Path(model_path, args.target + ".json"), "r") as stream:
             results = json.load(stream)
 
@@ -294,7 +304,7 @@ def main():
         best_epoch = results["best_epoch"]
         es.best = results["best_loss"]
         es.num_bad_epochs = results["num_bad_epochs"]
-    # else start from 0
+    # else start optimizer from scratch
     else:
         t = tqdm.trange(1, args.epochs + 1, disable=args.quiet)
         train_losses = []
@@ -303,7 +313,7 @@ def main():
         best_epoch = 0
 
     for epoch in t:
-        t.set_description("Training Epoch")
+        t.set_description("Training epoch")
         end = time.time()
         train_loss = train(args, unmix, encoder, device, train_sampler, optimizer)
         valid_loss = valid(args, unmix, encoder, device, valid_sampler)
