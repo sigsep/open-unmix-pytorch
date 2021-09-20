@@ -69,12 +69,19 @@ class TorchSTFT(nn.Module):
         window (nn.Parameter, optional): window function
     """
 
-    def __init__(self, n_fft=4096, n_hop=1024, center=False, window=None):
+    def __init__(
+        self,
+        n_fft: int = 4096,
+        n_hop: int = 1024,
+        center: bool = False,
+        window: Optional[nn.Parameter] = None,
+    ):
         super(TorchSTFT, self).__init__()
-        if window is not None:
+        if window is None:
             self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
         else:
             self.window = window
+
         self.n_fft = n_fft
         self.n_hop = n_hop
         self.center = center
@@ -149,7 +156,7 @@ class TorchISTFT(nn.Module):
         self.center = center
         self.sample_rate = sample_rate
 
-        if window is not None:
+        if window is None:
             self.window = nn.Parameter(torch.hann_window(n_fft), requires_grad=False)
         else:
             self.window = window
