@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, Mapping
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -30,14 +31,14 @@ class OpenUnmix(nn.Module):
 
     def __init__(
         self,
-        nb_bins=4096,
-        nb_channels=2,
-        hidden_size=512,
-        nb_layers=3,
-        unidirectional=False,
-        input_mean=None,
-        input_scale=None,
-        max_bin=None,
+        nb_bins: int = 4096,
+        nb_channels: int = 2,
+        hidden_size: int = 512,
+        nb_layers: int = 3,
+        unidirectional: bool = False,
+        input_mean: Optional[np.ndarray] = None,
+        input_scale: Optional[np.ndarray] = None,
+        max_bin: Optional[int] = None,
     ):
         super(OpenUnmix, self).__init__()
 
@@ -195,7 +196,7 @@ class Separator(nn.Module):
 
     def __init__(
         self,
-        target_models: dict,
+        target_models: Mapping[str, nn.Module],
         niter: int = 0,
         softmask: bool = False,
         residual: bool = False,
