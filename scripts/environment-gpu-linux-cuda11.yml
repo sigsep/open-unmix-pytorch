@@ -1,8 +1,9 @@
-name: umx-cpu
+name: umx-gpu
 
 channels:
   - conda-forge
   - pytorch
+  - nvidia
 
 dependencies:
   - python=3.7
@@ -10,14 +11,14 @@ dependencies:
   - scipy=1.4
   - pytorch==1.10.0
   - torchaudio==0.10.0
-  - cpuonly
-  - tqdm
+  - cudatoolkit=11.1
   - scikit-learn=0.22
-  - ffmpeg
+  - tqdm
   - libsndfile
+  - ffmpeg
   - pip
   - pip:
-      - musdb>=0.4.0
-      - museval>=0.4.0
+      - musdb==0.3.1
+      - museval==0.3.1
       - asteroid-filterbanks>=0.3.2
       - gitpython

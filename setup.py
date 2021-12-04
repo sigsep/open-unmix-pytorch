@@ -16,7 +16,7 @@ setup(
     long_description_content_type="text/markdown",
     license="MIT",
     python_requires=">=3.6",
-    install_requires=["numpy", "torchaudio>=0.9.1", "torch>=1.9.1", "tqdm"],
+    install_requires=["numpy", "torchaudio>=0.10.0", "torch>=1.10.0", "tqdm"],
     extras_require={
         "asteroid": ["asteroid-filterbanks>=0.3.2"],
         "tests": [
@@ -26,6 +26,7 @@ setup(
             "asteroid-filterbanks>=0.3.2",
             "onnx",
             "tqdm",
+            "expecttest"
         ],
         "stempeg": ["stempeg"],
         "evaluation": ["musdb>=0.4.0", "museval>=0.4.0"],

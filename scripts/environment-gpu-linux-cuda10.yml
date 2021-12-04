@@ -9,8 +9,8 @@ dependencies:
   - python=3.7
   - numpy=1.18
   - scipy=1.4
-  - pytorch==1.9.0
-  - torchaudio==0.9.0
+  - pytorch==1.10.0
+  - torchaudio==0.10.0
   - cudatoolkit=11.1
   - scikit-learn=0.22
   - tqdm
@@ -18,8 +18,7 @@ dependencies:
   - ffmpeg
   - pip
   - pip:
-    - musdb>=0.4.0
-    - museval>=0.4.0
-    - asteroid-filterbanks>=0.3.2
-    - gitpython
-
+      - musdb>=0.4.0
+      - museval>=0.4.0
+      - asteroid-filterbanks>=0.3.2
+      - gitpython
