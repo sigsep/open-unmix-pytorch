@@ -4,6 +4,10 @@ name: CI
 # Trigger the workflow on push or pull request
 on: [push, pull_request]
 
+env:
+  OMP_NUM_THREADS: 2
+  MKL_NUM_THREADS: 2
+
 jobs:
   src-test:
     name: unit-tests
@@ -39,7 +43,7 @@ jobs:
           else
             INSTALL="--pre torch torchaudio -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html"
           fi
-          python -m pip install $INSTALL
+          python -m pip install --no-cache-dir $INSTALL
           python -m pip install -e .['tests']
           python --version
           pip --version
