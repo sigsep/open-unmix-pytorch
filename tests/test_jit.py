@@ -1,7 +1,7 @@
 import torch
 import torch.onnx
 import pytest
-    
+
 from openunmix import model
 
 
