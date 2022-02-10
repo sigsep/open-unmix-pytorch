@@ -37,9 +37,9 @@ jobs:
           python -m pip install numpy Cython --upgrade-strategy only-if-needed --quiet
           python -m pip install coverage codecov --upgrade-strategy only-if-needed --quiet
           if [ $TORCH_INSTALL == "1.9.1" ]; then
-            INSTALL="torch==1.9.1+cpu torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html"
+            INSTALL="torch==1.9.1+cpu torchaudio==0.9.1+cpu -f https://download.pytorch.org/whl/torch_stable.html"
           elif [ $TORCH_INSTALL == "1.10.2" ]; then
-            INSTALL="torch==1.10.2+cpu torchaudio==0.10.2 -f https://download.pytorch.org/whl/torch_stable.html"
+            INSTALL="torch==1.10.2+cpu torchaudio==0.10.2+cpu -f https://download.pytorch.org/whl/torch_stable.html"
           else
             INSTALL="--pre torch torchaudio -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html"
           fi
