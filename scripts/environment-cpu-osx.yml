@@ -1,23 +1,22 @@
-name: umx-osx
+name: umx-osx-102
 
 channels:
   - conda-forge
   - pytorch
 
 dependencies:
-  - python=3.7
-  - numpy=1.18
-  - scipy=1.4
-  - pytorch==1.9.0
-  - torchaudio==0.9.0
+  - python=3.8
+  - numpy=1.22.2
+  - scipy=1.8.0
+  - pytorch==1.10.2
+  - torchaudio==0.10.2
   - tqdm
-  - scikit-learn=0.22
+  - scikit-learn=1.0
   - ffmpeg
   - libsndfile
   - pip
   - pip:
-    - musdb>=0.4.0
-    - museval>=0.4.0
-    - asteroid-filterbanks>=0.3.2
-    - gitpython
-
+      - musdb>=0.4.0
+      - museval>=0.4.0
+      - asteroid-filterbanks>=0.3.2
+      - gitpython

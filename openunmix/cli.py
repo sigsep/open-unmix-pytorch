@@ -12,6 +12,26 @@ from openunmix import data
 import argparse
 
 
+def load_model():
+    parser = argparse.ArgumentParser(
+        description="""
+        OpenUnmix: Unmixing audio with neural networks
+        """
+    )
+    parser.add_argument(
+        "model",
+        default="umxl",
+        type=str,
+        help="path to mode base directory of pretrained models, defaults to UMX-L",
+    )
+    args = parser.parse_args()
+
+    separator = utils.load_separator(model_str_or_path=args.model)
+
+    if separator:
+        print(f"{args.model} model loaded and cached successfully")
+
+
 def separate():
     parser = argparse.ArgumentParser(
         description="UMX Inference",
