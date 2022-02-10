@@ -7,18 +7,18 @@ channels:
 
 dependencies:
   - python=3.8
-  - numpy=1.18
-  - scipy=1.4
+  - numpy=1.22.2
+  - scipy=1.8.0
   - pytorch==1.10.2
   - torchaudio==0.10.2
   - cudatoolkit=11.1
-  - scikit-learn=0.22
+  - scikit-learn=1.0
   - tqdm
   - libsndfile
   - ffmpeg
   - pip
   - pip:
-      - musdb==0.3.1
-      - museval==0.3.1
+      - musdb==0.4.0
+      - museval==0.4.0
       - asteroid-filterbanks>=0.3.2
       - gitpython
