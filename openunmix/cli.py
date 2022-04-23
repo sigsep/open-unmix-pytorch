@@ -86,7 +86,7 @@ def separate():
         "--residual",
         type=str,
         default=None,
-        help="if provided, build a source with given name"
+        help="if provided, build a source with given name "
         "for the mix minus all estimated targets",
     )
 
@@ -106,9 +106,9 @@ def separate():
         type=str,
         default="torch",
         help="filterbank implementation method. "
-        "Supported: `['torch', 'asteroid']`. `torch` is ~30% faster"
-        "compared to `asteroid` on large FFT sizes such as 4096. However"
-        "asteroids stft can be exported to onnx, which makes is practical"
+        "Supported: `['torch', 'asteroid']`. `torch` is ~30%% faster "
+        "compared to `asteroid` on large FFT sizes such as 4096. However "
+        "asteroids stft can be exported to onnx, which makes is practical "
         "for deployment.",
     )
     parser.add_argument(
