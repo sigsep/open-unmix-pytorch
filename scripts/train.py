@@ -268,6 +268,7 @@ def main():
             nb_channels=args.nb_channels,
             hidden_size=args.hidden_size,
             max_bin=max_bin,
+            unidirectional=args.unidirectional
         ).to(device)
 
     optimizer = torch.optim.Adam(unmix.parameters(), lr=args.lr, weight_decay=args.weight_decay)
