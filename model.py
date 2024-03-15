@@ -45,7 +45,8 @@ class STFT(nn.Module):
             n_fft=self.n_fft, hop_length=self.n_hop,
             window=self.window, center=self.center,
             normalized=False, onesided=True,
-            pad_mode='reflect'
+            pad_mode='reflect',
+            return_complex=True
         )
 
         # reshape back to channel dimension
