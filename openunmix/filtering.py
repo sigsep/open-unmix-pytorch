@@ -260,10 +260,7 @@ def expectation_maximization(
     )
 
     # allocate the spatial covariance matrices
-    R = [
-        torch.zeros((nb_bins, nb_channels, nb_channels, 2), dtype=x.dtype, device=x.device)
-        for j in range(nb_sources)
-    ]
+    R = [torch.zeros((nb_bins, nb_channels, nb_channels, 2), dtype=x.dtype, device=x.device) for j in range(nb_sources)]
     weight: torch.Tensor = torch.zeros((nb_bins,), dtype=x.dtype, device=x.device)
 
     v: torch.Tensor = torch.zeros((nb_frames, nb_bins, nb_sources), dtype=x.dtype, device=x.device)
@@ -434,19 +431,16 @@ def wiener(
         # multiply by the mix stft
         y = (
             mix_stft[..., None]
-            * (
-                targets_spectrograms
-                / (eps + torch.sum(targets_spectrograms, dim=-1, keepdim=True).to(mix_stft.dtype))
-            )[..., None, :]
+            * (targets_spectrograms / (eps + torch.sum(targets_spectrograms, dim=-1, keepdim=True).to(mix_stft.dtype)))[
+                ..., None, :
+            ]
         )
     else:
         # otherwise, we just multiply the targets spectrograms with mix phase
         # we tacitly assume that we have magnitude estimates.
         angle = atan2(mix_stft[..., 1], mix_stft[..., 0])[..., None]
         nb_sources = targets_spectrograms.shape[-1]
-        y = torch.zeros(
-            mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype, device=mix_stft.device
-        )
+        y = torch.zeros(mix_stft.shape + (nb_sources,), dtype=mix_stft.dtype, device=mix_stft.device)
         y[..., 0, :] = targets_spectrograms * torch.cos(angle)
         y[..., 1, :] = targets_spectrograms * torch.sin(angle)
 

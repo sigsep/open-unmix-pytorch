@@ -90,9 +90,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--cores", type=int, default=1)
 
-    parser.add_argument(
-        "--no-cuda", action="store_true", default=False, help="disables CUDA inference"
-    )
+    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA inference")
 
     parser.add_argument(
         "--is-wav",
@@ -119,8 +117,7 @@ if __name__ == "__main__":
         "--residual",
         type=str,
         default=None,
-        help="if provided, build a source with given name"
-        "for the mix minus all estimated targets",
+        help="if provided, build a source with given name" "for the mix minus all estimated targets",
     )
 
     parser.add_argument(

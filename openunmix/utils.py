@@ -212,9 +212,7 @@ def load_separator(
         if targets is None:
             raise UserWarning("For custom models, please specify the targets")
 
-        target_models = load_target_models(
-            targets=targets, model_str_or_path=model_path, pretrained=pretrained
-        )
+        target_models = load_target_models(targets=targets, model_str_or_path=model_path, pretrained=pretrained)
 
         with open(Path(model_path, "separator.json"), "r") as stream:
             enc_conf = json.load(stream)

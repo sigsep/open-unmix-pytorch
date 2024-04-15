@@ -22,9 +22,7 @@ def test_onnx():
 
     # creatr separator
     separator = (
-        model.Separator(
-            target_models={"source_1": umx, "source_2": umx}, niter=1, filterbank="asteroid"
-        )
+        model.Separator(target_models={"source_1": umx, "source_2": umx}, niter=1, filterbank="asteroid")
         .eval()
         .to("cpu")
     )

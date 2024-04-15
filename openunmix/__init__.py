@@ -27,15 +27,11 @@ def umxse_spec(targets=None, device="cpu", pretrained=True):
     # load open unmix models speech enhancement models
     target_models = {}
     for target in targets:
-        target_unmix = OpenUnmix(
-            nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -116,15 +112,11 @@ def umxhq_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -199,15 +191,11 @@ def umx_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -282,15 +270,11 @@ def umxl_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=1024, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=1024, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
