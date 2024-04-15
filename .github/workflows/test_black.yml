@@ -1,5 +1,7 @@
 name: Linter
-on: [push, pull_request]
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   code-black:

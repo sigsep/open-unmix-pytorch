@@ -2,7 +2,9 @@ name: UMX
 # thanks for @mpariente for copying this workflow
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 # Trigger the workflow on push or pull request
-on: [push, pull_request]
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   src-test:
