@@ -1,27 +1,16 @@
-name: Linter
-on: # yamllint disable-line rule:truthy
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
+name: Lint
+on: [push, pull_request] # yamllint disable-line rule:truthy
 jobs:
-  code-black:
-    name: CI
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      - name: Install Black and flake8
-        run: pip install black==24.4.0 flake8
-      - name: Run Black
-        run: python -m black --config=pyproject.toml --check openunmix tests scripts
-
-      - name: Lint with flake8
-        # Exit on important linting errors and warn about others.
-        run: |
-          python -m flake8  openunmix tests  --show-source --statistics  --select=F6,F7,F82,F52
-          python -m flake8 --config .flake8 --exit-zero openunmix tests  --statistics
+    - uses: actions/checkout@v4
+    - uses: psf/black@stable
+      with:
+        options: "--check --verbose"
+        version: "~= 24.4.0"
+    - uses: actions/checkout@v4
+    - name: Install yamllint
+      run: pip install yamllint==1.33.0
+    - name: Lint YAML files
+      run: yamllint .

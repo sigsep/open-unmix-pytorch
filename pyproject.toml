@@ -1,5 +1,35 @@
+[project]
+name = "separate_torch"
+authors = [
+    {name = "Fabian-Robert Stöter", email = "mail@faroit.com"},
+    {name = "Antoine Liutkus", email = "antoine.liutkus@inria.fr"},
+]
+description = "Reference implementation for music separation"
+version = "1.2.1"
+
+
 [tool.black]
-# https://github.com/psf/black
-line-length = 100
-target-version = ["py37"]
-exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+line-length = 120
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | \.idea
+    | \.vscode
+    | scripts
+    | notebooks
+    | separate.egg-info
+    | \.eggs
+  )/
+)
+'''
