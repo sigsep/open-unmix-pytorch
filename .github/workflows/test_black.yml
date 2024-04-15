@@ -8,13 +8,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.9
 
       - name: Install Black and flake8
-        run: pip install black==22.3.0 flake8
+        run: pip install black==24.4.0 flake8
       - name: Run Black
         run: python -m black --config=pyproject.toml --check openunmix tests scripts
 
