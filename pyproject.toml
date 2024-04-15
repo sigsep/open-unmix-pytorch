@@ -8,6 +8,16 @@ description = "Reference implementation for music separation"
 version = "1.2.1"
 
 
+[build-system]
+requires = ["setuptools >=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["readme"]
+
+[tool.setuptools.dynamic]
+readme = {file = ["LICENSE"]}
+
 [tool.black]
 line-length = 120
 target-version = ['py39']
