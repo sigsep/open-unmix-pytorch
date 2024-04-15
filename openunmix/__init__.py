@@ -11,8 +11,8 @@ import torch.hub
 
 def umxse_spec(targets=None, device="cpu", pretrained=True):
     target_urls = {
-        "speech": "https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth",
-        "noise": "https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth",
+        "speech": "https://zenodo.org/records/3786908/files/speech_f5e0d9f9.pth",
+        "noise": "https://zenodo.org/records/3786908/files/noise_04a6fc2d.pth",
     }
 
     from .model import OpenUnmix
@@ -100,10 +100,10 @@ def umxhq_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth",
-        "drums": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/drums-9619578f.pth",
-        "other": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth",
-        "vocals": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth",
+        "bass": "https://zenodo.org/records/3370489/files/bass-8d85a5bd.pth",
+        "drums": "https://zenodo.org/records/3370489/files/drums-9619578f.pth",
+        "other": "https://zenodo.org/records/3370489/files/other-b52fbbf7.pth",
+        "vocals": "https://zenodo.org/records/3370489/files/vocals-b62c91ce.pth",
     }
 
     if targets is None:
@@ -183,10 +183,10 @@ def umx_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth",
-        "drums": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/drums-5a48008b.pth",
-        "other": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth",
-        "vocals": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth",
+        "bass": "https://zenodo.org/records/3370486/files/bass-646024d3.pth",
+        "drums": "https://zenodo.org/records/3370486/files/drums-5a48008b.pth",
+        "other": "https://zenodo.org/records/3370486/files/other-f8e132cc.pth",
+        "vocals": "https://zenodo.org/records/3370486/files/vocals-c8df74a5.pth",
     }
 
     if targets is None:
@@ -266,10 +266,10 @@ def umxl_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/bass-2ca1ce51.pth",
-        "drums": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/drums-69e0ebd4.pth",
-        "other": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/other-c8c5b3e6.pth",
-        "vocals": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/vocals-bccbd9aa.pth",
+        "bass": "https://zenodo.org/records/5069601/files/bass-2ca1ce51.pth",
+        "drums": "https://zenodo.org/records/5069601/files/drums-69e0ebd4.pth",
+        "other": "https://zenodo.org/records/5069601/files/other-c8c5b3e6.pth",
+        "vocals": "https://zenodo.org/records/5069601/files/vocals-bccbd9aa.pth",
     }
 
     if targets is None:
