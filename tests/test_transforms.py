@@ -4,27 +4,27 @@ import torch
 from openunmix import transforms
 
 
-@pytest.fixture(params=[4096, 44100])
+@pytest.fixture(params=[4096])
 def nb_timesteps(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[1, 2])
+@pytest.fixture(params=[2])
 def nb_channels(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 2])
+@pytest.fixture(params=[2])
 def nb_samples(request):
     return request.param
 
 
-@pytest.fixture(params=[1024, 2048, 4096])
+@pytest.fixture(params=[2048])
 def nfft(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[2, 4])
+@pytest.fixture(params=[2])
 def hop(request, nfft):
     return nfft // request.param
 

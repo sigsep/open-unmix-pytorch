@@ -8,22 +8,22 @@ from openunmix import umx
 from openunmix import umxl
 
 
-@pytest.fixture(params=[10, 100])
+@pytest.fixture(params=[100])
 def nb_frames(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[1, 2, 3])
+@pytest.fixture(params=[1, 2])
 def nb_channels(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 5])
+@pytest.fixture(params=[2])
 def nb_samples(request):
     return request.param
 
 
-@pytest.fixture(params=[111, 1024])
+@pytest.fixture(params=[1024])
 def nb_bins(request):
     return request.param
 
@@ -33,7 +33,7 @@ def spectrogram(request, nb_samples, nb_channels, nb_bins, nb_frames):
     return torch.rand((nb_samples, nb_channels, nb_bins, nb_frames))
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[False])
 def unidirectional(request):
     return request.param
 

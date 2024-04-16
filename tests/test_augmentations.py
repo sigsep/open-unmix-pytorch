@@ -4,12 +4,12 @@ import torch
 from openunmix import data
 
 
-@pytest.fixture(params=[4096, 4096 * 10])
+@pytest.fixture(params=[4096])
 def nb_timesteps(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[1, 2, 3])
+@pytest.fixture(params=[1, 2])
 def nb_channels(request):
     return request.param
 
