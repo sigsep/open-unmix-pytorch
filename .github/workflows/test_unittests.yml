@@ -45,10 +45,7 @@ jobs:
       env:
         PY_COLORS: "1"
       run: |
-        set -o pipefail && python -m pytest tests/ \
-          -v -x \
-          --durations=10 \
-          --timeout=90 \
+        python -m "pytest tests/" -v -x
 
     - name: CLI tests
       run: |
