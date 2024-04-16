@@ -30,7 +30,6 @@ jobs:
       run: |
         python -m pip install --upgrade --user pip --quiet
         python -m pip install numpy Cython --upgrade-strategy only-if-needed --quiet
-        python -m pip install coverage codecov --upgrade-strategy only-if-needed --quiet
         python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu      
         python -m pip install -e .['tests']
         python --version
@@ -42,22 +41,16 @@ jobs:
         ./tests/create_dummy_datasets.sh
       shell: bash
 
-    - name: Source code tests
+    - name: Run tests
+      env:
+        PY_COLORS: "1"
       run: |
-        coverage run -a -m py.test tests
-        # chmod +x ./tests/cli_test.sh
-        # ./tests/cli_test.sh
+        set -o pipefail && python -m pytest tests/ \
+          -v -x \
+          --durations=10 \
+          --timeout=90 \
 
     - name: CLI tests
       run: |
         chmod +x ./tests/cli_test.sh
         ./tests/cli_test.sh
-
-    - name: Coverage report
-      run: |
-        coverage report -m
-        coverage xml -o coverage.xml
-    - name: Codecov upload
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
