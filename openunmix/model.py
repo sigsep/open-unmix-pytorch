@@ -289,9 +289,7 @@ class Separator(nn.Module):
             )
 
         nb_frames = spectrograms.shape[1]
-        targets_stft = torch.zeros(
-            mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device
-        )
+        targets_stft = torch.zeros(mix_stft.shape + (nb_sources,), dtype=audio.dtype, device=mix_stft.device)
         for sample in range(nb_samples):
             pos = 0
             if self.wiener_win_len:

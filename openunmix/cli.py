@@ -57,9 +57,7 @@ def separate():
         help="Audio chunk duration in seconds, negative values load full track",
     )
 
-    parser.add_argument(
-        "--no-cuda", action="store_true", default=False, help="disables CUDA inference"
-    )
+    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA inference")
 
     parser.add_argument(
         "--audio-backend",
@@ -86,8 +84,7 @@ def separate():
         "--residual",
         type=str,
         default=None,
-        help="if provided, build a source with given name "
-        "for the mix minus all estimated targets",
+        help="if provided, build a source with given name " "for the mix minus all estimated targets",
     )
 
     parser.add_argument(

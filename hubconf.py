@@ -4,7 +4,7 @@
 # `xxx`      take waveform inputs and output separated waveforms
 
 # Optional list of dependencies required by the package
-dependencies = ['torch', 'numpy']
+dependencies = ["torch", "numpy"]
 
 from openunmix import umxse_spec
 from openunmix import umxse

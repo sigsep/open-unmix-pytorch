@@ -112,7 +112,7 @@ class EarlyStopping(object):
             self.is_better = lambda a, best: a > best + min_delta
 
 
-def load_target_models(targets, model_str_or_path="umxhq", device="cpu", pretrained=True):
+def load_target_models(targets, model_str_or_path="umxl", device="cpu", pretrained=True):
     """Core model loader
 
     target model path can be either <target>.pth, or <target>-sha256.pth
@@ -162,7 +162,7 @@ def load_target_models(targets, model_str_or_path="umxhq", device="cpu", pretrai
 
 
 def load_separator(
-    model_str_or_path: str = "umxhq",
+    model_str_or_path: str = "umxl",
     targets: Optional[list] = None,
     niter: int = 1,
     residual: bool = False,
@@ -178,7 +178,7 @@ def load_separator(
             E.g. The following files are assumed to present when
             loading `model_str_or_path='mymodel', targets=['vocals']`
             'mymodel/separator.json', mymodel/vocals.pth', 'mymodel/vocals.json'.
-            Defaults to `umxhq`.
+            Defaults to `umxl`.
         targets (list of str or None): list of target names. When loading a
             pre-trained model, all `targets` can be None as all targets
             will be loaded
@@ -212,9 +212,7 @@ def load_separator(
         if targets is None:
             raise UserWarning("For custom models, please specify the targets")
 
-        target_models = load_target_models(
-            targets=targets, model_str_or_path=model_path, pretrained=pretrained
-        )
+        target_models = load_target_models(targets=targets, model_str_or_path=model_path, pretrained=pretrained)
 
         with open(Path(model_path, "separator.json"), "r") as stream:
             enc_conf = json.load(stream)
@@ -240,6 +238,7 @@ def load_separator(
             pretrained=True,
             niter=niter,
             residual=residual,
+            wiener_win_len=wiener_win_len,
             filterbank=filterbank,
         )
 

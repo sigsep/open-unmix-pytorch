@@ -2,7 +2,9 @@ name: UMX
 # thanks for @mpariente for copying this workflow
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 # Trigger the workflow on push or pull request
-on: [push, pull_request]
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   src-test:
@@ -10,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.9]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

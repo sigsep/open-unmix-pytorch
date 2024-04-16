@@ -1,5 +1,88 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openunmix"
+authors = [
+    {name = "Fabian-Robert Stöter", email = "mail@faroit.com"},
+    {name = "Antoine Liutkus", email = "antoine.liutkus@inria.fr"},
+]
+version = "1.3.0"
+description = "PyTorch-based music source separation toolkit"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+  "numpy",
+  "torchaudio>=0.9.0",
+  "torch>=1.9.0",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+asteroid = ["asteroid-filterbanks>=0.3.2"]
+stempeg = ["stempeg"]
+evaluation = ["musdb>=0.4.0", "museval>=0.4.0"]
+tests = [
+    "pytest",
+    "musdb>=0.4.0",
+    "museval>=0.4.0",
+    "stempeg",
+    "asteroid-filterbanks>=0.3.2",
+    "onnx",
+    "tqdm",
+]
+
+[project.scripts]
+umx = "openunmix.cli:separate"
+
+[project.urls]
+Homepage = "https://github.com/sigsep/open-unmix-pytorch"
+
 [tool.black]
-# https://github.com/psf/black
-line-length = 100
-target-version = ["py37"]
-exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+line-length = 120
+target-version = ['py39']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | \.idea
+    | \.vscode
+    | scripts
+    | notebooks
+    | \.eggs
+  )/
+)
+'''
+
+[tool.setuptools.packages.find]
+include = ["openunmix"]
+
+[tool.setuptools.package-data]
+openunmix = ["*.txt", "*.rst", "*.json", "*.wav", "*.pt"]

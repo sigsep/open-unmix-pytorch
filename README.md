@@ -149,8 +149,8 @@ Note that this requires the audio to be in the right shape and sampling rate. Fo
 To perform model loading, preprocessing and separation in one step, just use:
 
 ```python
-from openunmix import separate
-estimates = separate.predict(audio, ...)
+from openunmix.predict import separate
+estimates = separate(audio, ...)
 ```
 
 ### Load user-trained models

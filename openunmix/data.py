@@ -169,9 +169,7 @@ def load_datasets(
             "output_file": args.output_file,
         }
         args.target = Path(args.output_file).stem
-        train_dataset = AlignedDataset(
-            split="train", random_chunks=True, **dataset_kwargs
-        )  # type: UnmixDataset
+        train_dataset = AlignedDataset(split="train", random_chunks=True, **dataset_kwargs)  # type: UnmixDataset
         valid_dataset = AlignedDataset(split="valid", **dataset_kwargs)  # type: UnmixDataset
 
     elif args.dataset == "sourcefolder":
@@ -240,9 +238,7 @@ def load_datasets(
             seq_duration=args.seq_dur,
             **dataset_kwargs,
         )
-        valid_dataset = FixedSourcesTrackFolderDataset(
-            split="valid", seq_duration=None, **dataset_kwargs
-        )
+        valid_dataset = FixedSourcesTrackFolderDataset(split="valid", seq_duration=None, **dataset_kwargs)
 
     elif args.dataset == "trackfolder_var":
         parser.add_argument("--ext", type=str, default=".wav")
@@ -271,9 +267,7 @@ def load_datasets(
             "silence_missing_targets": args.silence_missing,
         }
 
-        source_augmentations = Compose(
-            [globals()["_augment_" + aug] for aug in args.source_augmentations]
-        )
+        source_augmentations = Compose([globals()["_augment_" + aug] for aug in args.source_augmentations])
 
         train_dataset = VariableSourcesTrackFolderDataset(
             split="train",
@@ -283,9 +277,7 @@ def load_datasets(
             seq_duration=args.seq_dur,
             **dataset_kwargs,
         )
-        valid_dataset = VariableSourcesTrackFolderDataset(
-            split="valid", seq_duration=None, **dataset_kwargs
-        )
+        valid_dataset = VariableSourcesTrackFolderDataset(split="valid", seq_duration=None, **dataset_kwargs)
 
     else:
         parser.add_argument(
@@ -295,9 +287,7 @@ def load_datasets(
             help="loads wav instead of STEMS",
         )
         parser.add_argument("--samples-per-track", type=int, default=64)
-        parser.add_argument(
-            "--source-augmentations", type=str, default=["gain", "channelswap"], nargs="+"
-        )
+        parser.add_argument("--source-augmentations", type=str, default=["gain", "channelswap"], nargs="+")
 
         args = parser.parse_args()
         dataset_kwargs = {
@@ -320,9 +310,7 @@ def load_datasets(
             **dataset_kwargs,
         )
 
-        valid_dataset = MUSDBDataset(
-            split="valid", samples_per_track=1, seq_duration=None, **dataset_kwargs
-        )
+        valid_dataset = MUSDBDataset(split="valid", samples_per_track=1, seq_duration=None, **dataset_kwargs)
 
     return train_dataset, valid_dataset, args
 
@@ -586,9 +574,7 @@ class FixedSourcesTrackFolderDataset(UnmixDataset):
         # assemble the mixture of target and interferers
         audio_sources = []
         # load target
-        target_audio, _ = load_audio(
-            track_path / self.target_file, start=start, dur=self.seq_duration
-        )
+        target_audio, _ = load_audio(track_path / self.target_file, start=start, dur=self.seq_duration)
         target_audio = self.source_augmentations(target_audio)
         audio_sources.append(target_audio)
         # load interferers
@@ -917,9 +903,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--root", type=str, help="root path of dataset")
 
-    parser.add_argument(
-        "--save", action="store_true", help=("write out a fixed dataset of samples")
-    )
+    parser.add_argument("--save", action="store_true", help=("write out a fixed dataset of samples"))
 
     parser.add_argument("--target", type=str, default="vocals")
     parser.add_argument("--seed", type=int, default=42)

@@ -5,14 +5,15 @@ Open-Unmix is a deep neural network reference implementation for music source se
 This is the python package API documentation. 
 Please checkout [the open-unmix website](https://sigsep.github.io/open-unmix) for more information.
 """
+
 from openunmix import utils
 import torch.hub
 
 
 def umxse_spec(targets=None, device="cpu", pretrained=True):
     target_urls = {
-        "speech": "https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/speech_f5e0d9f9.pth",
-        "noise": "https://zenodo.org/api/files/765b45a3-c70d-48a6-936b-09a7989c349a/noise_04a6fc2d.pth",
+        "speech": "https://zenodo.org/records/3786908/files/speech_f5e0d9f9.pth",
+        "noise": "https://zenodo.org/records/3786908/files/noise_04a6fc2d.pth",
     }
 
     from .model import OpenUnmix
@@ -26,15 +27,11 @@ def umxse_spec(targets=None, device="cpu", pretrained=True):
     # load open unmix models speech enhancement models
     target_models = {}
     for target in targets:
-        target_unmix = OpenUnmix(
-            nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=1024 // 2 + 1, nb_channels=1, hidden_size=256, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -43,14 +40,7 @@ def umxse_spec(targets=None, device="cpu", pretrained=True):
     return target_models
 
 
-def umxse(
-    targets=None,
-    residual=False,
-    niter=1,
-    device="cpu",
-    pretrained=True,
-    filterbank="torch",
-):
+def umxse(targets=None, residual=False, niter=1, device="cpu", pretrained=True, filterbank="torch", wiener_win_len=300):
     """
     Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
     trained on the 28-speaker version of Voicebank+Demand
@@ -66,6 +56,12 @@ def umxse(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -89,6 +85,7 @@ def umxse(
         n_hop=512,
         nb_channels=1,
         sample_rate=16000.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -100,10 +97,10 @@ def umxhq_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/bass-8d85a5bd.pth",
-        "drums": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/drums-9619578f.pth",
-        "other": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/other-b52fbbf7.pth",
-        "vocals": "https://zenodo.org/api/files/1c8f83c5-33a5-4f59-b109-721fdd234875/vocals-b62c91ce.pth",
+        "bass": "https://zenodo.org/records/3370489/files/bass-8d85a5bd.pth",
+        "drums": "https://zenodo.org/records/3370489/files/drums-9619578f.pth",
+        "other": "https://zenodo.org/records/3370489/files/other-b52fbbf7.pth",
+        "vocals": "https://zenodo.org/records/3370489/files/vocals-b62c91ce.pth",
     }
 
     if targets is None:
@@ -115,15 +112,11 @@ def umxhq_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -138,6 +131,7 @@ def umxhq(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -153,6 +147,12 @@ def umxhq(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -172,6 +172,7 @@ def umxhq(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -183,10 +184,10 @@ def umx_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/bass-646024d3.pth",
-        "drums": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/drums-5a48008b.pth",
-        "other": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/other-f8e132cc.pth",
-        "vocals": "https://zenodo.org/api/files/d6105b95-8c52-430c-84ce-bd14b803faaf/vocals-c8df74a5.pth",
+        "bass": "https://zenodo.org/records/3370486/files/bass-646024d3.pth",
+        "drums": "https://zenodo.org/records/3370486/files/drums-5a48008b.pth",
+        "other": "https://zenodo.org/records/3370486/files/other-f8e132cc.pth",
+        "vocals": "https://zenodo.org/records/3370486/files/vocals-c8df74a5.pth",
     }
 
     if targets is None:
@@ -198,15 +199,11 @@ def umx_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=512, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -221,6 +218,7 @@ def umx(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -236,6 +234,12 @@ def umx(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -255,6 +259,7 @@ def umx(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -266,10 +271,10 @@ def umxl_spec(targets=None, device="cpu", pretrained=True):
 
     # set urls for weights
     target_urls = {
-        "bass": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/bass-2ca1ce51.pth",
-        "drums": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/drums-69e0ebd4.pth",
-        "other": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/other-c8c5b3e6.pth",
-        "vocals": "https://zenodo.org/api/files/f8209c3e-ba60-48cf-8e79-71ae65beca61/vocals-bccbd9aa.pth",
+        "bass": "https://zenodo.org/records/5069601/files/bass-2ca1ce51.pth",
+        "drums": "https://zenodo.org/records/5069601/files/drums-69e0ebd4.pth",
+        "other": "https://zenodo.org/records/5069601/files/other-c8c5b3e6.pth",
+        "vocals": "https://zenodo.org/records/5069601/files/vocals-bccbd9aa.pth",
     }
 
     if targets is None:
@@ -281,15 +286,11 @@ def umxl_spec(targets=None, device="cpu", pretrained=True):
     target_models = {}
     for target in targets:
         # load open unmix model
-        target_unmix = OpenUnmix(
-            nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=1024, max_bin=max_bin
-        )
+        target_unmix = OpenUnmix(nb_bins=4096 // 2 + 1, nb_channels=2, hidden_size=1024, max_bin=max_bin)
 
         # enable centering of stft to minimize reconstruction error
         if pretrained:
-            state_dict = torch.hub.load_state_dict_from_url(
-                target_urls[target], map_location=device
-            )
+            state_dict = torch.hub.load_state_dict_from_url(target_urls[target], map_location=device)
             target_unmix.load_state_dict(state_dict, strict=False)
             target_unmix.eval()
 
@@ -304,6 +305,7 @@ def umxl(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -321,6 +323,12 @@ def umxl(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -340,6 +348,7 @@ def umxl(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
