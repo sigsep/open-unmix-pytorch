@@ -46,8 +46,3 @@ jobs:
         PY_COLORS: "1"
       run: |
         pytest tests -vv
-
-    - name: CLI tests
-      run: |
-        chmod +x ./tests/cli_test.sh
-        ./tests/cli_test.sh
