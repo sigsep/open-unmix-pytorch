@@ -44,6 +44,7 @@ tests = [
     "pytest",
     "musdb>=0.4.0",
     "museval>=0.4.0",
+    "stempeg",
     "asteroid-filterbanks>=0.3.2",
     "onnx",
     "tqdm",
