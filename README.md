@@ -4,14 +4,14 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1mijF0zGWxN-KaxTnd0q6hayAlrID5fEQ)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open-unmix-a-reference-implementation-for/music-source-separation-on-musdb18)](https://paperswithcode.com/sota/music-source-separation-on-musdb18?p=open-unmix-a-reference-implementation-for)
 
-[![Build Status](https://github.com/sigsep/open-unmix-pytorch/workflows/CI/badge.svg)](https://github.com/sigsep/open-unmix-pytorch/actions?query=workflow%3ACI)
-[![Latest Version](https://img.shields.io/pypi/v/openunmix.svg)](https://pypi.python.org/pypi/openunmix)
+[![CI](https://github.com/sigsep/open-unmix-pytorch/actions/workflows/test_unittests.yml/badge.svg?event=pull_request)](https://github.com/sigsep/open-unmix-pytorch/actions/workflows/test_unittests.yml)[![Latest Version](https://img.shields.io/pypi/v/openunmix.svg)](https://pypi.python.org/pypi/openunmix)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/openunmix.svg)](https://pypi.python.org/pypi/openunmix)
 
 This repository contains the PyTorch (1.8+) implementation of __Open-Unmix__, a deep neural network reference implementation for music source separation, applicable for researchers, audio engineers and artists. __Open-Unmix__ provides ready-to-use models that allow users to separate pop music into four stems: __vocals__, __drums__, __bass__ and the remaining __other__ instruments. The models were pre-trained on the freely available [MUSDB18](https://sigsep.github.io/datasets/musdb.html) dataset. See details at [apply pre-trained model](#getting-started).
 
 ## ⭐️ News 
 
+- 16/04/2024: We brought the repo to torch 2.0 level. Everything seems to work fine again, but we needed to relax the regression tests. With most recent version results a slightly different, so be warned when running unit tests
 - 03/07/2021: We added `umxl`, a model that was trained on extra data which significantly improves the performance, especially generalization.
 - 14/02/2021: We released the new version of open-unmix as a python package. This comes with: a fully differentiable version of [norbert](https://github.com/sigsep/norbert), improved audio loading pipeline and large number of bug fixes. See [release notes](https://github.com/sigsep/open-unmix-pytorch/releases/) for further info.
 
