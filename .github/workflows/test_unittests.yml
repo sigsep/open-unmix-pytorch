@@ -45,7 +45,7 @@ jobs:
       env:
         PY_COLORS: "1"
       run: |
-        python -m "pytest tests/" -v -x
+        pytest tests -vv
 
     - name: CLI tests
       run: |
