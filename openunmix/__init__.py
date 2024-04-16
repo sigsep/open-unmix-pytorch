@@ -40,15 +40,7 @@ def umxse_spec(targets=None, device="cpu", pretrained=True):
     return target_models
 
 
-def umxse(
-    targets=None,
-    residual=False,
-    niter=1,
-    device="cpu",
-    pretrained=True,
-    filterbank="torch",
-    wiener_win_len=300
-):
+def umxse(targets=None, residual=False, niter=1, device="cpu", pretrained=True, filterbank="torch", wiener_win_len=300):
     """
     Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
     trained on the 28-speaker version of Voicebank+Demand
