@@ -81,7 +81,7 @@ exclude = '''
 '''
 
 [tool.setuptools.packages.find]
-where = ["openunmix"]
+include = ["openunmix"]
 
 [tool.setuptools.package-data]
 openunmix = ["*.txt", "*.rst", "*.json", "*.wav", "*.pt"]
