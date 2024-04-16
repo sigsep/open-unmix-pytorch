@@ -1,20 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "separate_torch"
+name = "openunmix"
 authors = [
     {name = "Fabian-Robert Stöter", email = "mail@faroit.com"},
     {name = "Antoine Liutkus", email = "antoine.liutkus@inria.fr"},
 ]
-description = "Reference implementation for music separation"
-version = "1.2.1"
-dynamic = ["readme"]
+version = "1.3.0"
+description = "PyTorch-based music source separation toolkit"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+  "numpy",
+  "torchaudio>=0.9.0",
+  "torch>=1.9.0",
+  "tqdm",
+]
 
+[project.optional-dependencies]
+asteroid = ["asteroid-filterbanks>=0.3.2"]
+stempeg = ["stempeg"]
+evaluation = ["musdb>=0.4.0", "museval>=0.4.0"]
+tests = [
+    "pytest",
+    "musdb>=0.4.0",
+    "museval>=0.4.0",
+    "asteroid-filterbanks>=0.3.2",
+    "onnx",
+    "tqdm",
+]
 
-[build-system]
-requires = ["setuptools >=61"]
-build-backend = "setuptools.build_meta"
+[project.scripts]
+umx = "openunmix.cli:separate"
 
-[tool.setuptools.dynamic]
-readme = {file = ["LICENSE"]}
+[project.urls]
+Homepage = "https://github.com/sigsep/open-unmix-pytorch"
 
 [tool.black]
 line-length = 120
@@ -36,8 +75,13 @@ exclude = '''
     | \.vscode
     | scripts
     | notebooks
-    | separate.egg-info
     | \.eggs
   )/
 )
 '''
+
+[tool.setuptools.packages.find]
+where = ["openunmix"]
+
+[tool.setuptools.package-data]
+openunmix = ["*.txt", "*.rst", "*.json", "*.wav", "*.pt"]

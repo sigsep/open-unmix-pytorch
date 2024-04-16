@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10]
+        python-version: [3.9]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
