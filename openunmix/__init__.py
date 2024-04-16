@@ -47,6 +47,7 @@ def umxse(
     device="cpu",
     pretrained=True,
     filterbank="torch",
+    wiener_win_len=300
 ):
     """
     Open Unmix Speech Enhancemennt 1-channel BiLSTM Model
@@ -63,6 +64,12 @@ def umxse(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -86,6 +93,7 @@ def umxse(
         n_hop=512,
         nb_channels=1,
         sample_rate=16000.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -131,6 +139,7 @@ def umxhq(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -146,6 +155,12 @@ def umxhq(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -165,6 +180,7 @@ def umxhq(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -210,6 +226,7 @@ def umx(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -225,6 +242,12 @@ def umx(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -244,6 +267,7 @@ def umx(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 
@@ -289,6 +313,7 @@ def umxl(
     niter=1,
     device="cpu",
     pretrained=True,
+    wiener_win_len=300,
     filterbank="torch",
 ):
     """
@@ -306,6 +331,12 @@ def umxl(
         residual (bool): if True, a "garbage" target is created
         niter (int): the number of post-processingiterations, defaults to 0
         device (str): selects device to be used for inference
+        wiener_win_len (int or None): The size of the excerpts
+            (number of frames) on which to apply filtering
+            independently. This means assuming time varying stereo models and
+            localization of sources.
+            None means not batching but using the whole signal. It comes at the
+            price of a much larger memory usage.
         filterbank (str): filterbank implementation method.
             Supported are `['torch', 'asteroid']`. `torch` is about 30% faster
             compared to `asteroid` on large FFT sizes such as 4096. However,
@@ -325,6 +356,7 @@ def umxl(
         n_hop=1024,
         nb_channels=2,
         sample_rate=44100.0,
+        wiener_win_len=wiener_win_len,
         filterbank=filterbank,
     ).to(device)
 

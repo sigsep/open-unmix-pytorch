@@ -238,6 +238,7 @@ def load_separator(
             pretrained=True,
             niter=niter,
             residual=residual,
+            wiener_win_len=wiener_win_len,
             filterbank=filterbank,
         )
 
