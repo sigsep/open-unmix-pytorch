@@ -23,5 +23,5 @@ six==1.16.0
 smmap==4.0.0
 SoundFile==0.10.3.post1
 stempeg==0.2.3
-tqdm==4.62.2
+tqdm==4.66.3
 typing-extensions==3.10.0.2
